@@ -14,9 +14,6 @@
 // include configuration file
 require '../config.php';
 
-// include edit area wrapper script
-require_once WB_PATH . '/include/editarea/wb_wrapper_edit_area.php';
-
 // include functions to edit the optional module CSS files (frontend.css, backend.css)
 require_once WB_PATH . '/framework/module.functions.php';
 
