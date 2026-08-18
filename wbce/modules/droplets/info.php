@@ -14,7 +14,7 @@ $core = true;
 $module_directory   = 'droplets';
 $module_name        = 'Droplets';
 $module_function    = 'tool';
-$module_version     = '2.4.5';
+$module_version     = '2.4.6';
 $module_platform    = '1.6.0';
 $module_author      = 'Ruud, pcwacht, WebBird, cwsoft, Norhei, Colinax, Christian M. Stefan';
 $module_license     = 'GNU/GPL v2';
@@ -27,6 +27,15 @@ $module_guid        = '9F2AC2DF-C3E1-4E15-BA4C-2A86E37FE6E5';
  * Version History
  * =============================================================================
  *
+ *
+ * v2.4.6 Christian M. Stefan 18.08 2026
+ *        - AjaxSave (the CodeEditor toolbar's "AjaxSave" checkbox / Ctrl-S in
+ *          ajax_save_droplet.php) used to POST only { idKey, code_area_text }
+ *          and write just `code`/`modified_when`/`modified_by` to the DB, so
+ *          any other field the admin had changed on the same page load
+ *          (title, description, comments, active, admin_edit/admin_view) was
+ *          silently discarded. Now saves all data from the form via Ajax
+ *          correctly
  *
  * v2.4.5 Christian M. Stefan 10.08 2026
  *        - multi-driver SQL corrections (MySQL/SQLite) as preparation for
