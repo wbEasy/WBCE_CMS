@@ -33,6 +33,33 @@ function parseAddonScope(string $raw, array $whitelist = []): array
 
 // ── Modules ───────────────────────────────────────────────────────────────────
 
+/**
+ * Find a module's README — plain README.md, or README_<LANG>.md (current
+ * backend language) if there's no plain README.md. Returns the WB_PATH-
+ * relative path MdReaderLink::file() expects, or null if neither exists.
+ *
+ * Preferring README.md over README_<LANG>.md when BOTH exist is
+ * MdReaderHelper::resolveLanguage()'s job inside the reader itself (it
+ * always starts from the base file and looks for a localised sibling) —
+ * this only decides whether there's anything to link to at all, so a
+ * module that ships ONLY a README_DE.md (no base file) still gets found.
+ */
+function findModuleReadme(string $directory): ?string
+{
+    $base = WB_PATH . '/modules/' . $directory;
+
+    if (is_readable($base . '/README.md')) {
+        return '/modules/' . $directory . '/README.md';
+    }
+
+    $localized = $base . '/README_' . LANGUAGE . '.md';
+    if (is_readable($localized)) {
+        return '/modules/' . $directory . '/README_' . LANGUAGE . '.md';
+    }
+
+    return null;
+}
+
 function getModulesArray(): array
 {
     global $database;
@@ -125,6 +152,15 @@ function getModulesArray(): array
                     unset($module_description);
                 }
             }
+
+            // README discovery — MarkdownWbce popup link, or null when the
+            // module ships neither README.md nor README_<LANG>.md.
+            $readmePath = findModuleReadme($rec['directory']);
+            $rec['readme_link_html'] = $readmePath !== null
+                ? MdReaderLink::file($readmePath)
+                    ->title($rec['name'] ?? $rec['directory'])
+                    ->linkHtml('README', 'am-readme-btn')
+                : null;
 
             $aAddons['addons'][] = $rec;
         }

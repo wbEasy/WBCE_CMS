@@ -3,7 +3,7 @@
  * @file       functions.php
  * @category   admintool
  * @package    addon_monitor
- * @author     Christian M. Stefan (https://www.wbeasy.de)
+ * @author     Christian M. Stefan (https://www.wbEasy.de)
  * @license    http://www.gnu.org/licenses/gpl.html
  * @platform   WBCE CMS 1.7.0
  */
