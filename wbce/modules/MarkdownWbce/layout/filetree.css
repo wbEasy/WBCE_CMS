@@ -1,0 +1,202 @@
+/* layout/filetree.css — visual FileTree renderer
+ * Vendored from modules/tiptap_editor/assets/filetree.css — keep in sync
+ * manually if the original changes (except the --ft-* dark-mode block
+ * below, which is MarkdownWbce-only — the tiptap editor has no theme
+ * switcher). Load alongside layout/filetree.js.
+ *
+ * --mdr-* tokens come from layout/style.css (always loaded first) — same
+ * light/dark source of truth as the rest of the reader.
+ */
+
+.file-tree-container {
+    --ft-color-bg:      #f8fafc;
+    --ft-color-comment: #94a3b8;
+    --ft-line-color:    #a9d6e8;
+    --ft-tree-indent:   28px;
+    --ft-line-style:    solid;
+
+    position: relative;
+    background-color: var(--mdr-bg-subtle, var(--ft-color-bg));
+    border: 1px solid var(--mdr-border, #e2e8f0);
+    border-radius: 6px;
+    /* Extra top padding clears the .mdr-code-toolbar badge/copy button
+       (see layout/filetree.js), which sits absolutely positioned at
+       top:.5rem — same toolbar the reader's regular code blocks use. */
+    padding: 44px 20px 20px;
+    overflow-x: auto;
+}
+
+.treeview-root {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: monospace, courier;
+    font-size: 14px;
+    line-height: 24px;
+}
+
+.treeview-item {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    height: 24px;
+    position: relative;
+}
+
+.tree-indent-wrapper {
+    display: flex;
+    height: 100%;
+    align-self: stretch;
+}
+
+.tree-line-cell {
+    width: var(--ft-tree-indent);
+    height: 100%;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Vertikale Linie │ */
+.line-vertical::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    border-left: 1px var(--ft-line-style) var(--ft-line-color);
+}
+
+/* T-Stück ├── */
+.line-t::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    border-left: 1px var(--ft-line-style) var(--ft-line-color);
+}
+.line-t::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 12px;
+    width: 14px;
+    border-top: 1px var(--ft-line-style) var(--ft-line-color);
+}
+
+/* Eck-Stück └── */
+.line-corner::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    height: 13px;
+    border-left: 1px var(--ft-line-style) var(--ft-line-color);
+}
+.line-corner::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 12px;
+    width: 14px;
+    border-top: 1px var(--ft-line-style) var(--ft-line-color);
+}
+
+/* Icons */
+.tree-icon {
+    margin-right: 8px;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    user-select: none;
+    flex-shrink: 0;
+    z-index: 2;
+}
+
+.tree-name {
+    font-weight: 500;
+    margin-right: 12px;
+    color: var(--mdr-fg-strong, #334155);
+}
+
+/* Dark-mode overrides for the two --ft-* vars that don't already fall back
+   to an --mdr-* token above (comment color, connector-line color) — same
+   :root[data-theme] / prefers-color-scheme sources as layout/style.css. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .file-tree-container {
+        --ft-color-comment: #6e7681;
+        --ft-line-color:    #30363d;
+    }
+}
+:root[data-theme="dark"] .file-tree-container {
+    --ft-color-comment: #6e7681;
+    --ft-line-color:    #30363d;
+}
+
+.tree-name--folder {
+    font-weight: 700;
+}
+
+.tree-comment {
+    font-style: italic;
+    color: var(--ft-color-comment);
+    white-space: pre;
+}
+
+/* Ordner (Türkis) */
+.icon-folder {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232ca58d'%3E%3Cpath d='M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a3 3 0 0 1 2.122.879l1.72 1.72a.75.75 0 0 0 .53.22h5.749A3 3 0 0 1 22.5 7v3.146a4.5 4.5 0 0 0-3-1.146h-15a4.5 4.5 0 0 0-3 1.146Z'/%3E%3C/svg%3E");
+}
+
+/* Standard-Datei (Grau) */
+.icon-file {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3Cpath fill='%23f8fafc' d='M14.25 2.625a.75.75 0 0 0-1.5 0v3.75c0 .621.504 1.125 1.125 1.125h3.75a.75.75 0 0 0 0-1.5h-3.375V2.625Z'/%3E%3C/svg%3E");
+}
+
+/* PHP-Datei (Violett) */
+.icon-php {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23777bb4'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3Cpath fill='%23ffffff' d='M10 11.5l-2 2 2 2m4-4l2 2-2 2'/%3E%3C/svg%3E");
+}
+
+/* JavaScript-Datei (Gelb) */
+.icon-js {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eab308'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3Cpath fill='%23000000' d='M13 16.5v-1h1.5v-3H13v-1h2.5v5H13z'/%3E%3C/svg%3E");
+}
+
+/* CSS-Datei (Blau) */
+.icon-css {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3Cpath fill='%23ffffff' d='M9.5 12h5v1h-5v-1zm0 2h5v1h-5v-1z'/%3E%3C/svg%3E");
+}
+
+/* SQL-Datei (Orange) */
+.icon-sql {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f97316'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* HTML-Datei (Rot/Orange) */
+.icon-html {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e44d26'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* JSON-Datei (Grün) */
+.icon-json {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* MD-Datei (Grau-Blau) */
+.icon-md {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23475569'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* TXT-Datei (Grau) */
+.icon-txt {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* Copy button + language-style badge now reuse .mdr-code-toolbar/
+   .mdr-code-lang/.mdr-code-copy from layout/markdown.css instead of the
+   original tiptap version's standalone .treeview-copy-btn — see
+   layout/filetree.js. */
