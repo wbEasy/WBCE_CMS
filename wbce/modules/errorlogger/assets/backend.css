@@ -271,6 +271,102 @@
     margin-top: .1rem;
 }
 
+/* ── CodeVet tab ──────────────────────────────────────────────── */
+
+.errorlogger-tool .cv-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .9rem;
+    font-size: .78rem;
+    color: var(--text-dim);
+    margin: .2rem 0 .6rem;
+}
+.errorlogger-tool .cv-summary b { color: var(--text); font-weight: 600; }
+.errorlogger-tool .cv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35em;
+    padding: .12em .55em;
+    border-radius: 999px;
+    background: var(--surface3);
+    font-size: .72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Profile badges — reuse the .el-badge shape */
+.errorlogger-tool .el-badge--droplet      { background: #e0e7ff; color: #4338ca; }
+.errorlogger-tool .el-badge--outputfilter { background: #ccfbf1; color: #0f766e; }
+.errorlogger-tool .el-badge--code2        { background: #f3e8ff; color: #7e22ce; }
+.errorlogger-tool .el-badge--addon        { background: #ffedd5; color: #c2410c; }
+.errorlogger-tool .el-badge--other        { background: var(--surface3); color: var(--text-dim); }
+
+/* Severity marker: coloured bar on the row + a small pill in the Type cell */
+.errorlogger-tool .cv-table tr.cv-block td { box-shadow: inset 3px 0 0 var(--danger); }
+.errorlogger-tool .cv-table tr.cv-warn  td { box-shadow: inset 3px 0 0 var(--warning); }
+.errorlogger-tool .cv-table tr.el-new td   { box-shadow: inset 3px 0 0 var(--warning); }
+
+.errorlogger-tool .cv-sev {
+    display: inline-block;
+    margin-left: .3em;
+    padding: .05em .45em;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+.errorlogger-tool .cv-sev--block { background: var(--danger-bg);  color: var(--danger); }
+.errorlogger-tool .cv-sev--warn  { background: var(--warning-bg); color: var(--warning); }
+
+.errorlogger-tool .cv-action { font-weight: 500; }
+
+/* Findings cell */
+.errorlogger-tool .cv-finding {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .73rem;
+}
+.errorlogger-tool .cv-finding + .cv-finding { margin-top: .15rem; }
+.errorlogger-tool .cv-rule {
+    display: inline-block;
+    margin-right: .4em;
+    padding: .02em .4em;
+    border-radius: 3px;
+    background: var(--surface3);
+    color: var(--text-dim);
+    font-size: .64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.errorlogger-tool .cv-fline { color: var(--text-dim); }
+.errorlogger-tool .cv-more {
+    display: inline-block;
+    margin-top: .25rem;
+    font-size: .68rem;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+}
+.errorlogger-tool .cv-hidden-findings { display: none; }
+.errorlogger-tool tr.cv-expanded .cv-hidden-findings { display: block; }
+.errorlogger-tool tr.cv-expanded .cv-more { display: none; }
+
+/* Where cell */
+.errorlogger-tool .cv-where {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--text-dim);
+}
+.errorlogger-tool .cv-where b { color: var(--accent); font-weight: 600; }
+
+.errorlogger-tool .cv-foot {
+    margin-top: .8rem;
+    font-size: .74rem;
+    color: var(--text-dim);
+}
+
 @media (max-width: 720px) {
     .errorlogger-tool .el-logtable { table-layout: auto; }
     .errorlogger-tool .el-logtable colgroup { display: none; }

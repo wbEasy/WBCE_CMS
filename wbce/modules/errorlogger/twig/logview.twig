@@ -17,8 +17,8 @@
 
     <div class="cp-search pull-right">
         <input class="cp-table-filter" id="errlogFilter" type="text"
-               placeholder="{{ L_('TXT:SEARCH_PLACEHOLDER')|e('html_attr') }}"
-               data-empty="{{ L_('TXT:NO_RESULTS')|e('html_attr') }}">
+               placeholder="{{ L_('TXT:SEARCH_PLACEHOLDER')|e }}"
+               data-empty="{{ L_('TXT:NO_RESULTS')|e }}">
         <button class="cp-search-clear" type="button"
                 onclick="this.previousElementSibling.value='';
                          this.previousElementSibling.dispatchEvent(new Event('input'));
@@ -40,7 +40,7 @@
 {% elseif VIEW == 2 %}
 
     <div class="logviewWrapper">
-    <table class="el-logtable" data-locale="{{ LOCALE|e('html_attr') }}">
+    <table class="el-logtable" data-locale="{{ LOCALE|e }}">
         <colgroup>
             <col style="width:5.5rem"><col style="width:9.5rem"><col>
             <col style="width:30%"><col style="width:3.5rem">
@@ -58,12 +58,12 @@
         {% for rec in TABLE_ROWS %}
             <tr{{ rec.is_new ? ' class="el-new"'|raw : '' }}>
                 <td class="el-c-type">
-                    <span class="el-badge el-badge--{{ rec.badge_mod }}" title="{{ rec.type|e('html_attr') }}">{{ rec.badge_label|e }}</span>
+                    <span class="el-badge el-badge--{{ rec.badge_mod }}" title="{{ rec.type|e }}">{{ rec.badge_label|e }}</span>
                     {% if rec.count > 1 %}<span class="el-count" title="{{ rec.count }}×">×{{ rec.count }}</span>{% endif %}
                 </td>
                 <td class="el-c-time">
                     <span class="el-ago" data-ts="{{ rec.unix }}">{{ rec.ts[:16]|replace({'T': ' '})|e }}</span>
-                    {% if rec.exact %}<time datetime="{{ rec.ts|e('html_attr') }}">{{ rec.exact|e }}</time>{% endif %}
+                    {% if rec.exact %}<time datetime="{{ rec.ts|e }}">{{ rec.exact|e }}</time>{% endif %}
                 </td>
                 <td class="el-c-msg">
                     <span class="el-msg">{{ rec.msg|e|nl2br }}</span>

@@ -13,6 +13,13 @@ that happen while the page is still being assembled — including the URL that w
 being requested when the error occurred, which makes a problem far easier to
 locate.
 
+A second job, unrelated to PHP errors: the **CodeVet** tab surfaces the security
+audit log written by `framework/CodeVet.php` — a running record of every Droplet,
+Outputfilter or Code2 save and every add-on ZIP upload that was **blocked** or
+**flagged** for dangerous code (`eval()`, shell functions, obfuscation, …). That
+log is written on every such event but has no viewer of its own, so it lives
+here.
+
 ---
 
 ## What it does
@@ -25,15 +32,17 @@ locate.
   page triggered it.
 * Never prints errors to the visitor — `display_errors` is forced off by the
   handler regardless of the PHP configuration.
+* Does **not** write the CodeVet log — that is `framework/CodeVet.php`'s job.
+  This tool only *reads* `var/code_vet/codevet.log` for the CodeVet tab.
 
 ## The backend tool
 
-The tool has two tabs.
+The tool has three tabs: **Error-Log**, **CodeVet** and **Settings**.
 
-### Log View
+### Error-Log
 
-* **Plain / Colour / Table** view of the captured log, remembered per user via a
-  cookie.
+* **Plain / Colour / Table** view of the captured PHP error log, remembered per
+  user via a cookie.
 * **Search box** — a client-side live filter over the visible lines/rows.
 * **Reload** and **Delete logfile** (the current file is archived as
   `<timestamp>_php_error.log.php`, never truly deleted).
@@ -60,6 +69,14 @@ counter. Type badges:
 | `Deprecated` | Genuine PHP language deprecations                                                                         |
 | `SQL`        | Real database errors (`SQLSTATE…`, PDO/mysqli)                                                            |
 | `PDO`        | `PDO_CANONICAL_DEBUG` nudges — legacy `Database::` method calls that should move to the canonical PDO API |
+
+### CodeVet
+
+Surfaces `framework/CodeVet.php`'s audit log (`var/code_vet/codevet.log`): every
+Droplet, Outputfilter or Code2 save and every add-on ZIP upload that CodeVet
+**blocked** or **flagged**. Per-profile badges, the individual findings, `↳ from`
+paths, `×N` folding of repeats, and an *Archive log* / *Include archived logs*
+control. Where possible the offending Droplet / Outputfilter is shown by name.
 
 ### Settings
 
@@ -103,7 +120,7 @@ Further contributions over the years by *florian*, *Colinax* and
 
 * Backend UI ported to the WBCE 1.7.0 `cp_chrome` / `cp_theme` design system
   (tabbed layout, toolbar, cards) — follows the active backend theme.
-* Split into **Log View** and **Settings** tabs.
+* Split into **Error-Log**, **CodeVet** and **Settings** tabs.
 * Settings tab: `WBCE_DEBUG`, `SQL_DEBUG`, `PDO_CANONICAL_DEBUG` and `ER_LEVEL`
   as fully documented switches in a single FTAN-protected form, replacing the
   old unprotected GET toggle links.

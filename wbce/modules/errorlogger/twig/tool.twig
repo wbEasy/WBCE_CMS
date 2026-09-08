@@ -4,8 +4,15 @@
     Common:
       MODULE_NAME   tool title (shown in the tab bar)
       BASE          tool URL (…/tool.php?tool=errorlogger)
-      TAB           'log' | 'settings'
+      TAB           'log' | 'codevet' | 'settings'
       WARNINGS      [ {type: 'warning'|'info', text}, … ]
+
+    CodeVet tab:
+      CV_ROWS      [ {ts, unix, exact, profile, severity, count, is_new,
+                      findings:[{rule,message,line,file}], where:[{label,value,file}]}, … ]
+      CV_SUMMARY   {total, per_profile:{profile:n}, last_unix, archives}
+      CV_WITH_ALL  bool — archives folded in
+      LOCALE       language for Intl.RelativeTimeFormat
 
     Settings tab:
       FTAN                hidden FTAN input (raw HTML)
@@ -37,6 +44,11 @@
                     <i class="fa fa-list-alt"></i> {{ L_('TXT:TAB_LOG') }}
                 </a>
             </li>
+            <li{{ TAB == 'codevet' ? ' class="actionSel"'|raw : '' }}>
+                <a class="tab{{ TAB == 'codevet' ? ' sel' : '' }}" href="{{ BASE }}&tab=codevet">
+                    <i class="fa fa-shield"></i> {{ L_('TXT:TAB_CODEVET') }}
+                </a>
+            </li>
             <li{{ TAB == 'settings' ? ' class="actionSel"'|raw : '' }}>
                 <a class="tab{{ TAB == 'settings' ? ' sel' : '' }}" href="{{ BASE }}&tab=settings">
                     <i class="fa fa-sliders"></i> {{ L_('TXT:TAB_SETTINGS') }}
@@ -56,6 +68,8 @@
 
     {% if TAB == 'settings' %}
         {% include 'settings.twig' %}
+    {% elseif TAB == 'codevet' %}
+        {% include 'codevet.twig' %}
     {% else %}
         {% include 'logview.twig' %}
     {% endif %}

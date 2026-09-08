@@ -17,12 +17,12 @@ if (defined('WB_PATH') == false) {
 
 $module_directory   = 'errorlogger';
 $module_name        = 'Errorlog viewer';
-$module_version     = '1.1.7';
+$module_version     = '2.0.0';
 $module_function    = 'tool, preinit, initialize';
 $module_platform    = '1.7.0';
 $module_author      = 'Ruud Eisinga - Dev4me, Christian M. Stefan';
 $module_license	    = 'GNU General Public License';
-$module_description = 'Catch PHP warnings and errors into a logfile and view them using this tool.';
+$module_description = 'PHP warnings and errors are written to a private logfile and shown in a comfortable backend view — plus a CodeVet tab with the audit log of every Droplet, Outputfilter, Code2 save or add-on upload that CodeVet blocked or flagged for dangerous code.';
 $module_icon        = 'fa fa-bug';
 $module_level       = 'core';
 
@@ -30,11 +30,23 @@ $module_level       = 'core';
 /**
  * DEVELOPMENT HISTORY (Change Log):
  *
+ * v.2.0.0 2026-09-08 Christian M. Stefan
+ *         [+] CodeVet tab: surfaces framework/CodeVet.php's audit log
+ *             (var/code_vet/codevet.log) — every blocked/flagged Droplet,
+ *             Outputfilter, Code2 save and add-on ZIP upload, with per-profile
+ *             badges, findings, "×N" collapse, archive rotation and a
+ *             "load archives" toggle. Reader is the CodeVetLog class; it
+ *             resolves droplet_id / filter_id to the droplet / filter name
+ *             (one batched query, falls back to "#<id>").
+ *         [c] The "Error-Log" tab was renamed from "Log View" now that a
+ *             second log tab exists; module_description (all 9 locales) and
+ *             README updated to mention CodeVet.
+ * 
  * v.1.2.0 2026-09-08 Christian M. Stefan
  *         [c] Layout ported to the cp_chrome / cp_theme backend design system
  *             (section.cp-main, nav.cp-tabs, cp-toolbar, cp-card) — matches the
  *             rest of the 1.7.0 backend and follows the active theme.
- *         [+] Split into two tabs: "Log View" and "Settings".
+ *         [+] Split into three tabs: "Error-Log", "CodeVet" and "Settings".
  *         [+] Settings tab: WBCE_DEBUG / SQL_DEBUG / PDO_CANONICAL_DEBUG (file
  *             based) + ER_LEVEL (DB) as described switches in one FTAN-protected
  *             POST form — replaces the old unprotected GET toggle links.

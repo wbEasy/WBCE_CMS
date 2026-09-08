@@ -2,10 +2,10 @@
 /**
  * errorlogger — tool.php
  *
- * AdminTool controller: permission check, state changes (save / delete /
+ * AdminTool controller: permission check, state changes (save / archive /
  * view-mode cookie), then it hands a plain data array to twig/tool.twig.
- * No markup lives here — see ErrorlogParser.php for the log logic and
- * twig/tool.twig for the layout.
+ * No markup lives here — see ErrorlogParser.php / CodeVetLog.php for the log
+ * logic and twig/ for the layout.
  *
  * Included by admin/admintools/tool.php, which already enforced the
  * 'admintools' permission, loaded the language files and opened the page shell.
@@ -19,15 +19,16 @@ defined('WB_PATH') or die('Cannot access this file directly');
 $admin->get_permission('admintools') or die(header('Location: ../../index.php'));
 
 require_once __DIR__ . '/ErrorlogParser.php';
+require_once __DIR__ . '/CodeVetLog.php';
 
 $base            = ADMIN_URL . '/admintools/tool.php?tool=errorlogger';
-$tab             = (($_GET['tab'] ?? '') === 'settings') ? 'settings' : 'log';
+$tab             = in_array($_GET['tab'] ?? '', ['settings', 'codevet'], true) ? $_GET['tab'] : 'log';
 $debugConstants  = ['WBCE_DEBUG', 'SQL_DEBUG', 'PDO_CANONICAL_DEBUG'];
 // WBCE_DEBUG can't be toggled here while WB_DEBUG is still hardcoded in
 // config.php — initialize.php then defines DEPRECATED_WB_DEBUG.
 $wbceDebugLocked = defined('DEPRECATED_WB_DEBUG');
 
-// ── Save (FTAN-protected POST, Post/Redirect/Get) ───────────────────────────
+// ── Settings save (FTAN-protected POST, Post/Redirect/Get) ──────────────────
 if (!empty($_POST['el_save'])) {
     while (ob_get_level() > 0) { ob_end_clean(); }
 
@@ -68,13 +69,11 @@ if (isset($_GET['color'])) {
         unset($_COOKIE[$cookie]);
     }
 }
-$view = isset($_COOKIE[$cookie]) ? (int) $_COOKIE[$cookie] : 0;
-
-// ── Log file ───────────────────────────────────────────────────────────────
-$logfile  = ini_get('error_log') ?: WB_PATH . '/var/logs/php_error.log.php';
+$view     = isset($_COOKIE[$cookie]) ? (int) $_COOKIE[$cookie] : 0;
 $warnings = [];
+$logfile  = ini_get('error_log') ?: WB_PATH . '/var/logs/php_error.log.php';
 
-// Delete = archive the current file under a timestamped name.
+// ── Errorlog: archive (rename) the current file ────────────────────────────
 if (isset($_GET['delete']) && file_exists($logfile)) {
     $archived = dirname($logfile) . '/' . date('Ymd_Hi') . '_php_error.log.php';
     rename($logfile, $archived);
@@ -84,35 +83,27 @@ if (isset($_GET['delete']) && file_exists($logfile)) {
     ];
 }
 
-$since = isset($_SESSION['lastview']) ? (int) strtotime($_SESSION['lastview']) : time();
-
-$lines = [];
-if (file_exists($logfile)) {
-    $lines = file($logfile);
-    unset($lines[0]);                          // "<?php die()" guard line
-    $lines = array_slice($lines, -250);
-}
-
-// Error reporting not at maximum → some errors may be missing.
-if (error_reporting(-1) !== E_ALL) {
-    $warnings[] = ['type' => 'warning', 'text' => $TXT['NOT_MAX_LEVEL']];
+// ── CodeVet: archive (rotate) the current audit log ────────────────────────
+if (isset($_GET['cv_archive']) && is_file(CodeVetLog::file())) {
+    @rename(CodeVetLog::file(), CodeVetLog::dir() . '/codevet-' . date('Ymd-His') . '.log');
+    $warnings[] = ['type' => 'info', 'text' => $TXT['CV_ARCHIVED']];
 }
 
 // ── Build the view model ───────────────────────────────────────────────────
 $toTwig = [
-    'MODULE_NAME'  => $module_name,
-    'BASE'         => $base,
-    'TAB'          => $tab,
-    'WARNINGS'     => $warnings,
+    'MODULE_NAME' => $module_name,
+    'BASE'        => $base,
+    'TAB'         => $tab,
+    'WARNINGS'    => $warnings,
 ];
 
 if ($tab === 'settings') {
-    $erLevel = defined('ER_LEVEL') ? (string) ER_LEVEL : 'E0';
 
+    $erLevel = defined('ER_LEVEL') ? (string) ER_LEVEL : 'E0';
     loadPlugin('include/wbeSelect'); // ER_LEVEL <select> is a wbeSelect widget
 
-    // README link — rendered as a MarkdownWbce popup when that (core) module is
-    // present, otherwise omitted. Own href + onclick slots (see MdReaderLink).
+    // README link — MarkdownWbce popup when that (core) module is present.
+    // Own href + onclick slots (see MdReaderLink).
     $readmeUrl = $readmeOnclick = '';
     if (class_exists('MdReaderLink') && is_readable(__DIR__ . '/README.md')) {
         $md = MdReaderLink::file('/modules/errorlogger/README.md')->title($module_name);
@@ -160,7 +151,36 @@ if ($tab === 'settings') {
             ],
         ],
     ];
-} else {
+
+} elseif ($tab === 'codevet') {
+
+    $cvSince   = isset($_SESSION['codevet_lastview']) ? (int) strtotime($_SESSION['codevet_lastview']) : time();
+    $withAll   = isset($_GET['cv_all']);
+    $cvRows    = CodeVetLog::rows($withAll, $cvSince);
+
+    $toTwig += [
+        'LOCALE'      => strtolower(defined('LANGUAGE') ? LANGUAGE : 'en'),
+        'CV_ROWS'     => $cvRows,
+        'CV_SUMMARY'  => CodeVetLog::summary($cvRows),
+        'CV_WITH_ALL' => $withAll,
+    ];
+    $_SESSION['codevet_lastview'] = date('c');
+
+} else { // 'log'
+
+    $since = isset($_SESSION['lastview']) ? (int) strtotime($_SESSION['lastview']) : time();
+
+    $lines = [];
+    if (file_exists($logfile)) {
+        $lines = file($logfile);
+        unset($lines[0]);                     // "<?php die()" guard line
+        $lines = array_slice($lines, -250);
+    }
+    if (error_reporting(-1) !== E_ALL) {
+        $warnings[] = ['type' => 'warning', 'text' => $TXT['NOT_MAX_LEVEL']];
+        $toTwig['WARNINGS'] = $warnings;
+    }
+
     $toTwig += [
         'VIEW'       => $view,
         'COLOR_MODE' => $view === 1,
@@ -169,8 +189,7 @@ if ($tab === 'settings') {
         'PLAIN_ROWS' => $view === 2 ? [] : ErrorlogParser::plainRows($lines, $since),
         'TABLE_ROWS' => $view === 2 ? ErrorlogParser::tableRows($lines, $since) : [],
     ];
+    $_SESSION['lastview'] = date('c');
 }
-
-$_SESSION['lastview'] = date('c');
 
 getTwig(__DIR__ . '/twig/')->load('tool.twig')->display($toTwig);

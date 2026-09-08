@@ -10,7 +10,7 @@
 return [
     'EN' => [
         'module_name' => 'Errorlog viewer',
-        'module_description' => 'Catch PHP warnings and errors into a logfile and view them using this tool.',
+        'module_description' => 'PHP warnings and errors are written to a private logfile and shown in a comfortable backend view — plus a CodeVet tab with the audit log of every Droplet, Outputfilter, Code2 save or add-on upload that CodeVet blocked or flagged for dangerous code.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Great news. No errors reported.',
             'RELOAD'          => 'Reload',
@@ -20,7 +20,7 @@ return [
             'TABLE_VIEW'      => 'Table View',
 
             // ── Chrome ──────────────────────────────────────────────────────
-            'TAB_LOG'            => 'Log View',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Settings',
             'SEARCH_PLACEHOLDER' => 'Search in log …',
             'NO_RESULTS'         => 'No log lines match your search.',
@@ -56,6 +56,29 @@ return [
             'FILE_BASED_NOTE' => 'Written to var/config_constants.ini.php — update-safe.',
             'BADGE_PREVIEW'   => 'Shows in the log table as',
             'DOCS_LINK'       => 'Module documentation',
+
+            // ── CodeVet tab ────────────────────────────────────────────────
+            'TAB_CODEVET'           => 'CodeVet',
+            'CV_SEARCH_PLACEHOLDER' => 'Search the CodeVet log …',
+            'CV_ARCHIVE'            => 'Archive log',
+            'CV_ARCHIVE_CONFIRM'    => 'Archive the current CodeVet log? It is renamed with a timestamp; nothing is deleted.',
+            'CV_ARCHIVED'           => 'CodeVet log archived.',
+            'CV_EVENTS'             => 'events',
+            'CV_EMPTY'              => 'Nothing to report. CodeVet found no problem with any saved Droplet, Outputfilter, Code2 section or uploaded add-on.',
+            'CV_COL_ACTION'         => 'Trigger',
+            'CV_COL_FINDINGS'       => 'Findings',
+            'CV_COL_WHERE'          => 'Where',
+            'CV_SEV_BLOCK'          => 'Blocked',
+            'CV_SEV_WARN'           => 'Flagged',
+            'CV_ACT_DROPLET'        => 'Droplet saved',
+            'CV_ACT_OUTPUTFILTER'   => 'Outputfilter saved',
+            'CV_ACT_CODE2'          => 'Code2 section saved',
+            'CV_ACT_ADDON'          => 'Add-on ZIP uploaded',
+            'CV_ACT_OTHER'          => 'Code saved',
+            'CV_LINE'               => 'line',
+            'CV_MORE_FINDINGS'      => 'more findings',
+            'CV_LOAD_ARCHIVES'      => 'Include archived logs',
+            'CV_CURRENT_ONLY'       => 'Current log only',
         ],
         'MSG' => [
             'WB_DEBUG_DEPRECATED'      => '<b>Notice:</b> <code>WB_DEBUG</code> appears to be set in <code>config.php</code>. This constant is deprecated since WBCE 1.7.0 — please remove it from <code>config.php</code>. Use <code>WBCE_DEBUG</code> instead (see the switch below). Once <code>WB_DEBUG</code> has been removed, <code>WBCE_DEBUG</code> can be toggled here.',
@@ -64,7 +87,7 @@ return [
 
     'DE' => [
         'module_name' => 'Errorlog-Viewer',
-        'module_description' => 'Dieses Tool schreibt PHP-Warnungen und -Fehler in eine Logdatei und zeigt sie in einer komfortablen Übersicht.',
+        'module_description' => 'Schreibt PHP-Warnungen und -Fehler in eine private Logdatei und zeigt sie komfortabel im Backend — dazu ein CodeVet-Tab mit dem Prüfprotokoll aller Droplet-, Outputfilter-, Code2- oder Addon-Speicherungen, die CodeVet wegen gefährlichem Code blockiert oder markiert hat.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Gute Neuigkeiten. Es liegt momentan kein Error Report vor.',
             'RELOAD'          => 'Aktualisieren',
@@ -73,7 +96,7 @@ return [
             'COLOR_VIEW'      => 'Farbliche Darstellung',
             'TABLE_VIEW'      => 'Tabelarische Darstellung',
 
-            'TAB_LOG'            => 'Log-Ansicht',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Einstellungen',
             'SEARCH_PLACEHOLDER' => 'Im Log suchen …',
             'NO_RESULTS'         => 'Keine Logzeile passt zur Suche.',
@@ -108,6 +131,29 @@ return [
             'FILE_BASED_NOTE' => 'Wird in <code>var/config_constants.ini.php</code> geschrieben — updatesicher.',
             'BADGE_PREVIEW'   => 'Erscheint in der Log-Tabelle als',
             'DOCS_LINK'       => 'Modul-Dokumentation',
+
+            // ── CodeVet-Tab ───────────────────────────────────────────────
+            'TAB_CODEVET'           => 'CodeVet',
+            'CV_SEARCH_PLACEHOLDER' => 'Im CodeVet-Log suchen …',
+            'CV_ARCHIVE'            => 'Log archivieren',
+            'CV_ARCHIVE_CONFIRM'    => 'Aktuelles CodeVet-Log archivieren? Es wird mit Zeitstempel umbenannt; nichts wird gelöscht.',
+            'CV_ARCHIVED'           => 'CodeVet-Log archiviert.',
+            'CV_EVENTS'             => 'Ereignisse',
+            'CV_EMPTY'              => 'Nichts zu beanstanden. CodeVet hat bei keinem gespeicherten Droplet, Outputfilter, Code2-Abschnitt oder hochgeladenen Addon ein Problem gefunden.',
+            'CV_COL_ACTION'         => 'Auslöser',
+            'CV_COL_FINDINGS'       => 'Findings',
+            'CV_COL_WHERE'          => 'Wo',
+            'CV_SEV_BLOCK'          => 'Blockiert',
+            'CV_SEV_WARN'           => 'Markiert',
+            'CV_ACT_DROPLET'        => 'Droplet gespeichert',
+            'CV_ACT_OUTPUTFILTER'   => 'Outputfilter gespeichert',
+            'CV_ACT_CODE2'          => 'Code2-Abschnitt gespeichert',
+            'CV_ACT_ADDON'          => 'Addon-ZIP hochgeladen',
+            'CV_ACT_OTHER'          => 'Code gespeichert',
+            'CV_LINE'               => 'Zeile',
+            'CV_MORE_FINDINGS'      => 'weitere Findings',
+            'CV_LOAD_ARCHIVES'      => 'Archive einbeziehen',
+            'CV_CURRENT_ONLY'       => 'Nur aktuelles Log',
         ],
         'MSG' => [
             'WB_DEBUG_DEPRECATED'      => '<b>Hinweis:</b> <code>WB_DEBUG</code> scheint in der <code>config.php</code> gesetzt zu sein. Diese Konstante ist seit WBCE 1.7.0 veraltet (deprecated) — bitte aus der <code>config.php</code> entfernen. Stattdessen bitte <code>WBCE_DEBUG</code> (siehe Schalter unten) verwenden. Sobald die <code>WB_DEBUG</code>-Konstante gelöscht wurde, kann <code>WBCE_DEBUG</code> hier ein-/ausgeschaltet werden.',
@@ -116,7 +162,7 @@ return [
 
     'NL' => [
         'module_name' => 'Errorlog-Viewer',
-        'module_description' => 'Vang PHP-waarschuwingen en -fouten op in een logbestand en bekijk ze met dit hulpmiddel.',
+        'module_description' => 'Schrijft PHP-waarschuwingen en -fouten naar een privé-logbestand en toont ze overzichtelijk in de backend — plus een CodeVet-tabblad met het controlelogboek van elke Droplet-, Outputfilter-, Code2- of add-on-opslag die CodeVet wegens gevaarlijke code heeft geblokkeerd of gemarkeerd.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Goed nieuws. Er zijn momenteel geen fouten gemeld.',
             'RELOAD'          => 'Vernieuwen',
@@ -125,7 +171,7 @@ return [
             'COLOR_VIEW'      => 'Kleurenweergave',
             'TABLE_VIEW'      => 'Tabelweergave',
 
-            'TAB_LOG'            => 'Logweergave',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Instellingen',
             'SEARCH_PLACEHOLDER' => 'In log zoeken …',
             'NO_RESULTS'         => 'Geen logregel komt overeen met de zoekopdracht.',
@@ -137,7 +183,7 @@ return [
 
     'PL' => [
         'module_name' => 'Errorlog-Viewer',
-        'module_description' => 'Przechwytuj ostrzeżenia i błędy PHP do pliku logu i przeglądaj je za pomocą tego narzędzia.',
+        'module_description' => 'Zapisuje ostrzeżenia i błędy PHP do prywatnego pliku logu i wygodnie pokazuje je w panelu — wraz z zakładką CodeVet z dziennikiem kontroli każdego zapisu Dropletu, Outputfiltera, Code2 lub dodatku, który CodeVet zablokował lub oznaczył z powodu niebezpiecznego kodu.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Dobra wiadomość. Nie zgłoszono żadnych błędów.',
             'RELOAD'          => 'Odśwież',
@@ -146,7 +192,7 @@ return [
             'COLOR_VIEW'      => 'Widok kolorowy',
             'TABLE_VIEW'      => 'Widok tabelaryczny',
 
-            'TAB_LOG'            => 'Widok logu',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Ustawienia',
             'SEARCH_PLACEHOLDER' => 'Szukaj w logu …',
             'NO_RESULTS'         => 'Żadna linia logu nie pasuje do wyszukiwania.',
@@ -158,7 +204,7 @@ return [
 
     'NO' => [
         'module_name' => 'Errorlog-Viewer',
-        'module_description' => 'Fang opp PHP-advarsler og feil i en loggfil og vis dem ved hjelp av dette verktøyet.',
+        'module_description' => 'Skriver PHP-advarsler og feil til en privat loggfil og viser dem oversiktlig i administrasjonen — pluss en CodeVet-fane med revisjonsloggen for hver Droplet-, Outputfilter-, Code2- eller tilleggslagring som CodeVet blokkerte eller merket for farlig kode.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Gode nyheter. Ingen feil rapportert.',
             'RELOAD'          => 'Oppdater',
@@ -167,7 +213,7 @@ return [
             'COLOR_VIEW'      => 'Fargevisning',
             'TABLE_VIEW'      => 'Tabellvisning',
 
-            'TAB_LOG'            => 'Loggvisning',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Innstillinger',
             'SEARCH_PLACEHOLDER' => 'Søk i loggen …',
             'NO_RESULTS'         => 'Ingen logglinje samsvarer med søket.',
@@ -179,7 +225,7 @@ return [
 
     'FR' => [
         'module_name' => 'Visualiseur de logs d\'erreurs',
-        'module_description' => 'Capturer les avertissements et erreurs PHP dans un fichier journal et les visualiser avec cet outil.',
+        'module_description' => 'Écrit les avertissements et erreurs PHP dans un fichier journal privé et les affiche confortablement dans le backend — avec un onglet CodeVet présentant le journal d’audit de chaque enregistrement de Droplet, Outputfilter, Code2 ou module bloqué ou signalé par CodeVet pour code dangereux.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Bonne nouvelle. Aucun rapport d\'erreur.',
             'RELOAD'          => 'Actualiser',
@@ -188,7 +234,7 @@ return [
             'COLOR_VIEW'      => 'Vue colorée',
             'TABLE_VIEW'      => 'Vue tableau',
 
-            'TAB_LOG'            => 'Vue du journal',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Réglages',
             'SEARCH_PLACEHOLDER' => 'Rechercher dans le journal …',
             'NO_RESULTS'         => 'Aucune ligne du journal ne correspond à la recherche.',
@@ -200,7 +246,7 @@ return [
 
     'IT' => [
         'module_name' => 'Visualizzatore Errorlog',
-        'module_description' => 'Cattura avvisi ed errori PHP in un file di log e visualizzali con questo strumento.',
+        'module_description' => 'Scrive avvisi ed errori PHP in un file di log privato e li mostra comodamente nel backend, con una scheda CodeVet che riporta il registro di controllo di ogni salvataggio di Droplet, Outputfilter, Code2 o add-on bloccato o segnalato da CodeVet per codice pericoloso.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Buone notizie. Nessun errore segnalato.',
             'RELOAD'          => 'Ricarica',
@@ -209,7 +255,7 @@ return [
             'COLOR_VIEW'      => 'Vista a colori',
             'TABLE_VIEW'      => 'Vista a tabella',
 
-            'TAB_LOG'            => 'Vista log',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Impostazioni',
             'SEARCH_PLACEHOLDER' => 'Cerca nel log …',
             'NO_RESULTS'         => 'Nessuna riga del log corrisponde alla ricerca.',
@@ -221,7 +267,7 @@ return [
 
     'ES' => [
         'module_name' => 'Visor de Errorlog',
-        'module_description' => 'Captura advertencias y errores PHP en un archivo de registro y visualízalos con esta herramienta.',
+        'module_description' => 'Escribe advertencias y errores PHP en un archivo de registro privado y los muestra cómodamente en el backend, con una pestaña CodeVet que recoge el registro de auditoría de cada guardado de Droplet, Outputfilter, Code2 o complemento que CodeVet bloqueó o marcó por código peligroso.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Buenas noticias. No hay errores reportados.',
             'RELOAD'          => 'Recargar',
@@ -230,7 +276,7 @@ return [
             'COLOR_VIEW'      => 'Vista en color',
             'TABLE_VIEW'      => 'Vista en tabla',
 
-            'TAB_LOG'            => 'Vista del registro',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Ajustes',
             'SEARCH_PLACEHOLDER' => 'Buscar en el registro …',
             'NO_RESULTS'         => 'Ninguna línea del registro coincide con la búsqueda.',
@@ -242,7 +288,7 @@ return [
 
     'RU' => [
         'module_name' => 'Просмотрщик лога ошибок',
-        'module_description' => 'Ловить предупреждения и ошибки PHP в лог-файл и просматривать их с помощью этого инструмента.',
+        'module_description' => 'Записывает предупреждения и ошибки PHP в приватный лог-файл и удобно показывает их в бэкенде, а вкладка CodeVet содержит журнал проверки каждого сохранения Droplet, Outputfilter, Code2 или дополнения, заблокированного или помеченного CodeVet из-за опасного кода.',
         'TXT' => [
             'NO_ERROR_REPORT' => 'Хорошие новости. Ошибок не обнаружено.',
             'RELOAD'          => 'Обновить',
@@ -251,7 +297,7 @@ return [
             'COLOR_VIEW'      => 'Цветное отображение',
             'TABLE_VIEW'      => 'Табличный вид',
 
-            'TAB_LOG'            => 'Просмотр лога',
+            'TAB_LOG'            => 'Error-Log',
             'TAB_SETTINGS'       => 'Настройки',
             'SEARCH_PLACEHOLDER' => 'Поиск в логе …',
             'NO_RESULTS'         => 'Ни одна строка лога не соответствует запросу.',
