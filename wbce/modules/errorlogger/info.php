@@ -3,12 +3,10 @@
  *
  * @category        admintool / preinit / initialize
  * @package         errorlogger
- * @author          Ruud Eisinga - www.dev4me.com
- * @link			https://dev4me.com/
+ * @author          Ruud Eisinga · www.dev4me.com (https://dev4me.com/)
+ * @author          Christian M. Stefan  (https://www.wbEasy.de)
  * @license         http://www.gnu.org/licenses/gpl.html
- * @platform        WBCE 1.4+ / WB2.10+
- * @version         1.1.4.1
- * @lastmodified    July 30, 2022
+ * @platform        WBCE 1.7.x
  *
  */
 
@@ -19,27 +17,47 @@ if (defined('WB_PATH') == false) {
 
 $module_directory   = 'errorlogger';
 $module_name        = 'Errorlog viewer';
-$module_function    = 'snippet';
-$module_version     = '1.1.6';
-$module_platform 	= '2.8';
-if(defined('WBCE_VERSION')) {
-	$module_function    = 'tool, preinit, initialize';
-	$module_platform = '1.3.0';
-}
-$module_author      = 'Ruud Eisinga - Dev4me';
+$module_version     = '1.1.7';
+$module_function    = 'tool, preinit, initialize';
+$module_platform    = '1.7.0';
+$module_author      = 'Ruud Eisinga - Dev4me, Christian M. Stefan';
 $module_license	    = 'GNU General Public License';
 $module_description = 'Catch PHP warnings and errors into a logfile and view them using this tool.';
 $module_icon        = 'fa fa-bug';
-//$module_level       = 'core';
+$module_level       = 'core';
 
-/** 
- * Note: IN WB this module will only install a snippet that modifies the errorhandler.
- * Due to the way WB activates the snippets, some errors might be still handled by the core WB errorhandlers.
- * The only effect will be that there is no caller url added to the log for those errors.
-*/
 
 /**
  * DEVELOPMENT HISTORY (Change Log):
+ *
+ * v.1.2.0 2026-09-08 Christian M. Stefan
+ *         [c] Layout ported to the cp_chrome / cp_theme backend design system
+ *             (section.cp-main, nav.cp-tabs, cp-toolbar, cp-card) — matches the
+ *             rest of the 1.7.0 backend and follows the active theme.
+ *         [+] Split into two tabs: "Log View" and "Settings".
+ *         [+] Settings tab: WBCE_DEBUG / SQL_DEBUG / PDO_CANONICAL_DEBUG (file
+ *             based) + ER_LEVEL (DB) as described switches in one FTAN-protected
+ *             POST form — replaces the old unprotected GET toggle links.
+ *         [+] Client side live filter for the log output (search box).
+ *         [c] Table view rebuilt: regex parser (robust against brackets/quotes
+ *             in messages, folds multi-line errors), Type badge column, relative
+ *             + exact timestamp, dedicated File/Line columns, consecutive
+ *             duplicates collapsed with an "×N" counter. Own badges for SQL
+ *             errors and for PDO_CANONICAL_DEBUG legacy-method nudges; the SQL /
+ *             PDO badges are also previewed next to their switch in the Settings tab.
+ *         [c] Promoted to a core module ($module_level = 'core').
+ *         [c] backend.css / backend.js moved into assets/ (auto-loaded from there
+ *             for ?tool=errorlogger by Wbce::retrieveModfilesFromDir()).
+ *         [c] Logic / layout split (captcha_control pattern): tool.php is now a
+ *             thin controller, log parsing/classification lives in the pure
+ *             ErrorlogParser class, all markup in twig/ (tool + settings + logview).
+ *         [+] Added README.md + a "Module documentation" link in the Settings
+ *             tab that opens it via MarkdownWbce (MdReaderLink), when present.
+ *         [c] ER_LEVEL is now an include/wbeSelect widget with a blue E0…E3
+ *             badge (data-right) and the description text beside it.
+ *         [-] Removed include.php — WB-only snippet glue. WBCE loads preinit.php
+ *             / initialize.php directly (function keywords), never include.php
+ *             for a non-snippet addon.
  *
  * v.1.1.6 2026-05-03 Christian M. Stefan
  *         [c] fully translate the Errorlog viewer into several languages
