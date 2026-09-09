@@ -159,12 +159,13 @@ unset($lv);
 // reader.php, regardless of which doc is open).
 $docDirRel = str_replace('\\', '/', dirname($activeDoc['relPath']));
 
-// ── 5. Syntax highlighting (highlight.js — trial via cdnjs) ──────────────────
+// ── 5. Syntax highlighting (self-hosted highlight.js) ────────────────────────
 //
 // Viewer code blocks used to render through readonly CodeMirror instances;
-// swapped for highlight.js on trial (loaded via cdnjs, see layout/reader.htt).
-// PlainMDE's own editor engine still needs real CodeMirror regardless — that
-// stays wired below via I::loadPlugin(), independent of this flag.
+// now highlight.js, self-hosted under layout/vendor/hljs/ with the shared
+// layout/highlight.js init (also used by inline embeds — see
+// MdReaderHelper::highlightAssets() / renderForEmbed()). PlainMDE's own editor
+// engine still needs real CodeMirror regardless — wired below via I::loadPlugin().
 
 $needsHljs = MdReaderHelper::needsCodeMirror($content) || $canWrite;
 
@@ -249,6 +250,9 @@ $html = $parser->parse($template, [
     'READER_JS_V'   => $assetVer('reader.js'),
     'FILETREE_JS_V' => $assetVer('filetree.js'),
     'FILETREE_CSS_V' => $assetVer('filetree.css'),
+    'HIGHLIGHT_JS_V' => $assetVer('highlight.js'),
+    'HLJS_JS_V'     => $assetVer('vendor/hljs/highlight.min.js'),
+    'HLJS_CSS_V'    => $assetVer('vendor/hljs/github.min.css'),
 ]);
 
 // Flush any I::-queued assets (PlainMDE's CSS/JS/webfonts, when edit mode is

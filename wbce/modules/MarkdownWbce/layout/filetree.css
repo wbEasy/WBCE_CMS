@@ -24,6 +24,7 @@
        top:.5rem — same toolbar the reader's regular code blocks use. */
     padding: 44px 20px 20px;
     overflow-x: auto;
+    margin-bottom: 10px;
 }
 
 .treeview-root {
@@ -194,6 +195,11 @@
 /* TXT-Datei (Grau) */
 .icon-txt {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3C/svg%3E");
+}
+
+/* Font-Datei — woff / woff2 / ttf / otf / eot (Magenta, serifen-"A") */
+.icon-font {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23db2777' d='M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V7.875c0-.5-.2-.98-.556-1.336l-4.639-4.638A1.875 1.875 0 0 0 13.5 1.5H5.625Z'/%3E%3Ctext x='11.4' y='19' font-family='Georgia,Cambria,serif' font-size='15' font-weight='700' fill='%23fff' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E");
 }
 
 /* Copy button + language-style badge now reuse .mdr-code-toolbar/

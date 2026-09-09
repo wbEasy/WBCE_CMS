@@ -90,6 +90,50 @@ No `docs` array → Reader loads `README.md` in the same folder.
 
 ---
 
+## Rendering inline in a backend page (no popup)
+
+`MdReaderLink` opens the reader in a popup window. To render a doc **inside**
+your own backend page instead, call `MdReaderHelper::renderForEmbed()`:
+
+```php
+$doc = MdReaderHelper::renderForEmbed('/modules/my_mod/docs/GUIDE.md', null, 'mdr-toc');
+// → ['abs', 'html', 'toc', 'title', 'langs', 'needsCode', 'needsFileTree'] | null
+
+if ($doc) {
+    // One call — every stylesheet + script the embed needs (markdown.css +
+    // markdown-embed.css, plus file-tree / highlight.js when the doc uses them).
+    $a = MdReaderHelper::embedAssets($doc);
+    foreach ($a['css'] as $u) { I::insertCssFile($u); }
+    foreach ($a['js']  as $u) { I::insertJsFile($u, 'body_late'); }
+}
+```
+
+Markup — wrap the two pieces so `markdown-embed.css`'s sidebar layout applies
+(add `mdr-embed--notoc` and drop the `<aside>` when there is no TOC):
+
+```html
+<div class="mdr-embed">
+  <aside class="mdr-embed-toc">
+    <div class="mdr-embed-toc-h">On this page</div>
+    <?= $doc['toc'] ?>
+  </aside>
+  <article class="markdown-body"><?= $doc['html'] ?></article>
+</div>
+```
+
+`markdown.css` is self-contained (it brings its own `--mdr-*` tokens, light +
+dark) so the embedded doc renders **identically to the reader popup** — no
+per-module theming. `markdown-embed.js` measures the backend theme's fixed
+header, raises `html { scroll-padding-top }` so anchor jumps clear it, parks the
+sticky TOC just below, and runs a scroll spy that marks the current section's
+link `a.mdr-nav--active`. The TOC `<li>`s carry `mdr-toc-l1 … l6` (heading depth)
+so links are sized/weighted by level. `renderForEmbed()`'s 2nd arg is a locale
+(defaults to the current `LANGUAGE`), the 3rd the CSS class for the generated
+TOC `<ul>`. `embedAssets()` returns the URLs already `?v=`-stamped with each
+file's mtime — pass them straight to `insertCssFile()` / `insertJsFile()`.
+
+---
+
 ## Output Methods
 
 ```php

@@ -2,6 +2,64 @@
 
 All notable changes to the `MarkdownWbce` module.
 
+## 0.3.0 - 2026-09-09 Christian M. Stefan
+
+### Added
+- **Inline backend rendering.** `MdReaderHelper::renderForEmbed($relPath, $lang, $tocClass)`
+  returns `{abs, html, toc, title, langs, needsCode, needsFileTree}` for
+  dropping a rendered doc straight into a backend page — no `reader.php`
+  popup. First consumer: the **Asset Optimizer** admin tool's *Documentation*
+  tab.
+- **`MdReaderHelper::embedAssets($doc = null)`** → `{css:[…], js:[…]}` — one
+  call gives a consumer every stylesheet/script the embed needs
+  (`markdown.css` + `markdown-embed.css`, plus file-tree / highlight.js when
+  the doc uses them). No per-module CSS.
+- **`layout/markdown-embed.css` + `layout/markdown-embed.js`** — the doc +
+  sticky-TOC-sidebar layout (`.mdr-embed` / `.mdr-embed-toc`), and a **scroll
+  spy** that marks the current section's TOC link `a.mdr-nav--active` (same
+  class and look the reader popup already uses). The JS now also raises
+  `html { scroll-padding-top }` to clear the backend theme's fixed header
+  instead of setting `scroll-margin-top` on the anchors — the two were stacking,
+  landing every anchor jump ~1 header-height too low and desyncing the spy.
+- **TOC links styled by heading depth.** `buildToc()` now tags each `<li>`
+  `mdr-toc-l1 … l6`; `markdown-embed.css` and `style.css` size/weight the link
+  accordingly (h1 bold, deeper levels smaller and fainter) — in both the embed
+  and the popup. The active link gets an accent left-border and always keeps
+  the accent colour, even at a faint deep level.
+- **TOC entity fix.** `buildToc()` decodes the heading's inner HTML before
+  re-encoding it for the link, so a heading like `Cache & Status` shows as
+  `Cache & Status` and not a literal `Cache &amp; Status` — and its slug/anchor
+  match too.
+- **`embedAssets()` / `highlightAssets()` now cache-bust** their URLs with an
+  mtime `?v=` (the reader popup already did via `reader.php`), so an embedding
+  page never serves a stale `markdown-embed.css` / `.js`.
+- **Shared syntax highlighting.** `MdReaderHelper::highlightAssets()` →
+  `{js:[…], css_light, css_dark}`, and a new `layout/highlight.js` that
+  highlights `.markdown-body pre code[class*="language-"]` and adds the
+  language-badge / copy-button toolbar. Used by the embed and the reader alike.
+
+### Changed
+- **`file-tree` blocks**: `.woff` / `.woff2` / `.ttf` / `.otf` / `.eot` now get
+  a dedicated font icon (magenta page + serif "A") instead of falling through
+  to the folder icon.
+- **Code-block toolbar** no longer overlaps the first code line — the
+  `.mdr-code-wrapped { padding-top }` reserve was losing to `.markdown-body pre`
+  on specificity; now `.markdown-body pre.mdr-code-wrapped`. Toolbar got an
+  opaque backing so a wide first line scrolling underneath doesn't show through.
+- `markdown.css` block-margin fixes so an embedded doc has no external reset to
+  lean on (blockquote / first-child top gaps).
+- **`layout/markdown.css` is now self-contained** — the `--mdr-*` colour
+  tokens (light + dark + `[data-theme]`) moved out of `layout/style.css` into
+  it, so any page that shows a `.markdown-body` needs only `markdown.css` and
+  gets the same GitHub-style palette as the reader popup. `style.css` is now
+  reader-chrome only (still carries a global reset — never load it into an
+  embed).
+- **highlight.js is now self-hosted** (`layout/vendor/hljs/`, v11.9.0 common
+  build + GitHub light/dark themes) instead of loaded from cdnjs. `reader.htt`'s
+  inline highlight/toolbar script moved into `layout/highlight.js`; `reader.js`
+  reads the light/dark theme URLs from `#mdr-hljs-theme`'s `data-hljs-*`
+  attributes.
+
 ## 0.2.0 - 2026-08-19 Christian M. Stefan
 
 ### Added

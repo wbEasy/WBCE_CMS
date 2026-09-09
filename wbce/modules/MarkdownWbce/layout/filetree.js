@@ -80,7 +80,7 @@
             }
 
             // File: name.ext  — comment requires at least 1 space
-            var fileMatch = contentPart.match(/^([a-zA-Z0-9_\-\.]+\.(js|css|php|txt|json|html|md|sql))(\s.*|$)/i);
+            var fileMatch = contentPart.match(/^([a-zA-Z0-9_\-\.]+\.(js|css|php|txt|json|html|md|sql|woff2|woff|ttf|otf|eot))(\s.*|$)/i);
             // Folder: any/path/with/slashes/  — multi-segment paths treated as one name,
             //         comment requires at least 1 space
             var folderMatch = contentPart.match(/^([a-zA-Z0-9_\-\.][a-zA-Z0-9_\-\.\/]*\/)(\s.*|$)/);
@@ -92,7 +92,8 @@
 
             if (fileMatch) {
                 nodeName    = fileMatch[1];
-                iconClass   = 'icon-' + fileMatch[2].toLowerCase();
+                var ext     = fileMatch[2].toLowerCase();
+                iconClass   = /^(woff2|woff|ttf|otf|eot)$/.test(ext) ? 'icon-font' : 'icon-' + ext;
                 commentPart = fileMatch[3] || '';
             } else if (folderMatch) {
                 nodeName    = folderMatch[1];

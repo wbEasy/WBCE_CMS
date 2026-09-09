@@ -9,8 +9,11 @@ $(function () {
     var THEME_KEY   = 'mdr_theme';
     var $themeBtn   = $('#mdr-theme-toggle');
     var $hljsTheme  = $('#mdr-hljs-theme');
-    var HLJS_LIGHT  = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
-    var HLJS_DARK   = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+    // The two theme stylesheet URLs are carried on the <link> itself
+    // (data-hljs-light / -dark), set by reader.htt — self-hosted now, so
+    // there is no hard-coded CDN URL to keep in sync here.
+    var HLJS_LIGHT  = $hljsTheme.data('hljs-light') || $hljsTheme.attr('href');
+    var HLJS_DARK   = $hljsTheme.data('hljs-dark')  || HLJS_LIGHT;
 
     function currentIsDark() {
         var explicit = document.documentElement.getAttribute('data-theme');

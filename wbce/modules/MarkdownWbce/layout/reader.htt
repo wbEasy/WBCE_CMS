@@ -22,10 +22,13 @@
     <script src="[WB_URL]/include/jquery/jquery-min.js"></script>
 
     {if NEEDS_HLJS}
-    <!-- Trial: highlight.js via cdnjs — swap for a self-hosted copy once decided.
-         href is swapped between the light/dark theme by reader.js's applyTheme(). -->
-    <link rel="stylesheet" id="mdr-hljs-theme" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Self-hosted highlight.js (layout/vendor/hljs/). reader.js swaps the
+         href between the light/dark theme via the data-hljs-* attributes. -->
+    <link rel="stylesheet" id="mdr-hljs-theme"
+          href="[DIR_URL]/layout/vendor/hljs/github.min.css?v=[HLJS_CSS_V]"
+          data-hljs-light="[DIR_URL]/layout/vendor/hljs/github.min.css?v=[HLJS_CSS_V]"
+          data-hljs-dark="[DIR_URL]/layout/vendor/hljs/github-dark.min.css?v=[HLJS_CSS_V]">
+    <script src="[DIR_URL]/layout/vendor/hljs/highlight.min.js?v=[HLJS_JS_V]"></script>
     {/if}
 
     {if NEEDS_FILETREE}
@@ -122,72 +125,7 @@
 </div>
 
 {if NEEDS_HLJS}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (!window.hljs) return;
-
-    var COPY_ICON = '<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
-        + '<path fill-rule="evenodd" d="M14 12V2H4V0h12v12h-2zM0 4h12v12H0V4zm2 2v8h8V6H2z"/></svg>';
-
-    document.querySelectorAll('#mdr-article code[class*="language-"]').forEach(function (block) {
-        hljs.highlightElement(block);
-
-        var pre = block.parentElement;
-        if (!pre || pre.tagName !== 'PRE' || pre.classList.contains('mdr-code-wrapped')) return;
-        pre.classList.add('mdr-code-wrapped');
-
-        var langMatch = block.className.match(/language-(\S+)/);
-        var lang = langMatch ? langMatch[1] : '';
-        if (lang) {
-            pre.classList.add(lang + '-block');
-        }
-
-        var toolbar = document.createElement('div');
-        toolbar.className = 'mdr-code-toolbar';
-
-        if (lang) {
-            var badge = document.createElement('span');
-            badge.className = 'mdr-code-lang';
-            badge.textContent = lang;
-            toolbar.appendChild(badge);
-        }
-
-        var copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.className = 'mdr-code-copy';
-        copyBtn.title = 'Copy code';
-        copyBtn.setAttribute('aria-label', 'Copy code');
-        copyBtn.innerHTML = COPY_ICON;
-        copyBtn.addEventListener('click', function () {
-            var text = block.textContent;
-
-            function done() {
-                copyBtn.classList.add('mdr-code-copy--done');
-                setTimeout(function () { copyBtn.classList.remove('mdr-code-copy--done'); }, 1200);
-            }
-            function fallbackCopy() {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                try { document.execCommand('copy'); done(); } catch (e) {}
-                document.body.removeChild(ta);
-            }
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(done, fallbackCopy);
-            } else {
-                fallbackCopy();
-            }
-        });
-        toolbar.appendChild(copyBtn);
-
-        pre.insertBefore(toolbar, pre.firstChild);
-    });
-});
-</script>
+<script src="[DIR_URL]/layout/highlight.js?v=[HIGHLIGHT_JS_V]"></script>
 {/if}
 
 {if HAS_EDIT}

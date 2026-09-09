@@ -1,98 +1,12 @@
-/* ── Theme tokens ─────────────────────────────────────────────────────────
-   Light is the default (bare :root). Dark applies automatically via
-   prefers-color-scheme UNLESS the reader's own toggle (reader.js) has set
-   an explicit data-theme on <html> — that attribute always wins in either
-   direction, so a manual choice overrides the OS setting. Declared once
-   here; markdown.css and filetree.css (loaded on the same page) reference
-   the same custom properties. */
-:root {
-    --mdr-bg:          #fff;
-    --mdr-bg-subtle:   #f6f8fa;
-    --mdr-bg-inset:    #e8eaed;
-    --mdr-fg:           #24292f;
-    --mdr-fg-strong:   #1f2328;
-    --mdr-fg-muted:    #57606a;
-    --mdr-fg-faint:    #8c959f;
-    --mdr-border:      #e1e4e8;
-    --mdr-border-strong: #d0d7de;
-    --mdr-accent:      #0969da;
-    --mdr-accent-bg:   #eaf5ff;
-    --mdr-accent-fg:   #fff;
-    --mdr-seg-track-bg: #e8eaed;
-    --mdr-seg-track-border: #d0d4d9;
-    --mdr-seg-fg:      #5f6368;
-    --mdr-seg-fg-hover: #333;
-    --mdr-seg-active-1: #4a90e2;
-    --mdr-seg-active-2: #3a7bc8;
-    --mdr-badge-fg:    #9a6700;
-    --mdr-badge-bg:    #fff8c5;
-    --mdr-badge-border: #eac54f;
-    --mdr-green:       #2da44e;
-    --mdr-green-hover: #2c974b;
-    --mdr-done:        #2da44e;
-    --mdr-shadow-soft: rgba(0,0,0,.06);
-    --mdr-shadow-med:  rgba(0,0,0,.08);
-}
+/* ── MarkdownWbce — reader popup chrome ───────────────────────────────────
+   Full-page stylesheet for the standalone reader (reader.php / reader.htt):
+   layout wrapper, header, sidebar/TOC, tabs, footer, edit panel, theme toggle.
+   Do NOT load this into an embed — it carries a global reset.
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --mdr-bg:          #0d1117;
-        --mdr-bg-subtle:   #161b22;
-        --mdr-bg-inset:    #21262d;
-        --mdr-fg:           #e6edf3;
-        --mdr-fg-strong:   #f0f6fc;
-        --mdr-fg-muted:    #8b949e;
-        --mdr-fg-faint:    #6e7681;
-        --mdr-border:      #30363d;
-        --mdr-border-strong: #3d444d;
-        --mdr-accent:      #58a6ff;
-        --mdr-accent-bg:   rgba(56,139,253,.15);
-        --mdr-accent-fg:   #fff;
-        --mdr-seg-track-bg: #21262d;
-        --mdr-seg-track-border: #30363d;
-        --mdr-seg-fg:      #8b949e;
-        --mdr-seg-fg-hover: #e6edf3;
-        --mdr-seg-active-1: #388bfd;
-        --mdr-seg-active-2: #1f6feb;
-        --mdr-badge-fg:    #e3b341;
-        --mdr-badge-bg:    rgba(187,128,9,.15);
-        --mdr-badge-border: #9e6a03;
-        --mdr-green:       #2ea043;
-        --mdr-green-hover: #3fb950;
-        --mdr-done:        #3fb950;
-        --mdr-shadow-soft: rgba(0,0,0,.35);
-        --mdr-shadow-med:  rgba(0,0,0,.45);
-    }
-}
+   The --mdr-* colour tokens it uses now live in layout/markdown.css (loaded
+   right after this file on the reader page). Keep the two in sync only there.
+   ───────────────────────────────────────────────────────────────────────── */
 
-:root[data-theme="dark"] {
-    --mdr-bg:          #0d1117;
-    --mdr-bg-subtle:   #161b22;
-    --mdr-bg-inset:    #21262d;
-    --mdr-fg:           #e6edf3;
-    --mdr-fg-strong:   #f0f6fc;
-    --mdr-fg-muted:    #8b949e;
-    --mdr-fg-faint:    #6e7681;
-    --mdr-border:      #30363d;
-    --mdr-border-strong: #3d444d;
-    --mdr-accent:      #58a6ff;
-    --mdr-accent-bg:   rgba(56,139,253,.15);
-    --mdr-accent-fg:   #fff;
-    --mdr-seg-track-bg: #21262d;
-    --mdr-seg-track-border: #30363d;
-    --mdr-seg-fg:      #8b949e;
-    --mdr-seg-fg-hover: #e6edf3;
-    --mdr-seg-active-1: #388bfd;
-    --mdr-seg-active-2: #1f6feb;
-    --mdr-badge-fg:    #e3b341;
-    --mdr-badge-bg:    rgba(187,128,9,.15);
-    --mdr-badge-border: #9e6a03;
-    --mdr-green:       #2ea043;
-    --mdr-green-hover: #3fb950;
-    --mdr-done:        #3fb950;
-    --mdr-shadow-soft: rgba(0,0,0,.35);
-    --mdr-shadow-med:  rgba(0,0,0,.45);
-}
 
 /* ── Reset / base ────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -401,9 +315,24 @@ html, body {
 .mdr-sidebar li      { margin: .15rem 0; }
 .mdr-sidebar a       { color: var(--mdr-fg-muted); text-decoration: none; display: block;
                         padding: .2rem .4rem; border-radius: 4px;
-                        transition: background .12s, color .12s; }
+                        border-left: 2px solid transparent;
+                        transition: background .12s, color .12s, border-color .12s; }
 .mdr-sidebar a:hover { background: var(--mdr-bg-subtle); color: var(--mdr-fg); }
-.mdr-sidebar a.mdr-nav--active { background: var(--mdr-accent-bg); color: var(--mdr-accent); font-weight: 500; }
+
+/* Size / weight by heading depth (li.mdr-toc-l1 … l6 from buildToc). No colour
+   here — the active rule below has to win it. */
+.mdr-sidebar .mdr-toc-l1 > a { font-size: 1.04em; font-weight: 700; }
+.mdr-sidebar .mdr-toc-l2 > a { font-weight: 600; }
+.mdr-sidebar .mdr-toc-l3 > a { font-size: .95em; }
+.mdr-sidebar .mdr-toc-l4 > a,
+.mdr-sidebar .mdr-toc-l5 > a,
+.mdr-sidebar .mdr-toc-l6 > a { font-size: .9em; color: var(--mdr-fg-faint); }
+
+/* Active section link — last, so its colour beats the l4–l6 faint rule. */
+.mdr-sidebar a.mdr-nav--active {
+    background: var(--mdr-accent-bg); color: var(--mdr-accent);
+    border-left-color: var(--mdr-accent);
+}
 
 /* ── Resize handle ───────────────────────────────────────────────────────── */
 /* Wider invisible hit-zone (9px) than the visible track line (1px) — easier

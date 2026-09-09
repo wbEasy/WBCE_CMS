@@ -330,6 +330,132 @@ class MdReaderHelper
         return $html;
     }
 
+    /**
+     * Render a Markdown doc for embedding directly inside a backend page — no
+     * popup, no reader.php round-trip.
+     *
+     * Resolves the language variant, renders to HTML, injects heading anchors +
+     * builds a table of contents, and reports which optional assets the content
+     * needs. The caller loads layout/markdown.css itself, plus — when the
+     * matching flag is set — layout/filetree.css + layout/filetree.js for
+     * ```file-tree blocks, and a highlighter for fenced code.
+     *
+     * @param  string      $relativePath  Doc path relative to WB_PATH (absolute also accepted)
+     * @param  string|null $langCode      2-char locale; null = current LANGUAGE
+     * @param  string      $tocClass      CSS class for the generated <ul> TOC
+     * @return array{abs:string, html:string, toc:string, title:string,
+     *               langs:array, needsCode:bool, needsFileTree:bool}|null
+     *         null when the file cannot be resolved (missing / outside WB_PATH / not .md)
+     */
+    public static function renderForEmbed(
+        string $relativePath,
+        ?string $langCode = null,
+        string $tocClass = 'docs-nav'
+    ): ?array {
+        $lang = $langCode ?? (defined('LANGUAGE') ? (string) LANGUAGE : 'EN');
+        $abs  = self::findExistingDoc($relativePath, $lang);
+        if ($abs === null || !is_file($abs)) {
+            return null;
+        }
+
+        $html = self::renderFile($abs);
+        if ($html === '') {
+            return null;
+        }
+
+        $title = self::_firstHeadingText($html) ?: pathinfo($abs, PATHINFO_FILENAME);
+        $toc   = self::buildToc($html, $tocClass); // injects anchors into $html by ref
+
+        return [
+            'abs'           => $abs,
+            'html'          => $html,
+            'toc'           => $toc,
+            'title'         => $title,
+            'langs'         => self::availableLanguages($abs),
+            'needsCode'     => self::needsCodeMirror($html),
+            'needsFileTree' => self::needsFileTree($html),
+        ];
+    }
+
+    /**
+     * Every stylesheet + script a module needs to show a renderForEmbed()
+     * result inline in a backend page. One call — no per-module CSS.
+     *
+     * Pass the renderForEmbed() array to add the file-tree renderer and the
+     * syntax highlighter only when the doc actually needs them; pass null for
+     * the base set only.
+     *
+     *   $doc = MdReaderHelper::renderForEmbed('/modules/x/docs/y.md');
+     *   $a   = MdReaderHelper::embedAssets($doc);
+     *   foreach ($a['css'] as $u) { I::insertCssFile($u); }
+     *   foreach ($a['js']  as $u) { I::insertJsFile($u, 'body_late'); }
+     *
+     * @param  array<string,mixed>|null $doc  renderForEmbed() result, or null
+     * @return array{css:list<string>, js:list<string>}
+     */
+    public static function embedAssets(?array $doc = null): array
+    {
+        $css = [
+            self::_asset('/layout/markdown.css'),
+            self::_asset('/layout/markdown-embed.css'),
+        ];
+        $js = [
+            self::_asset('/layout/markdown-embed.js'),
+        ];
+
+        if ($doc !== null && !empty($doc['needsFileTree'])) {
+            $css[] = self::_asset('/layout/filetree.css');
+            $js[]  = self::_asset('/layout/filetree.js');
+        }
+        if ($doc !== null && !empty($doc['needsCode'])) {
+            $hl    = self::highlightAssets();
+            $css[] = $hl['css_light'];
+            $js    = array_merge($js, $hl['js']);
+        }
+
+        return ['css' => $css, 'js' => $js];
+    }
+
+    /**
+     * Module-relative asset path → absolute URL with an mtime cache-buster,
+     * so an embedding page always gets the current file (the reader popup
+     * does the same via reader.php's $assetVer).
+     */
+    private static function _asset(string $rel): string
+    {
+        $base = defined('MDR_URL') ? MDR_URL : (WB_URL . '/modules/MarkdownWbce');
+        $mt   = @filemtime(__DIR__ . $rel);
+        return $base . $rel . ($mt ? '?v=' . $mt : '');
+    }
+
+    /**
+     * Vendored syntax-highlighting assets (highlight.js + GitHub themes +
+     * the shared layout/highlight.js init). One source of truth for both the
+     * reader popup and inline embeds.
+     *
+     * @return array{js:list<string>, css_light:string, css_dark:string}
+     */
+    public static function highlightAssets(): array
+    {
+        return [
+            'js' => [
+                self::_asset('/layout/vendor/hljs/highlight.min.js'),
+                self::_asset('/layout/highlight.js'),
+            ],
+            'css_light' => self::_asset('/layout/vendor/hljs/github.min.css'),
+            'css_dark'  => self::_asset('/layout/vendor/hljs/github-dark.min.css'),
+        ];
+    }
+
+    /** First H1–H3 text from rendered HTML, or '' when there is none. */
+    private static function _firstHeadingText(string $html): string
+    {
+        if (preg_match('/<h[1-3][^>]*>(.*?)<\/h[1-3]>/is', $html, $m)) {
+            return trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8'));
+        }
+        return '';
+    }
+
     // ── TOC generation ────────────────────────────────────────────────────────
 
     /**
@@ -354,7 +480,10 @@ class MdReaderHelper
         $headings = [];
         foreach ($matches[0] as $i => $fullTag) {
             $level = (int) $matches[1][$i];
-            $text  = strip_tags($matches[2][$i]);
+            // $matches[2] is the heading's inner HTML — already entity-encoded
+            // by Parsedown ("Cache &amp; Status"). Decode before we re-encode
+            // in _buildTocHtml(), otherwise the TOC shows a literal "&amp;".
+            $text  = html_entity_decode(strip_tags($matches[2][$i]), ENT_QUOTES, 'UTF-8');
             $slug  = self::_slug($text);
 
             $headings[] = ['tag' => $fullTag, 'level' => $level, 'text' => $text, 'slug' => $slug];
@@ -528,7 +657,7 @@ class MdReaderHelper
                 }
             }
 
-            $toc .= '<li>' . $link;
+            $toc .= '<li class="mdr-toc-l' . $level . '">' . $link;
         }
 
         while ($current > $minLevel) {
