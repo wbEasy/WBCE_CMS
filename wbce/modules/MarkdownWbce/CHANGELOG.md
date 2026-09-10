@@ -2,6 +2,32 @@
 
 All notable changes to the `MarkdownWbce` module.
 
+## 0.3.1 - 2026-09-10 Christian M. Stefan
+
+### Changed
+- **Fixed-viewport reader shell.** The popup no longer scrolls as one page:
+  header and footer are `flex:none` and always on screen, and `.mdr-content` /
+  `.mdr-sidebar-wrap` scroll independently inside the middle row. So the footer
+  is static, and the sidebar panel now stretches the full height between header
+  and footer even when its TOC is short. Anchor jumps use `.mdr-content`'s
+  `scroll-padding-top`; the scroll spy watches that container instead of the
+  window. The `.h-anchor` negative-offset hack is gone.
+- **Reader resize handle rebuilt** on the FEE/VES shell's pattern: a flex item
+  between the sidebar and the content, driven by Pointer Events +
+  `setPointerCapture()` (so a drag can't "stick" when the cursor crosses the
+  scrolling content), width as `--mdr-sidebar-w` on `<html>`, persisted to
+  `localStorage`, transition suppressed during the drag, double-click resets to
+  the default.
+- **Reader visual refresh.** The popup's header, sidebar and footer now sit on
+  a `--mdr-panel` surface (a small neutral offset from the content background,
+  light + dark), so the article reads as "the page". The footer gained a
+  second line: `WBCE CMS MarkdownWbce` on the left, the doc's repo-relative
+  path on the right (`[DOC_PATH]`).
+- **Reader font.** A single `--mdr-font` token (declared in `markdown.css`, a
+  `"Segoe UI"`-first system stack) is used by `.markdown-body`, `.mdr-embed`
+  and the reader chrome — scoped to the reader and its inline embeds, so the
+  surrounding backend keeps its own font. No web font, no third-party request.
+
 ## 0.3.0 - 2026-09-09 Christian M. Stefan
 
 ### Added

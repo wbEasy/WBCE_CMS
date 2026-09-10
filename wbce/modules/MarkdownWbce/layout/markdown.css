@@ -35,6 +35,14 @@
     --mdr-done:        #2da44e;
     --mdr-shadow-soft: rgba(0,0,0,.06);
     --mdr-shadow-med:  rgba(0,0,0,.08);
+    /* Reader chrome surfaces (header / sidebar / footer) — a small neutral
+       offset from --mdr-bg so the content area reads as "the page". */
+    --mdr-panel:        #eef1f4;
+    --mdr-panel-border: #dfe3e8;
+    /* Default typeface for the reader + its embeds — scoped to .markdown-body
+       here and to the reader chrome in style.css, so the surrounding backend
+       (its own font) is never touched. System stack, "Segoe UI" first. */
+    --mdr-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -65,6 +73,8 @@
         --mdr-done:        #3fb950;
         --mdr-shadow-soft: rgba(0,0,0,.35);
         --mdr-shadow-med:  rgba(0,0,0,.45);
+        --mdr-panel:        #161b22;
+        --mdr-panel-border: #30363d;
     }
 }
 
@@ -96,9 +106,12 @@
     --mdr-shadow-soft: rgba(0,0,0,.35);
     --mdr-shadow-med:  rgba(0,0,0,.45);
     --mdr-mono-color: #4172b5;
+    --mdr-panel:        #161b22;
+    --mdr-panel-border: #30363d;
 }
 
 .markdown-body {
+    font-family: var(--mdr-font);
     font-size: 15px;
     line-height: 1.7;
     color: var(--mdr-fg);

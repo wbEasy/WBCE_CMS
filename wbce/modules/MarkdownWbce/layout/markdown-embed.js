@@ -96,12 +96,18 @@
             cur.a.classList.add('mdr-nav--active');
             active = cur.a;
 
-            // Keep the active link visible inside a scrolling TOC.
+            // Keep the active link visible inside a scrolling TOC — by nudging
+            // the TOC's *own* scrollTop only. Never scrollIntoView(): that also
+            // scrolls the window/ancestors, and a window scroll re-fires this
+            // handler, which can re-pick the active link and loop the page into
+            // a freeze.
             if (toc.scrollHeight > toc.clientHeight + 4) {
                 var ar = cur.a.getBoundingClientRect();
                 var tr = toc.getBoundingClientRect();
-                if (ar.top < tr.top || ar.bottom > tr.bottom) {
-                    cur.a.scrollIntoView({ block: 'nearest' });
+                if (ar.top < tr.top) {
+                    toc.scrollTop -= (tr.top - ar.top) + 8;
+                } else if (ar.bottom > tr.bottom) {
+                    toc.scrollTop += (ar.bottom - tr.bottom) + 8;
                 }
             }
         }

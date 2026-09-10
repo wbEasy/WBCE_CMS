@@ -244,6 +244,7 @@ $html = $parser->parse($template, [
     'FTAN_TAG'      => $ftanTag,
     'RAW_MARKDOWN'  => $rawMd,
     'REL_PATH'      => $activeDoc['relPath'],
+    'DOC_PATH'      => ltrim((string) $activeDoc['relPath'], '/'),
     'SAVE_URL'      => WB_URL . '/modules/MarkdownWbce/ajax_save_doc.php',
     'STYLE_V'       => $assetVer('style.css'),
     'MARKDOWN_V'    => $assetVer('markdown.css'),

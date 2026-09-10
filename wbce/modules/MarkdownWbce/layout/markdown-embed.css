@@ -25,6 +25,10 @@
     gap: 28px;
     align-items: start;
     --mdr-toc-top: 4.5rem;
+    /* Reader font for the whole embed (article + its TOC), same as the reader
+       popup — scoped to .mdr-embed, so the surrounding backend is untouched.
+       --mdr-font is declared in markdown.css (loaded alongside). */
+    font-family: var(--mdr-font, inherit);
 }
 .mdr-embed--notoc { grid-template-columns: 1fr; }
 

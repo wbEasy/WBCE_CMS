@@ -91,11 +91,12 @@
             <nav class="mdr-sidebar" id="mdr-sidebar" aria-label="Table of contents">
                 <button type="button" class="mdr-sidebar-toggle" id="mdr-sidebar-toggle" aria-label="Sidebar zuklappen" title="Sidebar zuklappen">&#8249;</button>
                 [TOC|raw]
-                <div class="mdr-resize-handle" id="mdr-resize-handle" title="Breite anpassen"></div>
             </nav>
         </div>
 
-        <main class="mdr-content">
+        <div class="mdr-resize-handle" id="mdr-resize-handle" title="Breite anpassen" role="separator" aria-orientation="vertical"></div>
+
+        <main class="mdr-content" id="mdr-content">
             <article class="markdown-body" id="mdr-article">
                 [CONTENT|raw]
             </article>
@@ -120,6 +121,7 @@
 
     <footer class="mdr-footer">
         <span>WBCE CMS <strong>MarkdownWbce</strong></span>
+        <span class="mdr-footer-path" title="[DOC_PATH]">[DOC_PATH]</span>
     </footer>
 
 </div>

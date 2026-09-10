@@ -12,7 +12,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* --mdr-font / --mdr-panel* are declared in markdown.css (loaded right
+       after this file); custom props resolve regardless of sheet order. */
+    font-family: var(--mdr-font, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif);
     font-size: 15px;
     line-height: 1.6;
     color: var(--mdr-fg);
@@ -30,6 +32,9 @@ html, body {
 :root {
     scrollbar-color: var(--mdr-border-strong) transparent;
     scrollbar-width: thin;
+    /* Sidebar width — reader.js overrides this on <html> from localStorage
+       and while dragging the resize handle (same pattern as the FEE shell). */
+    --mdr-sidebar-w: 260px;
 }
 *::-webkit-scrollbar { width: 12px; height: 12px; }
 *::-webkit-scrollbar-track { background: transparent; }
@@ -43,24 +48,32 @@ html, body {
 *::-webkit-scrollbar-corner { background: transparent; }
 
 /* ── Wrapper ─────────────────────────────────────────────────────────────── */
+/* Fixed-viewport shell: header and footer are flex:none and always on screen;
+   the middle row (.mdr-body) is the only thing that scrolls, and it does so
+   inside .mdr-content / .mdr-sidebar-wrap independently — the page itself
+   never scrolls. That keeps the footer static and lets the sidebar panel
+   stretch the full height between header and footer even when its TOC is
+   short. */
 .mdr-wrapper {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .mdr-header {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 100;
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     padding: .6rem 1.25rem;
-    background: var(--mdr-bg);
-    border-bottom: 1px solid var(--mdr-border);
+    background: var(--mdr-panel);
+    border-bottom: 1px solid var(--mdr-panel-border);
     min-height: 52px;
 }
 
@@ -68,7 +81,7 @@ html, body {
 .mdr-header-right { display: flex; align-items: center; gap: .75rem; flex-shrink: 0; }
 
 .mdr-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -249,20 +262,19 @@ html, body {
 .mdr-body {
     display: flex;
     flex: 1;
+    min-height: 0;      /* let the flex row shrink so children can scroll */
+    overflow: hidden;
 }
 
-/* ── Sidebar wrap (sticky container) ────────────────────────────────────── */
+/* ── Sidebar wrap — full-height panel, its own scroll ───────────────────── */
 .mdr-sidebar-wrap {
-    position: sticky;
-    top: 52px;
-    align-self: flex-start;
-    max-height: calc(100vh - 52px);
+    flex: none;
+    width: var(--mdr-sidebar-w, 260px);
     overflow-y: auto;
     overflow-x: hidden;
-    flex-shrink: 0;
-    border-right: 1px solid var(--mdr-border);
-    transition: width .2s ease;
-    width: 260px;
+    background: var(--mdr-panel);
+    border-right: 1px solid var(--mdr-panel-border);
+    transition: width .12s ease;
 }
 
 .mdr-sidebar-wrap--collapsed {
@@ -270,7 +282,7 @@ html, body {
 }
 .mdr-sidebar-wrap--collapsed .mdr-sidebar { overflow: hidden; }
 .mdr-sidebar-wrap--collapsed ul          { display: none; }
-.mdr-sidebar-wrap--collapsed .mdr-resize-handle { display: none; }
+.mdr-sidebar-wrap--collapsed + .mdr-resize-handle { display: none; }
 
 /* ── Sidebar (inner — position:relative for absolute children) ───────────── */
 .mdr-sidebar {
@@ -335,19 +347,20 @@ html, body {
 }
 
 /* ── Resize handle ───────────────────────────────────────────────────────── */
-/* Wider invisible hit-zone (9px) than the visible track line (1px) — easier
-   to grab without looking bulkier than the rest of the chrome. A permanent
-   pill-shaped grip ("handlebar", ::after) near the top makes it
-   discoverable without needing to hover first — the previous version was
-   invisible until hovered, which turned out to be too subtle to find. */
+/* A flex item between the sidebar and the content (same structure as the
+   FEE/VES shell), 6px wide with a negative margin so it straddles the
+   sidebar's right border. Wide enough to grab; a permanent pill-shaped grip
+   (::after) near the top makes it discoverable without hovering first.
+   touch-action:none so the pointer-events drag in reader.js isn't stolen by
+   touch scrolling. */
 .mdr-resize-handle {
-    position: absolute;
-    top: 0;
-    right: -4px;
-    width: 9px;
-    height: 100%;
-    cursor: col-resize;
+    flex: none;
+    position: relative;
+    width: 6px;
+    margin: 0 -3px;
     z-index: 20;
+    cursor: col-resize;
+    touch-action: none;
 }
 .mdr-resize-handle::before {
     content: '';
@@ -357,14 +370,14 @@ html, body {
     bottom: 0;
     width: 1px;
     transform: translateX(-50%);
-    background: var(--mdr-border);
+    background: var(--mdr-panel-border);
     transition: background .12s;
 }
 .mdr-resize-handle::after {
     content: '⋮';
     position: absolute;
     left: 50%;
-    top: 70px;
+    top: 64px;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
@@ -389,27 +402,42 @@ html, body {
     color: var(--mdr-accent);
 }
 
-/* ── Content ─────────────────────────────────────────────────────────────── */
+/* ── Content — the scrollable column ────────────────────────────────────── */
 .mdr-content {
     flex: 1;
     min-width: 0;
+    overflow-y: auto;
+    scroll-padding-top: 1.5rem;   /* clearance for #hash jumps to headings */
     padding: 2rem 2.5rem;
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .mdr-footer {
-    padding: .6rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: .5rem 1.25rem;
     font-size: 12px;
     color: var(--mdr-fg-faint);
-    border-top: 1px solid var(--mdr-border);
-    text-align: right;
+    background: var(--mdr-panel);
+    border-top: 1px solid var(--mdr-panel-border);
+}
+.mdr-footer strong { color: var(--mdr-fg-muted); font-weight: 600; }
+.mdr-footer-path {
+    font-family: monospace;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
-/* ── Anchor targets (offset for sticky header) ───────────────────────────── */
+/* ── Anchor targets ─────────────────────────────────────────────────────────
+   The header is outside the scroll container now, so no negative-offset hack
+   is needed — .mdr-content's scroll-padding-top gives the #hash-jump clearance. */
 .h-anchor {
     display: block;
-    position: relative;
-    top: -68px;
     visibility: hidden;
 }
 
@@ -422,10 +450,10 @@ html, body {
         position: fixed;
         top: 52px;
         left: 0;
-        height: calc(100vh - 52px);
+        bottom: 0;
         width: 240px !important;
         z-index: 90;
-        background: var(--mdr-bg);
+        background: var(--mdr-panel);
         box-shadow: 2px 0 8px var(--mdr-shadow-med);
     }
     .mdr-body--collapsed .mdr-sidebar-wrap { display: none; }

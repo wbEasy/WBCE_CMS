@@ -2,7 +2,7 @@
 /**
  * @package    MarkdownWbce
  * @author     Christian M. Stefan (https://www.wbEasy.de/)
- * @version    0.3.0
+ * @version    0.3.1
  * @license    GNU/GPL v2
  */
 
@@ -11,7 +11,7 @@ $core = true;
 $module_directory   = 'MarkdownWbce';
 $module_name        = 'MarkdownWbce';
 $module_function    = 'initialize, tool'; // , page could come at a later date
-$module_version     = '0.3.0';
+$module_version     = '0.3.1';
 $module_platform    = '1.7.0';
 $module_author      = 'Christian M. Stefan';
 $module_description = 'Renders and edits Markdown files as formatted documentation pages. Provides ParsedownWbce (core-wide) and the MdReaderLink helper class for use in other modules.';

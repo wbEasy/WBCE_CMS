@@ -417,15 +417,16 @@ class MdReaderHelper
     }
 
     /**
-     * Module-relative asset path → absolute URL with an mtime cache-buster,
-     * so an embedding page always gets the current file (the reader popup
-     * does the same via reader.php's $assetVer).
+     * Module-relative asset path → absolute URL. No cache-buster here: the
+     * embed feeds these straight into I::insertCssFile()/insertJsFile(), and
+     * AssetQueue applies its own ?mtime when OPF_ASSETS_CACHE_BUSTING(_BE) is
+     * on. (The reader popup does its own versioning because reader.htt writes
+     * the <link>/<script> tags directly, bypassing the queue.)
      */
     private static function _asset(string $rel): string
     {
         $base = defined('MDR_URL') ? MDR_URL : (WB_URL . '/modules/MarkdownWbce');
-        $mt   = @filemtime(__DIR__ . $rel);
-        return $base . $rel . ($mt ? '?v=' . $mt : '');
+        return $base . $rel;
     }
 
     /**

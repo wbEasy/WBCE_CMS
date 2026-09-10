@@ -41,9 +41,11 @@ $(function () {
     var $toggleBtn   = $('#mdr-sidebar-toggle');
     var STORAGE_KEY  = 'mdr_sidebar_collapsed';
     var WIDTH_KEY    = 'mdr_sidebar_width';
-    var DEFAULT_W    = 260;
-    var MIN_W        = 140;
-    var MAX_W        = 520;
+    var MIN_W        = 160;
+
+    function maxWidth() {
+        return Math.max(MIN_W, Math.min(560, Math.round(window.innerWidth * 0.5)));
+    }
 
     // Restore persisted state
     if (localStorage.getItem(STORAGE_KEY) === '1') {
@@ -51,8 +53,9 @@ $(function () {
         $toggleBtn.attr('title', 'Sidebar aufklappen');
     }
     var savedW = parseInt(localStorage.getItem(WIDTH_KEY), 10);
-    if (!isNaN(savedW) && savedW >= MIN_W && savedW <= MAX_W) {
-        $wrap.css('width', savedW + 'px');
+    if (!isNaN(savedW)) {
+        savedW = Math.max(MIN_W, Math.min(maxWidth(), savedW));
+        document.documentElement.style.setProperty('--mdr-sidebar-w', savedW + 'px');
     }
 
     $toggleBtn.on('click', function () {
@@ -63,56 +66,87 @@ $(function () {
     });
 
     // ── Resize drag ───────────────────────────────────────────────────────────
-    var $handle   = $('#mdr-resize-handle');
-    var dragging  = false;
-    var startX, startW;
+    // Pointer Events + setPointerCapture(), the same pattern the FEE/VES shell
+    // uses: capture routes every pointermove/up to the handle even when the
+    // cursor is over the scrolling content — so the drag can never "stick"
+    // after release. Width is a CSS var on <html> (--mdr-sidebar-w), persisted
+    // to localStorage on release; double-click resets to the CSS default.
+    var handleEl = document.getElementById('mdr-resize-handle');
+    if (handleEl && window.PointerEvent) {
+        handleEl.addEventListener('pointerdown', function (e) {
+            if (e.button !== 0) { return; }
+            e.preventDefault();
+            handleEl.setPointerCapture(e.pointerId);
+            var startX = e.clientX;
+            var startW = $wrap[0].getBoundingClientRect().width;
+            handleEl.classList.add('mdr-resizing');
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'col-resize';
+            // Kill the width transition for the drag — otherwise the panel
+            // lags ~120ms behind the cursor. Restored on release so
+            // collapse/expand still animates.
+            $wrap[0].style.transition = 'none';
 
-    $handle.on('mousedown', function (e) {
-        e.preventDefault();
-        dragging = true;
-        startX   = e.clientX;
-        startW   = $wrap.outerWidth();
-        $handle.addClass('mdr-resizing');
-        $('body').css('cursor', 'col-resize').css('user-select', 'none');
-    });
-
-    $(document).on('mousemove', function (e) {
-        if (!dragging) return;
-        var newW = Math.min(MAX_W, Math.max(MIN_W, startW + (e.clientX - startX)));
-        $wrap.css('width', newW + 'px');
-    });
-
-    $(document).on('mouseup', function () {
-        if (!dragging) return;
-        dragging = false;
-        $handle.removeClass('mdr-resizing');
-        $('body').css('cursor', '').css('user-select', '');
-        localStorage.setItem(WIDTH_KEY, $wrap.outerWidth());
-    });
+            function onMove(ev) {
+                var w = Math.max(MIN_W, Math.min(maxWidth(), startW + (ev.clientX - startX)));
+                document.documentElement.style.setProperty('--mdr-sidebar-w', w + 'px');
+            }
+            function onUp(ev) {
+                handleEl.releasePointerCapture(ev.pointerId);
+                handleEl.removeEventListener('pointermove', onMove);
+                handleEl.removeEventListener('pointerup', onUp);
+                handleEl.removeEventListener('pointercancel', onUp);
+                handleEl.classList.remove('mdr-resizing');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+                $wrap[0].style.transition = '';
+                var w = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--mdr-sidebar-w'), 10);
+                if (w) { try { localStorage.setItem(WIDTH_KEY, String(w)); } catch (err) { /* no storage */ } }
+            }
+            handleEl.addEventListener('pointermove', onMove);
+            handleEl.addEventListener('pointerup', onUp);
+            handleEl.addEventListener('pointercancel', onUp);
+        });
+        handleEl.addEventListener('dblclick', function () {
+            document.documentElement.style.removeProperty('--mdr-sidebar-w');
+            try { localStorage.removeItem(WIDTH_KEY); } catch (err) { /* no storage */ }
+        });
+    }
 
     // ── Scroll spy — highlight active TOC link ────────────────────────────────
-    var OFFSET = 60;
+    // .mdr-content is the scroll container now (the page itself never scrolls),
+    // so compare each heading anchor's viewport position to the top of that
+    // container plus a small offset — same idea as markdown-embed.js.
+    var contentEl = document.getElementById('mdr-content');
+    var OFFSET = 24;
     var $links = $('#mdr-sidebar a[href^="#"]');
 
     function getActive () {
-        var scrollTop = $(window).scrollTop();
-        var active    = $links.first();
+        var line = contentEl.getBoundingClientRect().top + OFFSET;
+        var active = $links.first();
         $links.each(function () {
-            var $anchor = $($(this).attr('href'));
-            if ($anchor.length && $anchor.offset().top - OFFSET <= scrollTop) {
-                active = $(this);
-            }
+            var id = decodeURIComponent(($(this).attr('href') || '').slice(1));
+            var el = id && document.getElementById(id);
+            if (el && el.getBoundingClientRect().top - line <= 0) { active = $(this); }
         });
         return active;
     }
 
-    $(window).on('scroll.mdrspy', function () {
-        var $current = getActive();
-        if (!$current.hasClass('mdr-nav--active')) {
-            $links.removeClass('mdr-nav--active');
-            $current.addClass('mdr-nav--active');
-        }
-    });
+    if (contentEl) {
+        var spyTicking = false;
+        contentEl.addEventListener('scroll', function () {
+            if (spyTicking) { return; }
+            spyTicking = true;
+            requestAnimationFrame(function () {
+                spyTicking = false;
+                var $current = getActive();
+                if (!$current.hasClass('mdr-nav--active')) {
+                    $links.removeClass('mdr-nav--active');
+                    $current.addClass('mdr-nav--active');
+                }
+            });
+        }, { passive: true });
+    }
 
     var $article = $('#mdr-article');
 
