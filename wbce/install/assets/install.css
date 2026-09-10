@@ -673,3 +673,5 @@ tt {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
 }
+/* Streamed machine-readable marker (WB_URL / admin URL) — never visible */
+.install-meta { display: none !important; }

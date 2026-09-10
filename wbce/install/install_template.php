@@ -382,7 +382,7 @@ if (isset($_GET['lang']) && is_string($_GET['lang'])) {
                                 <label for="admin_password"><?= $TXT['lbl_admin_pass'] ?></label>
                                 <input <?= field_error('admin_password') ?> type="password" id="admin_password"
                                                                            tabindex="14" name="admin_password"
-                                                                           minlength="12" value="<?= $sAdminPassword ?>" required
+                                                                           minlength="12" maxlength="72" value="<?= $sAdminPassword ?>" required
                                                                            autocomplete="new-password">
                             </div>
 
@@ -395,7 +395,7 @@ if (isset($_GET['lang']) && is_string($_GET['lang'])) {
                                 <label for="admin_repassword"><?= $TXT['lbl_admin_repass'] ?></label>
                                 <input <?= field_error('admin_repassword') ?> type="password" id="admin_repassword"
                                                                              tabindex="15" name="admin_repassword"
-                                                                             minlength="12" value="<?= $sAdminRepassword ?>" required
+                                                                             minlength="12" maxlength="72" value="<?= $sAdminRepassword ?>" required
                                                                              autocomplete="new-password">
                             </div>
 
