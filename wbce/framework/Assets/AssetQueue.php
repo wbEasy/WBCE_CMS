@@ -95,31 +95,33 @@
  *
  * ── Configuration constants ────────────────────────────────────────────────────
  *
- *   Set these in var/config_constants.php as needed.
- *   All optional — sane defaults apply when not defined. 
- * 
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | Constant            | Example value | Default       | Description                                              |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | MINIFY_CSS          | true          | false (off)   | Minifies CSS assets (bundles and individual files).      |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | MINIFY_JS           | true          | false (off)   | Minifies JS assets (bundles and individual files).       |
- *  |                     |               |               | Uses `matthiasmullie/minify` if present in `include/`;   |
- *  |                     |               |               | otherwise uses the built-in regex minifier.              |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | MINIFY_ASSETS_DEBUG | true          | false (off)   | **Admin only.** Disables both minification and bundling  |
- *  |                     |               |               | so browser DevTools show the original source files.      |
- *  |                     |               |               | Other visitors still receive the normal optimized output.|
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | MINIFY_USE_SUFFIX   | false         | true          | When `false`, cached files omit the `.min` suffix .      |  
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | ASSET_CACHE_BUSTING | true          | false (off)   | Appends the file mod time (`?mtime`) to every asset URL. |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | WBCE_DEBUG          | true          | false (off)   | Enables `console.error()` output for administrators.     |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
- *  | MINIFY_ASSETS_DIR   | /abs/path/    | cache/assets/ | Absolute path to the cache directory for minified files  |
- *  |                     |               |               | and bundles.                                             |
- *  |---------------------|---------------|---------------|----------------------------------------------------------|
+ *   Set these in var/config_constants.ini.php as needed (or manage them from the
+ *   Asset Optimizer admin tool). All optional — sane defaults apply when unset.
+ *
+ *  | Constant                    | Example    | Default       | Description                                                |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | MINIFY_CSS                  | true       | false (off)   | Minify CSS - combined bundles and individual files.        |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | MINIFY_JS                   | true       | false (off)   | Minify JS. Uses matthiasmullie/minify when present in      |
+ *  |                             |            |               | include/; otherwise a conservative built-in fallback.      |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | ASSETS_MINIFY_DEBUG         | true       | false (off)   | Admin only. Disables minification AND bundling so          |
+ *  |                             |            |               | browser DevTools show the original source files; other     |
+ *  |                             |            |               | visitors still receive the optimised output. Old spellings |
+ *  |                             |            |               | still accepted: ASSET_MINIFY_DEBUG, MINIFY_ASSETS_DEBUG.   |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | MINIFY_USE_SUFFIX           | false      | true          | When false, cached files omit the .min suffix.             |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | OPF_ASSETS_CACHE_BUSTING    | true       | false (off)   | Append the file mtime (?<mtime>) to every asset URL.       |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | OPF_ASSETS_CACHE_BUSTING_BE | true       | (inherits FE) | Cache busting for backend requests. When set, backend      |
+ *  |                             |            |               | URLs use this instead of OPF_ASSETS_CACHE_BUSTING.         |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | WBCE_DEBUG                  | true       | false (off)   | console.error() output for admins on queue failure.        |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
+ *  | MINIFY_ASSETS_DIR           | /abs/path/ | cache/assets/ | Absolute path to the cache dir for bundles + minified      |
+ *  |                             |            |               | files.                                                     |
+ *  |-----------------------------|------------|---------------|------------------------------------------------------------|
  */
 
 // Register matthiasmullie/minify namespace.
@@ -178,10 +180,9 @@ final class AssetQueue
         $this->debug       = defined('WBCE_DEBUG') && WBCE_DEBUG;
 
         // MINIFY_CSS / MINIFY_JS enable minification per asset type.
-        // MINIFY_ASSETS is a shorthand that enables both at once.
-        // ASSET_MINIFY_DEBUG disables minification AND bundling for the logged-in admin only —
+        // ASSETS_MINIFY_DEBUG disables minification AND bundling for the logged-in admin only —
         // all other visitors continue to receive the minified/bundled versions.
-        $adminDebug          = (defined('ASSET_MINIFY_DEBUG') && ASSET_MINIFY_DEBUG) && $this->isAdmin();
+        $adminDebug          = $this->assetsMinifyDebug() && $this->isAdmin();
         $this->useMinifyCss  = !$adminDebug && (defined('MINIFY_CSS') && MINIFY_CSS);
         $this->useMinifyJs   = !$adminDebug && (defined('MINIFY_JS')  && MINIFY_JS);
 
@@ -217,10 +218,10 @@ final class AssetQueue
     private string      $fontCacheDir;
     private ?FontCache  $fontCache = null;
     private bool        $debug;
-    private bool   $useMinifyCss;
-    private bool   $useMinifyJs;
-    private mixed  $jsMinifier;
-    private mixed  $cssMinifier;
+    private bool        $useMinifyCss;
+    private bool        $useMinifyJs;
+    private mixed       $jsMinifier;
+    private mixed       $cssMinifier;
 
     // ── Minifier overrides ────────────────────────────────────────────────────
 
@@ -363,7 +364,7 @@ final class AssetQueue
         $pos  = $inst->normalizePos($position, 'css');
 
         // Debug mode (admin only): skip bundling, load every source individually
-        if ((defined('MINIFY_ASSETS_DEBUG') && MINIFY_ASSETS_DEBUG) && $inst->isAdmin()) {
+        if ($inst->assetsMinifyDebug() && $inst->isAdmin()) {
             foreach ($sources as $src) {
                 $src = trim((string)$src);
                 if ($src !== '') $inst->enqueue('css', $src, $pos, $attrs, '');
@@ -405,7 +406,7 @@ final class AssetQueue
         $pos  = $inst->normalizePos($position, 'js');
 
         // Debug mode (admin only): skip bundling, load every source individually
-        if ((defined('MINIFY_ASSETS_DEBUG') && MINIFY_ASSETS_DEBUG) && $inst->isAdmin()) {
+        if ($inst->assetsMinifyDebug() && $inst->isAdmin()) {
             foreach ($sources as $src) {
                 $src = trim((string)$src);
                 if ($src !== '') {
@@ -521,7 +522,7 @@ final class AssetQueue
      * Each plugin is loaded at most once per request — duplicate calls and circular
      * require chains are silently ignored.
      *
-     * Cache busting (ASSET_CACHE_BUSTING) is applied automatically to every file.
+     * Cache busting (OPF_ASSETS_CACHE_BUSTING) is applied automatically to every file.
      *
      *   plugin.json format:
      *   {
@@ -973,6 +974,48 @@ final class AssetQueue
             && (int)$_SESSION['USER_ID'] > 0;
     }
 
+    /**
+     * ASSETS_MINIFY_DEBUG — admin-only "serve the original source files" switch.
+     *
+     * Canonical name is ASSETS_MINIFY_DEBUG. The two historical spellings
+     * (ASSET_MINIFY_DEBUG, MINIFY_ASSETS_DEBUG) are still accepted as a fallback
+     * so existing configs keep working; prefer the canonical name going forward.
+     */
+    private function assetsMinifyDebug(): bool
+    {
+        foreach (['ASSETS_MINIFY_DEBUG', 'ASSET_MINIFY_DEBUG', 'MINIFY_ASSETS_DEBUG'] as $c) {
+            if (defined($c) && constant($c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True when the current request is served from the admin backend directory. */
+    private function isBackendRequest(): bool
+    {
+        $dir  = defined('ADMIN_DIRECTORY') ? (string) ADMIN_DIRECTORY : 'admin';
+        $self = (string) ($_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '');
+        return $dir !== '' && str_contains($self, '/' . $dir . '/');
+    }
+
+    /**
+     * Whether cache busting (?<mtime>) should be appended to asset URLs.
+     *
+     * A backend request consults OPF_ASSETS_CACHE_BUSTING_BE first (when that
+     * constant exists), so the backend — where CSS/JS is edited constantly — can
+     * bust while the public site keeps long-lived browser caching, or vice-versa.
+     * Frontend requests, and backend requests without the _BE constant, fall back
+     * to OPF_ASSETS_CACHE_BUSTING.
+     */
+    private function cacheBustingEnabled(): bool
+    {
+        if ($this->isBackendRequest() && defined('OPF_ASSETS_CACHE_BUSTING_BE')) {
+            return (bool) OPF_ASSETS_CACHE_BUSTING_BE;
+        }
+        return defined('OPF_ASSETS_CACHE_BUSTING') && OPF_ASSETS_CACHE_BUSTING;
+    }
+
     private function injectDebugScript(string &$content, Throwable $e): void
     {
         $msg   = addslashes($e->getMessage());
@@ -1141,7 +1184,10 @@ final class AssetQueue
             }
         }
 
-        return is_file($cachePath) ? $this->cacheFileUrl($cachePath) : $originalItem;
+        if (!is_file($cachePath)) {
+            return $originalItem;
+        }
+        return $this->cacheFileUrl($cachePath);
     }
 
     /**
@@ -1332,6 +1378,34 @@ final class AssetQueue
         // LOCK_EX ensures the hash is written atomically so concurrent readers
         // never see a partial / empty hash that triggers a spurious cache rebuild.
         file_put_contents($hashFile, $hash, LOCK_EX);
+
+        // Sidecar for the Asset Optimizer tool's bundle inspector: the ordered
+        // source list with each file's size + mtime, so the tool can show what
+        // went into a bundle and flag a source that was deleted since. Best
+        // effort only — a failure here never affects asset delivery.
+        $sourcesMeta = [];
+        foreach (array_values($sources) as $file) {
+            $sp = $this->resolveLocalPath($file);
+            $sourcesMeta[] = [
+                'ref'   => (string) $file,
+                'path'  => $sp ? str_replace('\\', '/', $sp) : null,
+                'bytes' => $sp ? (int) @filesize($sp) : 0,
+                'mtime' => $sp ? (int) @filemtime($sp) : 0,
+            ];
+        }
+        $metaFile = $cacheFile . '.meta.json';
+        @file_put_contents(
+            $metaFile,
+            json_encode([
+                'identifier' => $identifier,
+                'type'       => $type,
+                'minified'   => $useMinify,
+                'built'      => time(),
+                'bytes'      => (int) @filesize($cacheFile),
+                'sources'    => $sourcesMeta,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            LOCK_EX
+        );
 
         return $this->cacheFileUrl($cacheFile);
     }
@@ -2354,10 +2428,12 @@ final class AssetQueue
     {
         $url = strtr($file, $this->urlTokenMap());
 
+        $bust = $this->cacheBustingEnabled();
+
         if ($this->isExternal($url)) {
             // Same-origin http(s) URLs get cache busting via local path lookup.
             // Cross-origin CDN URLs are left unchanged (no filesystem access).
-            if (defined('ASSET_CACHE_BUSTING') && ASSET_CACHE_BUSTING) {
+            if ($bust) {
                 $path = $this->urlToLocalPath($url);
                 if ($path !== null) {
                     $sep  = str_contains($url, '?') ? '&' : '?';
@@ -2373,7 +2449,7 @@ final class AssetQueue
             return null;
         }
 
-        if (defined('ASSET_CACHE_BUSTING') && ASSET_CACHE_BUSTING) {
+        if ($bust) {
             $sep  = str_contains($url, '?') ? '&' : '?';
             $url .= $sep . filemtime($path);
         }
