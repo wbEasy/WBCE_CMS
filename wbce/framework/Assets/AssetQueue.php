@@ -114,10 +114,11 @@
  *  |-----------------------------|------------|---------------|------------------------------------------------------------|
  *  | OPF_ASSETS_CACHE_BUSTING    | true       | false (off)   | Append the file mtime (?<mtime>) to every asset URL.       |
  *  |-----------------------------|------------|---------------|------------------------------------------------------------|
- *  | OPF_ASSETS_CACHE_BUSTING_BE | true       | (inherits FE) | Cache busting for backend requests. When set, backend      |
- *  |                             |            |               | URLs use this instead of OPF_ASSETS_CACHE_BUSTING.         |
+ *  | OPF_ASSETS_CACHE_BUSTING_BE | true       | (follows FE)  | Adds cache busting for backend requests when FE busting is  |
+ *  |                             |            |               | off. FE busting on => the backend always busts.            |
  *  |-----------------------------|------------|---------------|------------------------------------------------------------|
- *  | WBCE_DEBUG                  | true       | false (off)   | console.error() output for admins on queue failure.        |
+ *  | ASSET_QUEUE_DEBUG           | true       | false (off)   | console.error() output for admins on queue failure.        |
+ *  |                             |            |               | WBCE_DEBUG (global dev mode) implies it.                   |
  *  |-----------------------------|------------|---------------|------------------------------------------------------------|
  *  | MINIFY_ASSETS_DIR           | /abs/path/ | cache/assets/ | Absolute path to the cache dir for bundles + minified      |
  *  |                             |            |               | files.                                                     |
@@ -177,7 +178,11 @@ final class AssetQueue
                 );
             }
         }
-        $this->debug       = defined('WBCE_DEBUG') && WBCE_DEBUG;
+        // Admin-only console.error() diagnostics on a queue failure. Its own
+        // switch (ASSET_QUEUE_DEBUG) so it can be enabled without the global
+        // WBCE_DEBUG; WBCE_DEBUG still implies it.
+        $this->debug       = (defined('ASSET_QUEUE_DEBUG') && ASSET_QUEUE_DEBUG)
+                          || (defined('WBCE_DEBUG') && WBCE_DEBUG);
 
         // MINIFY_CSS / MINIFY_JS enable minification per asset type.
         // ASSETS_MINIFY_DEBUG disables minification AND bundling for the logged-in admin only —
@@ -916,8 +921,9 @@ final class AssetQueue
      *
      * Called by the output filter.  Content is passed by reference.
      *
-     * On error: always logs to error_log.  When WBCE_DEBUG is on AND the visitor
-     * is a logged-in admin, also outputs a console.error block before </body>.
+     * On error: always logs to error_log.  When ASSET_QUEUE_DEBUG (or WBCE_DEBUG)
+     * is on AND the visitor is a logged-in admin, also outputs a console.error
+     * block before </body>.
      */
     public static function process(string &$content): bool
     {
@@ -1002,18 +1008,21 @@ final class AssetQueue
     /**
      * Whether cache busting (?<mtime>) should be appended to asset URLs.
      *
-     * A backend request consults OPF_ASSETS_CACHE_BUSTING_BE first (when that
-     * constant exists), so the backend — where CSS/JS is edited constantly — can
-     * bust while the public site keeps long-lived browser caching, or vice-versa.
-     * Frontend requests, and backend requests without the _BE constant, fall back
-     * to OPF_ASSETS_CACHE_BUSTING.
+     * The backend — where CSS/JS is edited constantly — never lags the public
+     * site: when OPF_ASSETS_CACHE_BUSTING is on, a backend request busts too.
+     * OPF_ASSETS_CACHE_BUSTING_BE only *adds* busting for the backend when the
+     * front end has it off (e.g. a static public site whose admin still needs
+     * fresh assets). Frontend requests look at OPF_ASSETS_CACHE_BUSTING alone.
      */
     private function cacheBustingEnabled(): bool
     {
-        if ($this->isBackendRequest() && defined('OPF_ASSETS_CACHE_BUSTING_BE')) {
-            return (bool) OPF_ASSETS_CACHE_BUSTING_BE;
+        $fe = defined('OPF_ASSETS_CACHE_BUSTING') && OPF_ASSETS_CACHE_BUSTING;
+
+        if ($this->isBackendRequest()) {
+            return $fe || (defined('OPF_ASSETS_CACHE_BUSTING_BE') && OPF_ASSETS_CACHE_BUSTING_BE);
         }
-        return defined('OPF_ASSETS_CACHE_BUSTING') && OPF_ASSETS_CACHE_BUSTING;
+
+        return $fe;
     }
 
     private function injectDebugScript(string &$content, Throwable $e): void
@@ -1024,7 +1033,7 @@ final class AssetQueue
         $trace = addslashes(str_replace(["\r\n", "\n", "\r"], '\n', $e->getTraceAsString()));
 
         $script = "\n<script>\n"
-                . "/* I/AssetQueue debug — admin only, WBCE_DEBUG=true */\n"
+                . "/* I/AssetQueue debug — admin only, ASSET_QUEUE_DEBUG=true */\n"
                 . "console.error('[I] ' + '$msg\\n'"
                 . " + 'File: $file  Line: $line\\n'"
                 . " + 'Stack:\\n$trace');\n"
@@ -2426,20 +2435,14 @@ final class AssetQueue
      */
     private function resolveUrl(string $file): ?string
     {
-        $url = strtr($file, $this->urlTokenMap());
-
+        $url  = strtr($file, $this->urlTokenMap());
         $bust = $this->cacheBustingEnabled();
 
-        if ($this->isExternal($url)) {
-            // Same-origin http(s) URLs get cache busting via local path lookup.
-            // Cross-origin CDN URLs are left unchanged (no filesystem access).
-            if ($bust) {
-                $path = $this->urlToLocalPath($url);
-                if ($path !== null) {
-                    $sep  = str_contains($url, '?') ? '&' : '?';
-                    $url .= $sep . filemtime($path);
-                }
-            }
+        // Cross-origin CDN URL: pass through untouched (no filesystem access).
+        // urlToLocalPath() handles every same-origin form — absolute, protocol-
+        // relative, root-relative and WB_URL-subdir — so a single lookup covers
+        // both the "external same-origin" and the "local path/token" cases.
+        if ($this->isExternal($url) && $this->urlToLocalPath($url) === null) {
             return $url;
         }
 
@@ -2449,7 +2452,11 @@ final class AssetQueue
             return null;
         }
 
-        if ($bust) {
+        // Skip busting when the URL already carries a cache-busting mtime
+        // (?<digits> / &<digits> at the end) from an earlier resolveUrl() pass
+        // or an upstream filter such as opff_assets_cache_busting — otherwise we
+        // stack a second one (foo.css?123&123).
+        if ($bust && !preg_match('/[?&]\d{6,}$/', $url)) {
             $sep  = str_contains($url, '?') ? '&' : '?';
             $url .= $sep . filemtime($path);
         }
@@ -2466,12 +2473,20 @@ final class AssetQueue
     {
         $path = strtr($file, $this->pathTokenMap());
 
-        if ($this->isExternal($path)) {
-            $path = $this->urlToLocalPath($path);
-            return ($path !== null && is_file($path)) ? $path : null;
+        // Strip any cache-busting query string / fragment before touching the
+        // filesystem — is_file('…/foo.css?1712345678') is always false.
+        $bare = strtok($path, '?#') ?: $path;
+
+        // A token that expanded to a real filesystem path (or a plain CWD-
+        // relative path) — take it as-is.
+        if (!$this->isExternal($bare) && is_file($bare)) {
+            return $bare;
         }
 
-        return is_file($path) ? $path : null;
+        // External, protocol-relative, root-relative, or not yet resolved →
+        // map through urlToLocalPath(), which understands every URL form.
+        $local = $this->urlToLocalPath($path);
+        return ($local !== null && is_file($local)) ? $local : null;
     }
 
     /** Build {TOKEN} → URL map for use in strtr(). */
@@ -2501,23 +2516,62 @@ final class AssetQueue
     }
 
     /**
-     * Convert a same-domain absolute URL to a local filesystem path.
-     * Returns null for external domains or if the resolved file does not exist.
+     * Convert a same-origin asset URL to a local filesystem path.
+     * Returns null for cross-origin URLs or if the resolved file does not exist.
      *
-     *   https://example.com/modules/foo/bar.js  →  /var/www/modules/foo/bar.js
+     * Accepts every shape a queued asset reference can take, because the form
+     * written by a template / module often differs from the form of WB_URL
+     * (absolute vs. root-relative) — a mismatch that used to make the asset
+     * silently disappear:
+     *
+     *   https://example.com/fz/modules/foo/bar.js   (absolute, full WB_URL prefix)
+     *   //example.com/fz/modules/foo/bar.js          (protocol-relative)
+     *   /fz/modules/foo/bar.js                       (root-relative, WB_URL subdir)
+     *   /modules/foo/bar.js                          (root-relative, WBCE web root)
+     *
+     * A trailing cache-busting query string / fragment is stripped first.
      */
     private function urlToLocalPath(string $url): ?string
     {
         $wbUrl  = defined('WB_URL')  ? rtrim(WB_URL,  '/') : '';
         $wbPath = defined('WB_PATH') ? rtrim(WB_PATH, '/') : '';
+        if ($wbPath === '') return null;
 
-        $clean = strtok($url, '?') ?: $url; // strip query string
-        if ($wbUrl !== '' && str_starts_with($clean, $wbUrl)) {
-            $rel  = substr($clean, strlen($wbUrl));
-            $path = $wbPath . '/' . ltrim($rel, '/');
-            return is_file($path) ? $path : null;
+        $clean = strtok($url, '?#'); // strip query string / fragment
+        if ($clean === false || $clean === '') return null;
+
+        // Path component of WB_URL — non-empty only for a sub-directory install
+        // (e.g. WB_URL = https://example.com/fz  →  "/fz").
+        $wbBase = $wbUrl !== '' ? rtrim((string) parse_url($wbUrl, PHP_URL_PATH), '/') : '';
+
+        $rel = null;
+
+        if ($wbUrl !== '' && str_starts_with($clean, $wbUrl . '/')) {
+            // Absolute, same-origin URL carrying the full WB_URL prefix.
+            $rel = substr($clean, strlen($wbUrl));
+        } elseif (str_starts_with($clean, '//')) {
+            // Protocol-relative //host/path — compare host + base path with WB_URL.
+            $u = parse_url('https:' . $clean);
+            $s = $wbUrl !== '' ? parse_url($wbUrl) : false;
+            if ($u && $s && strcasecmp($u['host'] ?? '', $s['host'] ?? '') === 0) {
+                $p = $u['path'] ?? '';
+                if ($wbBase === '' || str_starts_with($p, $wbBase . '/')) {
+                    $rel = $wbBase !== '' ? substr($p, strlen($wbBase)) : $p;
+                }
+            }
+        } elseif (str_starts_with($clean, '/')) {
+            // Root-relative URL (no scheme, no host). Two accepted forms:
+            //   /fz/modules/x.css  — carries WB_URL's sub-dir base
+            //   /modules/x.css     — already relative to the WBCE web root
+            $rel = ($wbBase !== '' && str_starts_with($clean, $wbBase . '/'))
+                ? substr($clean, strlen($wbBase))
+                : $clean;
         }
-        return null;
+
+        if ($rel === null) return null;
+
+        $path = $wbPath . '/' . ltrim($rel, '/');
+        return is_file($path) ? $path : null;
     }
 
     /** Returns true for http://, https://, and protocol-relative // URLs. */
