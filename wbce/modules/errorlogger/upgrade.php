@@ -25,7 +25,12 @@ $obsoleteFilesAndDirs = [
     '/backend.js',  // both moved to /assets
 ];
 foreach ($obsoleteFilesAndDirs as $rec) {
-    $path = __DIR__ . $rec;
-    $signal = removePath($path, 0, 0);
-    echo(sprintf($SIGNAL[$signal], $rec)) . '<br>';
+    $path   = __DIR__ . $rec;
+    $signal = removePath($path);
+    // Read the signal through L_(), not the raw $SIGNAL array: upgrade.php is
+    // require'd from inside upgrade_module(), so it runs in function scope,
+    // where that global is not visible -- sprintf() was being handed null and
+    // printed nothing at all. L_() reads the Lang registry and works in any
+    // scope, and falls back to a readable string if a signal is ever untranslated.
+    echo L_("SIGNAL['$signal']", $rec) . '<br>';
 }
