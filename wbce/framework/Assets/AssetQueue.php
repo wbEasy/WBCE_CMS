@@ -2526,8 +2526,15 @@ final class AssetQueue
      *
      *   https://example.com/fz/modules/foo/bar.js   (absolute, full WB_URL prefix)
      *   //example.com/fz/modules/foo/bar.js          (protocol-relative)
-     *   /fz/modules/foo/bar.js                       (root-relative, WB_URL subdir)
-     *   /modules/foo/bar.js                          (root-relative, WBCE web root)
+     *   /fz/modules/foo/bar.js                       (root-relative, carries WB_URL's own subdir)
+     *   /modules/foo/bar.js                          (root-relative — only when WB_URL has NO subdir)
+     *
+     * A root-relative URL that does NOT carry WB_URL's subdir (when WB_URL has
+     * one) is deliberately left unresolved rather than guessed at against
+     * WB_PATH's root: on a subdir install such a URL is never a legitimate
+     * same-origin form, and guessing let an unrelated, buggy root-relative
+     * reference elsewhere on the page coincidentally collide with a real file
+     * under WB_PATH and get mis-resolved as that asset.
      *
      * A trailing cache-busting query string / fragment is stripped first.
      */
@@ -2560,12 +2567,18 @@ final class AssetQueue
                 }
             }
         } elseif (str_starts_with($clean, '/')) {
-            // Root-relative URL (no scheme, no host). Two accepted forms:
-            //   /fz/modules/x.css  — carries WB_URL's sub-dir base
-            //   /modules/x.css     — already relative to the WBCE web root
-            $rel = ($wbBase !== '' && str_starts_with($clean, $wbBase . '/'))
-                ? substr($clean, strlen($wbBase))
-                : $clean;
+            // Root-relative URL (no scheme, no host).
+            if ($wbBase === '') {
+                // WB_URL has no subdir — root-relative IS relative to the WBCE
+                // web root, unambiguously.
+                $rel = $clean;
+            } elseif (str_starts_with($clean, $wbBase . '/')) {
+                // Carries WB_URL's own subdir base (the form florian's report
+                // was reduced to: WB_URL = https://host/fz1, href = /fz1/…).
+                $rel = substr($clean, strlen($wbBase));
+            }
+            // Else: root-relative but missing the subdir base — leave $rel
+            // null. See the "deliberately left unresolved" note above.
         }
 
         if ($rel === null) return null;
