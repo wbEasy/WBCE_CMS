@@ -290,6 +290,19 @@
     margin: 1em 0;
 }
 
+/* The rule above is written for screenshots — a standalone block with air
+   around it. Inside a table cell that is wrong: an inline icon next to its
+   label would break onto its own line and stretch the row by 2em. Renderers
+   that ship no image styling at all (GitHub among them) already treat these
+   as inline, so this only brings the reader in line with everywhere else. */
+.markdown-body td img,
+.markdown-body th img {
+    display: inline-block;
+    margin: 0;
+    border-radius: 0;
+    vertical-align: -0.15em;
+}
+
 /* ── Definition lists ────────────────────────────────────────────────────── */
 .markdown-body dl { margin-bottom: 1em; }
 .markdown-body dt { font-weight: 600; margin-top: .5em; }
