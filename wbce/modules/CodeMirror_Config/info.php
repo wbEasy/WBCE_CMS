@@ -15,7 +15,7 @@ defined('WB_PATH') or die("This file can't be accessed directly!");
 $module_directory   = 'CodeMirror_Config';
 $module_name        = 'CodeMirror Configurator';
 $module_function    = 'tool, initialize';
-$module_version     = '1.0.1';
+$module_version     = '1.0.2';
 $module_platform    = '1.7.0'; // will not work with older versions!
 $module_author      = 'Christian M. Stefan';
                       // Some of the CodeMirror implementation mechanism have  

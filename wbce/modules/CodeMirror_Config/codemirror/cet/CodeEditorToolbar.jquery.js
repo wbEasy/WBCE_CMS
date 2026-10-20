@@ -486,8 +486,19 @@ function getCMMode(ext) {
             if (settings.ajaxUrl) {
                 doAjaxSave = function() {
                     editor.save();
-                    var postData = $.extend({}, settings.ajaxData || {},
-                        { code_area_text: textarea.val() });
+                    // Send the WHOLE form, not just the editor's own content --
+                    // AjaxSave used to post only { idKey, code_area_text }, so
+                    // any other field the admin had changed on the same page
+                    // (name, description, target pages/modules, active, ...)
+                    // was silently discarded whenever AjaxSave intercepted the
+                    // submit instead of a real full-page save. serializeArray()
+                    // preserves repeated keys (checkbox/array fields like
+                    // "pages_parent[]"), which a plain object merge would not.
+                    var postData = textarea.closest('form').serializeArray();
+                    $.each(settings.ajaxData || {}, function(k, v) {
+                        postData.push({ name: k, value: v });
+                    });
+                    postData.push({ name: 'code_area_text', value: textarea.val() });
                     $.post(settings.ajaxUrl, postData)
                         .done(function(r, status, xhr) {
                             fireToast(xhr);
