@@ -1,5 +1,34 @@
 # CHANGELOG — Droplets
 
+## v2.4.8 — 2026-10-21 (Rik van Loenhout, Christian M. Stefan)
+Security release, based on Rik van Loenhout's review and fixes of 2026-10-08.
+- CSRF: every state-changing action now needs a token. Action links
+  (add, copy, delete, restore, backup, delete backup, show date) carry a
+  one-time IDKEY in place of their value, forms (save, upload, export,
+  delete marked) the FTAN. Previously no action was checked at all.
+- Path traversal: deleting and restoring a backup only accept a zip that is
+  listed in the backup directory (`droplets_backup_path()`); before, any file
+  on the server could be deleted, any zip imported. Restore now reads from
+  `DROPLETS_BACKUP_DIR`, where backups are written — it never worked before.
+- Import (upload and restore) runs the same `CodeVet` checks as saving;
+  blocked droplets are not imported. Unchanged code of an existing droplet
+  is not re-checked, so restoring an old backup keeps working.
+- All entry points check the `droplets_tool` right via
+  `$admin->hasToolPermission('droplets')`, not only `admintools`;
+  `ajax_toggle_state.php` checked a permission that was always true.
+- `admin_edit` / `admin_view` are enforced server-side (save, AJAX save,
+  delete, copy, export, toggle, import, backup), not only hidden in the form;
+  only admins can change the flags themselves.
+- Droplet names are restricted to `[A-Za-z0-9_-]{1,32}` (they become file
+  names on export); exports/imports use a random temp directory.
+- Backups: downloads go through `download_backup.php` (permission check +
+  backup-dir whitelist), names get a random part; the backup directory
+  itself is closed by the core's `var/.htaccess`.
+- Output escaping in list/modify/backups templates — also fixes `&amp;` in
+  droplet code silently turning into `&` on every save.
+- `save_droplet.php` exits after redirect and only updates existing droplets;
+  `ajax_toggle_state.php` no longer reports success on failure.
+
 ## v2.4.7 — 2026-09-23 (Christian M. Stefan)
 - Fixed the Droplet-deduplication check in `processDroplets()`: it used
   `array_key_exists()` to test whether a tag string was already processed,
