@@ -32,11 +32,9 @@ function _mdr_json(int $httpStatus, bool $success, string $message): never
 // this point (authenticate() redirects/aborts otherwise).
 $admin = new Admin('Start', 'start', false, true);
 
-// Write permission mirrors admin/admintools/tool.php:81-86's own per-tool
-// check — group 1 always may, everyone else needs the MarkdownWbce AdminTool
-// permission specifically.
-$canWrite = $admin->isAdmin()
-    || in_array('MarkdownWbce_tool', (array) $admin->get_session('MODULE_PERMISSIONS'), true);
+// Write permission: the MarkdownWbce AdminTool right (same rule as
+// admin/admintools/tool.php).
+$canWrite = $admin->hasToolPermission('MarkdownWbce');
 
 if (!$canWrite) {
     _mdr_json(403, false, 'You do not have permission to edit MarkdownWbce documents.');

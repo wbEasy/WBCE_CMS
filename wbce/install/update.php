@@ -647,6 +647,16 @@ if (function_exists('rebuildFolderProtectFile')) {
     }
 }
 
+// var/ (database, logs, backups) must not be web-accessible; the .htaccess
+// ships with the core, but FTP uploads often drop dotfiles
+if (function_exists('protectVarDirectory')) {
+    if (protectVarDirectory()) {
+        log_ok('var/.htaccess in place');
+    } else {
+        log_warn('var/.htaccess could not be written — make sure var/ is not web-accessible');
+    }
+}
+
 $database->query("UPDATE `{TP}search` SET `value`='<tr><td><p>[TEXT_NO_RESULTS]</p></td></tr>' WHERE `name`='no_results'");
 
 // =============================================================================

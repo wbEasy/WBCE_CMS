@@ -162,13 +162,19 @@ if (!function_exists('getTwig')) {
     }
 
     function _debugStatus(){
-        $oEngine = isset($GLOBALS['wb']) ? $GLOBALS['wb'] : $GLOBALS['admin'];
+        // Neither global is guaranteed: $GLOBALS['admin'] is simply absent in a
+        // context that never built one, and the old `isset($wb) ? $wb : $admin`
+        // then handed null straight into ->isAdmin(), killing the request with
+        // "Call to a member function isAdmin() on null". Debug output is a
+        // convenience, not a reason to abort — so an unknown viewer just
+        // doesn't get it.
+        $oEngine = $GLOBALS['wb'] ?? $GLOBALS['admin'] ?? null;
         // URL parameter ?twig_debug=1 enables debug for any visitor (dev convenience)
         $bDebug = isset($_GET['twig_debug']) && $_GET['twig_debug'];
         // WBCE_TWIG_DEBUG constant forces debug on for all requests
         if (defined('WBCE_TWIG_DEBUG') && WBCE_TWIG_DEBUG) $bDebug = true;
         // Admins always get Twig debug output
-        if ($oEngine->isAdmin()) $bDebug = true;
+        if (is_object($oEngine) && method_exists($oEngine, 'isAdmin') && $oEngine->isAdmin()) $bDebug = true;
         return $bDebug;
     }
 

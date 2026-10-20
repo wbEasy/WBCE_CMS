@@ -1,0 +1,14 @@
+# WBCE CMS — var/ holds runtime data: the SQLite database, logs, backups,
+# caches and addon staging. None of it is meant to be fetched over HTTP.
+# Kept in sync with protectVarDirectory() in framework/functions.php.
+<IfModule mod_authz_core.c>
+    Require all denied
+    # elFinder serves its thumbnails from here (modules/elfinder/ef/wbce-opts.php)
+    <If "%{REQUEST_URI} =~ m#/var/modules/elfinder/\.tmb/[^/]+\.(?:png|jpe?g|gif|webp)$#i">
+        Require all granted
+    </If>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

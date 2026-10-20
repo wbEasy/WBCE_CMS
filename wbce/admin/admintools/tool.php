@@ -78,12 +78,10 @@ if ($toolCheck) {
     $admin = new Admin('admintools', 'admintools', $doWrapper);
     
     // check if user has access to this specific AdminTool
-    if($admin->isAdmin() == false){  
-        if(!in_array($toolDir.'_tool', $admin->get_session('MODULE_PERMISSIONS'))){
-            $admin->print_error($MESSAGE['ADMIN_INSUFFICIENT_PRIVELLIGES'].'!', $doWrapper);
-            exit();
-        }
-    } 
+    if (!$admin->hasToolPermission($toolDir)) {
+        $admin->print_error($MESSAGE['ADMIN_INSUFFICIENT_PRIVELLIGES'].'!', $doWrapper);
+        exit();
+    }
     
     $module_name = $admin->get_module_name($toolDir);               // get translated $module_name ...
     $module_description = $admin->get_module_description($toolDir); // and $module_description

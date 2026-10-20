@@ -617,6 +617,55 @@ if (!function_exists('page_link')) {
 }
 
 /**
+ * Make sure var/ carries the .htaccess that closes it for direct web access.
+ *
+ * var/ holds the SQLite database (var/database/), logs, backups and caches.
+ * The file ships with the core, but FTP clients often skip dotfiles, so
+ * installer and updater call this to recreate it when it's missing. An
+ * existing file is never touched (it may carry local adjustments).
+ *
+ * Has no effect on nginx/IIS — there the web server config must deny var/.
+ *
+ * @return bool true if var/.htaccess is in place afterwards
+ */
+function protectVarDirectory(): bool
+{
+    $sFile = WB_PATH . '/var/.htaccess';
+    if (is_file($sFile)) {
+        return true;
+    }
+    return is_dir(WB_PATH . '/var')
+        && file_put_contents($sFile, varHtaccessContent()) !== false;
+}
+
+/**
+ * Content of var/.htaccess — see protectVarDirectory(). The shipped file must
+ * stay identical (tests/Framework/CoreSecurityTest.php checks that).
+ *
+ * @return string
+ */
+function varHtaccessContent(): string
+{
+    return <<<'HTACCESS'
+    # WBCE CMS — var/ holds runtime data: the SQLite database, logs, backups,
+    # caches and addon staging. None of it is meant to be fetched over HTTP.
+    # Kept in sync with protectVarDirectory() in framework/functions.php.
+    <IfModule mod_authz_core.c>
+        Require all denied
+        # elFinder serves its thumbnails from here (modules/elfinder/ef/wbce-opts.php)
+        <If "%{REQUEST_URI} =~ m#/var/modules/elfinder/\.tmb/[^/]+\.(?:png|jpe?g|gif|webp)$#i">
+            Require all granted
+        </If>
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+
+    HTACCESS;
+}
+
+/**
  * @brief   Create a new directory and/or protected file in the given directory
  *
  * @param string $sAbsDir

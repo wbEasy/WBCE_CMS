@@ -21,13 +21,11 @@ require_once __DIR__ . '/MdReaderHelper.php';
 // Admin check — reader is backend-only
 $admin = new Admin('Start', 'start', false, true);
 
-// Write access mirrors admin/admintools/tool.php's own per-tool permission
-// check (admin/admintools/tool.php:81-86): group 1 always may, everyone else
-// needs the MarkdownWbce AdminTool permission specifically — not the generic
-// modules_install/modules_uninstall system permission, and not tied to page
-// ACL (these files aren't page content, see MDR docs).
-$canWrite = $admin->isAdmin()
-    || in_array('MarkdownWbce_tool', (array) $admin->get_session('MODULE_PERMISSIONS'), true);
+// Write access needs the MarkdownWbce AdminTool permission (the same rule
+// admin/admintools/tool.php applies) — not the generic modules_install/
+// modules_uninstall system permission, and not tied to page ACL (these files
+// aren't page content, see MDR docs).
+$canWrite = $admin->hasToolPermission('MarkdownWbce');
 
 $lang = strtoupper(LANGUAGE);
 

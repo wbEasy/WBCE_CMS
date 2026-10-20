@@ -661,6 +661,16 @@ log_info($MENU['LANGUAGES'].':'. $langOk);
 // =============================================================================
 log_sep($TXT['log_finalizing'] ?? 'Finalizing installation');
 
+// var/ (database, logs, backups) must not be web-accessible; the .htaccess
+// ships with the core, but FTP uploads often drop dotfiles
+if (function_exists('protectVarDirectory')) {
+    if (protectVarDirectory()) {
+        log_ok('var/.htaccess in place');
+    } else {
+        log_warn('var/.htaccess could not be written — make sure var/ is not web-accessible');
+    }
+}
+
 
 Settings::exportSnapshot(true);
 log_ok($TXT['log_export_snapshot'] . ': var/sys_constants.php');

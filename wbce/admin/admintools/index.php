@@ -79,10 +79,8 @@ foreach ($resTools as $arr) {
     $toolDir = $arr['directory'];
 
     // Permission check
-    if (!$admin->isAdmin()) {
-        if (!in_array($toolDir . '_tool', $admin->get_session('MODULE_PERMISSIONS'))) {
-            continue;
-        }
+    if (!$admin->hasToolPermission($toolDir)) {
+        continue;
     }
 
     $iconData = $admin->get_module_icon($toolDir, $tool_default_icon);

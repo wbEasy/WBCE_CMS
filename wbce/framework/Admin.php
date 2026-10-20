@@ -144,6 +144,27 @@ class Admin extends Wbce
     }
 
     /**
+     * Check whether the current user may use a given AdminTool.
+     *
+     * Admins always may; everyone else needs the '<toolDir>_tool' allow entry
+     * in MODULE_PERMISSIONS. This is the rule admin/admintools/tool.php applies
+     * before it includes a tool — call it in every entry point of an AdminTool
+     * that is reached directly instead (AJAX endpoints, save/download scripts).
+     *
+     * Do NOT use get_permission($toolDir, 'module') for this: module
+     * permissions are a deny-list, tool permissions an allow-list, so that
+     * call answers a different question (and is true for every tool).
+     *
+     * @param  string $toolDir  AdminTool directory name, e.g. 'droplets'
+     * @return bool
+     */
+    public function hasToolPermission(string $toolDir): bool
+    {
+        return $this->isAdmin()
+            || in_array($toolDir . '_tool', (array) $this->get_session('MODULE_PERMISSIONS'), true);
+    }
+
+    /**
      * Check whether the current user can access a top-level backend navigation area.
      *
      * @param  string $link  Area key: 'pages', 'media', 'addons', 'settings', etc.
