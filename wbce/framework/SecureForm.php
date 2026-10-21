@@ -31,17 +31,32 @@
  * define ('WB_SECFORM_SECRET','whatever you like');
  * 
  * ─── WB_SECFORM_SECRETTIME ───────────────────────────────────────────────────
- * after how many seconds a new secret is generated:
- * define ('WB_SECFORM_SECRETTIME',86400); // 86400 = one day
+ * No longer used. Up to 1.7.0 the FTAN secret was rotated every 86400
+ * seconds (this constant was never actually read); FTAN lifetime is now
+ * controlled by WB_SECFORM_FTAN_MAXAGE.
  * 
  * ─── WB_SECFORM_USEFP ────────────────────────────────────────────────────────
  * Shall we use fingerprinting?
  * define ('WB_SECFORM_USEFP', true); //  true|false
  * 
  * ─── WB_SECFORM_TIMEOUT ──────────────────────────────────────────────────────
- * Timeout till the form token times out. 
+ * Lifetime of IDKEYs (getIDKEY()/checkIDKEY()), counted from their creation.
+ * Does NOT apply to the FTAN, see WB_SECFORM_FTAN_MAXAGE.
  * Integer value between 0-86400 seconds:
  * define ('WB_SECFORM_TIMEOUT', 3600);
+ *
+ * ─── WB_SECFORM_FTAN_MAXAGE ──────────────────────────────────────────────────
+ * Maximum age of a form token (FTAN), counted from the moment the form was
+ * rendered. Default 86400 (one day): long enough that nobody loses a form
+ * they spent hours on, short enough to bound a token that leaked through a
+ * URL (Referer, logs, history). 0 = no age limit, the token then lives as
+ * long as the session (it is bound to SessionTokenIdentifier, which logout
+ * and session timeout clear).
+ * Kept apart from WB_SECFORM_TIMEOUT on purpose: the session timeout slides
+ * with every request, a token's age does not, so the 2-hour IDKEY/session
+ * default would reject forms that were simply open for a long time.
+ * Integer value between 0-604800 seconds (one week):
+ * define ('WB_SECFORM_FTAN_MAXAGE', 86400);
  * 
  * ─── WB_SECFORM_TOKENNAME ────────────────────────────────────────────────────
  * Name for the token form element only alphanumerical string 
@@ -71,9 +86,9 @@ class SecureForm
 
     // additional private data
     private $_secret = '5609bnefg93jmgi99igjefg';
-    private $_secrettime = 86400; #Approx. one day
     private $_tokenname = 'formtoken';
     private $_timeout = 7200;
+    private $_ftanMaxAge = 86400;
     private $_useipblocks = 2;
     private $_usefingerprint = false;
     private $_page_uid = "";
@@ -115,6 +130,11 @@ class SecureForm
         // Timeout till the form token times out. Integer value between 0-86400 seconds (one day)
         if (defined('WB_SECFORM_TIMEOUT') and is_numeric(WB_SECFORM_TIMEOUT) and intval(WB_SECFORM_TIMEOUT) >= 0 and intval(WB_SECFORM_TIMEOUT) <= 86400) {
             $this->_timeout = intval(WB_SECFORM_TIMEOUT);
+        }
+
+        // Maximum FTAN age. Integer value between 0-604800 seconds (one week), 0 = session-bound only
+        if (defined('WB_SECFORM_FTAN_MAXAGE') and is_numeric(WB_SECFORM_FTAN_MAXAGE) and intval(WB_SECFORM_FTAN_MAXAGE) >= 0 and intval(WB_SECFORM_FTAN_MAXAGE) <= 604800) {
+            $this->_ftanMaxAge = intval(WB_SECFORM_FTAN_MAXAGE);
         }
 
         // Name for the token form element only alphanumerical string allowed that starts whith a charakter
@@ -341,35 +361,50 @@ class SecureForm
     }
 
     /**
-     * Build the per-request HMAC secret used to sign and verify CSRF tokens.
+     * Build the site-wide part of the HMAC key used to sign and verify CSRF tokens.
      *
      * Combines:
      *   - The configured base secret (WB_SECFORM_SECRET)
-     *   - A daily time seed (limits replay window to ~24 hours)
      *   - The server name (ties tokens to this domain)
      *   - Stable server environment data
-     *   - The current session ID
      *   - Optionally the browser fingerprint (if WB_SECFORM_USEFP is enabled)
+     *
+     * Deliberately NOT included (both were part of this secret up to 1.7.0):
+     *   - A daily time seed: token lifetime is now enforced by the signed
+     *     timestamp inside each token (see getFTAN()), so there is no longer
+     *     a moment at midnight (UTC) when every open form becomes invalid.
+     *   - session_id(): the session binding comes from SessionTokenIdentifier
+     *     (see _signFtan()), which survives session_regenerate_id().
      */
     private function _generate_secret(): string
     {
 
         $secret = $this->_secret;
-        $secrettime = $this->_secrettime;
-
-        // create a different secret every day
-        $TimeSeed = floor(time() / $secrettime) * $secrettime; //round(floor) time() to whole days
-        $DomainSeed = $_SERVER['SERVER_NAME'];                 // generate a numerical from server name.
-
-        $Seed = $TimeSeed . $DomainSeed;
-        $secret .= md5($Seed); //
-
-        $secret .= $this->_secret . $this->_serverdata . session_id();
+        $secret .= md5($_SERVER['SERVER_NAME']);
+        $secret .= $this->_serverdata;
         if ($this->_usefingerprint) {
             $secret .= $this->_browser_fingerprint;
         }
 
         return $secret;
+    }
+
+    /**
+     * Compute the HMAC-SHA256 signature for an FTAN.
+     *
+     * The key combines the site-wide secret with the per-session random
+     * SessionTokenIdentifier (256 bit, see WbceSession), so a token is only
+     * valid in the session it was issued for.
+     *
+     * @param  string $issued  Unix timestamp (decimal digits) at which the token was issued
+     * @param  string $nonce   Random hex string that makes each token unique
+     * @return string          64 character lowercase hex signature
+     */
+    private function _signFtan(string $issued, string $nonce): string
+    {
+        $key = $this->_secret . '|' . WbceSession::get('SessionTokenIdentifier');
+
+        return hash_hmac('sha256', 'ftan|' . $issued . '|' . $nonce, $key);
     }
     
     /**
@@ -394,14 +429,24 @@ class SecureForm
     /**
      * Generate a signed CSRF form token (Form Transaction Number).
      *
+     * Token format: "<issued>-<nonce>-<signature>"
+     *   issued     Unix timestamp of creation (decimal)
+     *   nonce      32 hex chars from random_bytes()
+     *   signature  HMAC-SHA256 over issued + nonce, see _signFtan()
+     *
      * Each call produces a unique, signed token bound to the current session via
      * SessionTokenIdentifier. The token survives session_regenerate_id() calls
      * because it is tied to the identifier rather than the raw session ID.
      *
      * Multiple browser tabs are supported; tokens from a different browser
-     * or machine are rejected via fingerprint binding.
+     * or machine are rejected via fingerprint binding (if WB_SECFORM_USEFP is enabled).
      *
-     * Tokens expire after $this->_timeout seconds (default: WB_SECFORM_TIMEOUT).
+     * Tokens expire after $this->_ftanMaxAge seconds (WB_SECFORM_FTAN_MAXAGE,
+     * default one day), counted from the moment the token was issued, and in
+     * any case with the session (logout, session timeout).
+     *
+     * For action links prefer getIDKEY(): an FTAN is reusable within its
+     * lifetime, so one that sits in a URL is a leaked token for every form.
      *
      * @param  bool   $as_tag  true (default) returns a hidden <input> tag ready to embed in a form
      *                         false returns a key=value string for use in URLs (GET requests)
@@ -410,13 +455,9 @@ class SecureForm
     final public function getFTAN(bool $as_tag = true): string
     {
 
-        $secret = $this->_secret;
-        $timeout = time() + $this->_timeout;
-
-      
-        $token = dechex(mt_rand());
-        $hash = sha1($secret . '-' . $token . '-' . md5(WbceSession::get('SessionTokenIdentifier')));
-        $signed = $token . '-' . $hash;
+        $issued = (string) time();
+        $nonce = bin2hex(random_bytes(16));
+        $signed = $issued . '-' . $nonce . '-' . $this->_signFtan($issued, $nonce);
 
         if ($as_tag == true) {
             // by default return a complete, hidden <input>-tag
@@ -430,8 +471,13 @@ class SecureForm
      * Validate the CSRF token submitted with a form or URL.
      *
      * Checks that the token found in POST or GET matches the HMAC signature
-     * expected for the current session. Any mismatch returns false — the
-     * calling code must abort the request in that case.
+     * expected for the current session, and that it is not older than
+     * $this->_ftanMaxAge seconds (a maximum age of 0 disables the age check).
+     * Any mismatch returns false — the calling code must abort the request
+     * in that case.
+     *
+     * A valid token can be submitted more than once within its lifetime
+     * (multiple tabs, re-submitting after a validation error).
      *
      * @param  string $mode  'POST' (default) or 'GET'
      * @return bool          true if the token is valid and the request may proceed
@@ -439,26 +485,28 @@ class SecureForm
     final public function checkFTAN(string $mode = 'POST'): bool
     {
 
-        $mode = (strtoupper($mode) != 'POST' ? '_GET' : '_POST');
-        $isok = false;
-        $secret = $this->_secret;
+        $received = (strtoupper($mode) != 'POST' ? $_GET : $_POST)[$this->_tokenname] ?? null;
 
-        if (isset($GLOBALS[$mode][$this->_tokenname])) {
-            $latoken = $GLOBALS[$mode][$this->_tokenname];
-        } else {
-            return $isok;
+        // an array (formtoken[]=...) or a missing token is never valid
+        if (!is_string($received) || !WbceSession::get('SessionTokenIdentifier')) {
+            return false;
         }
 
-        $parts = explode('-', $latoken);
+        $parts = explode('-', $received);
+        if (count($parts) !== 3) {
+            return false;
+        }
+        [$issued, $nonce, $hash] = $parts;
 
-        if (count($parts) == 2) {
-            list($token, $hash) = $parts;
-            if ($hash == sha1($secret . '-' . $token . '-' . md5(WbceSession::get('SessionTokenIdentifier')))) {
-                $isok = true;
-            }
+        if (!ctype_digit($issued) || strlen($nonce) !== 32 || !ctype_xdigit($nonce)) {
+            return false;
         }
 
-        return $isok;
+        if ($this->_ftanMaxAge > 0 && time() - (int) $issued > $this->_ftanMaxAge) {
+            return false;
+        }
+
+        return hash_equals($this->_signFtan($issued, $nonce), $hash);
     }
 
     /**
