@@ -12,8 +12,7 @@
 
 //  Heavy patched version, idea for patches based on :
 //  http://stackoverflow.com/questions/2695153/php-csrf-how-to-make-it-works-in-all-tabs/2695291#2695291
-//  Whith this patch the token System now allows for multiple browser tabs but
-//  denies the use of multiple browsers.
+//  Whith this patch the token System now allows for multiple browser tabs.
 //  You can configure this class by adding several constants to your config.php
 //  All Patches are Copyright Norbert Heimsath released under GPLv3
 //  http://www.gnu.org/licenses/gpl.html
@@ -35,10 +34,6 @@
  * seconds (this constant was never actually read); FTAN lifetime is now
  * controlled by WB_SECFORM_FTAN_MAXAGE.
  * 
- * ─── WB_SECFORM_USEFP ────────────────────────────────────────────────────────
- * Shall we use fingerprinting?
- * define ('WB_SECFORM_USEFP', true); //  true|false
- * 
  * ─── WB_SECFORM_TIMEOUT ──────────────────────────────────────────────────────
  * Lifetime of IDKEYs (getIDKEY()/checkIDKEY()), counted from their creation.
  * Does NOT apply to the FTAN, see WB_SECFORM_FTAN_MAXAGE.
@@ -47,27 +42,31 @@
  *
  * ─── WB_SECFORM_FTAN_MAXAGE ──────────────────────────────────────────────────
  * Maximum age of a form token (FTAN), counted from the moment the form was
- * rendered. Default 86400 (one day): long enough that nobody loses a form
- * they spent hours on, short enough to bound a token that leaked through a
- * URL (Referer, logs, history). 0 = no age limit, the token then lives as
- * long as the session (it is bound to SessionTokenIdentifier, which logout
- * and session timeout clear).
+ * rendered. Default 28800 (8 hours, a working day): nobody loses a form
+ * they spent hours on, and a token that leaked through a URL (Referer,
+ * logs, history) is bounded even within an all-day session. 0 = no age
+ * limit, the token then lives as long as the session (it is bound to
+ * SessionTokenIdentifier, which logout and session timeout clear).
  * Kept apart from WB_SECFORM_TIMEOUT on purpose: the session timeout slides
  * with every request, a token's age does not, so the 2-hour IDKEY/session
  * default would reject forms that were simply open for a long time.
  * Integer value between 0-604800 seconds (one week):
- * define ('WB_SECFORM_FTAN_MAXAGE', 86400);
+ * define ('WB_SECFORM_FTAN_MAXAGE', 28800);
  * 
  * ─── WB_SECFORM_TOKENNAME ────────────────────────────────────────────────────
  * Name for the token form element only alphanumerical string 
  * allowed that starts whith a charakter:
  * define ('WB_SECFORM_TOKENNAME','my3form3');
  * 
- * ─── FINGERPRINT_WITH_IP_OCTETS ──────────────────────────────────────────────
- * How many blocks of the IP should be used in fingerprint 
- * possible values 0-4
- * define ('FINGERPRINT_WITH_IP_OCTETS',2); // 0 = no ipcheck, 
- * 
+ * ─── Removed: WB_SECFORM_USEFP, FINGERPRINT_WITH_IP_OCTETS ───────────────────
+ * Browser/IP fingerprinting of the FTAN was removed in 1.7.0. The switch never
+ * took effect (the constructor only ever set it to false), and it cannot work
+ * in principle: a CSRF request is sent by the victim's own browser, so its
+ * fingerprint matches; a hijacker with the session cookie simply renders the
+ * form in their own browser and gets a token signed with their own fingerprint.
+ * What remained were false rejections (browser update, mobile IP change).
+ * Both constants are ignored; the updater removes their settings rows.
+ *
  * =============================================================================
  */
 
@@ -88,9 +87,7 @@ class SecureForm
     private $_secret = '5609bnefg93jmgi99igjefg';
     private $_tokenname = 'formtoken';
     private $_timeout = 7200;
-    private $_ftanMaxAge = 86400;
-    private $_useipblocks = 2;
-    private $_usefingerprint = false;
+    private $_ftanMaxAge = 28800;
     private $_page_uid = "";
     private $_page_id = "";
 
@@ -100,8 +97,11 @@ class SecureForm
     private $_idkey_name = '';
     private $_salt = '';
     private $_serverdata = '';
-    private $_fingerprint = '';
-    private $_browser_fingerprint = '';
+
+    // Session key under which the IDKEYs are stored. Fixed on purpose: it used
+    // to be derived from a browser fingerprint (user agent + IP), so a browser
+    // update in the middle of a session silently dropped every open IDKEY.
+    private const IDKEY_STORE = 'wbce_idkeys';
             
     // Establish class Database object
     protected Database $db; 
@@ -122,11 +122,6 @@ class SecureForm
             $this->_secret = WB_SECFORM_SECRET;
         }
 
-        // shall we use fingerprinting
-        if (defined('WB_SECFORM_USEFP') and WB_SECFORM_USEFP === false) {
-            $this->_usefingerprint = false;
-        }
-
         // Timeout till the form token times out. Integer value between 0-86400 seconds (one day)
         if (defined('WB_SECFORM_TIMEOUT') and is_numeric(WB_SECFORM_TIMEOUT) and intval(WB_SECFORM_TIMEOUT) >= 0 and intval(WB_SECFORM_TIMEOUT) <= 86400) {
             $this->_timeout = intval(WB_SECFORM_TIMEOUT);
@@ -142,11 +137,6 @@ class SecureForm
             $this->_tokenname = WB_SECFORM_TOKENNAME;
         }
 
-        // how many bloks of the IP should be used 0=no ipcheck
-        if (defined('FINGERPRINT_WITH_IP_OCTETS') and !$this->_is04(FINGERPRINT_WITH_IP_OCTETS)) {
-            $this->_useipblocks = FINGERPRINT_WITH_IP_OCTETS;
-        }
-
         // create a unique pageid for per page management of idkeys , especially
         // to identify and delete unused ones from same page call.
         $this->_page_uid = uniqid(rand(), true);
@@ -154,15 +144,10 @@ class SecureForm
         // GLOBAL CONFIGURATION END
 
         // CONFIGURE VARS
-        $this->_browser_fingerprint = $this->_browser_fingerprint(true);
-        $this->_fingerprint = $this->_generate_fingerprint();
         $this->_serverdata = $this->_generate_serverdata();
         $this->_secret = $this->_generate_secret();
         $this->_salt = $this->_generate_salt();
-        $this->_idkey_name = substr($this->_fingerprint, hexdec($this->_fingerprint[strlen($this->_fingerprint) - 1]), 16);
-
-        // make sure there is a alpha-letter at first position
-        $this->_idkey_name[0] = dechex(10 + (hexdec($this->_idkey_name[0]) % 5));
+        $this->_idkey_name = self::IDKEY_STORE;
 
         // takeover id_keys from session if available
         if (isset($_SESSION[$this->_idkey_name]) && is_array($_SESSION[$this->_idkey_name])) {
@@ -194,165 +179,24 @@ class SecureForm
     }
 
     /**
-     * Validate that $input is a single integer in the range 0-4.
+     * Collect stable server-side values for use in token signing.
      *
-     * Used to validate FINGERPRINT_WITH_IP_OCTETS. Same inverted return
-     * pattern as _validate_alalnum(): false = valid, string = error.
-     *
-     * @param  mixed        $input
-     * @return false|string false if valid; error message string if invalid
-     */
-    private function _is04(mixed $input): false|string
-    {
-        # Integer value between 0-4
-        if (preg_match('/^[0-4]$/', $input)) {
-            return false;
-        }
-
-        return "The given input is not an integer between 0-4.";
-    }
-
-    /**
-     * Build a browser fingerprint from HTTP headers and optionally the client IP.
-     *
-     * Used to detect session hijacking: if the fingerprint changes mid-session
-     * (different browser or machine) the token validation will fail.
-     * Not foolproof, but raises the bar significantly.
-     *
-     * @param  bool   $encode  true (default) returns an MD5 hash; false returns the raw string
-     * @param  string $fpsalt  Salt prepended before hashing to namespace the fingerprint
-     * @return string
-     */
-    private function _browser_fingerprint(bool $encode = true, string $fpsalt = "My Fingerprint: "): string
-    {
-
-        $fingerprint = $fpsalt;
-
-        if (isset($_SERVER['HTTP_USER_AGENT'])) {
-            $fingerprint .= $_SERVER['HTTP_USER_AGENT'];
-        }
-        if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-            $fingerprint .= $_SERVER['HTTP_ACCEPT_LANGUAGE'];
-        }
-        //if (isset($_SERVER['HTTP_ACCEPT_ENCODING'])){ $fingerprint .= $_SERVER['HTTP_ACCEPT_ENCODING'];}
-        if (isset($_SERVER['HTTP_ACCEPT_CHARSET'])) {
-            $fingerprint .= $_SERVER['HTTP_ACCEPT_CHARSET'];
-        }
-
-        $fingerprint .= $this->_getip($this->_useipblocks);
-
-        if ($encode) {
-            $fingerprint = md5($fingerprint);
-        }
-
-        return $fingerprint;
-    }
-
-    /**
-     * Extract and optionally truncate the client IP address.
-     *
-     * Fewer octets = more lenient matching (allows roaming within a subnet).
-     * Zero octets = no IP included in fingerprint at all.
-     *
-     * Proxy note: HTTP_X_FORWARDED_FOR can be spoofed and is used only for
-     * fingerprinting, not authentication decisions.
-     *
-     * @param  int    $ipblocks  Number of octets to include (0-4)
-     * @return string            IP string truncated to $ipblocks octets, e.g. "192.168"
-     */
-    private function _getip(int $ipblocks = 4): string
-    {
-        $ip    = "";
-        $cutip = "";
-
-        # maybe user is behind a Proxy but we need his real ip address if we got a nice Proxyserver,
-        # it sends us the "HTTP_X_FORWARDED_FOR" Header. Sometimes there is more than one Proxy.
-        # !!!!!! THIS PART WAS NEVER TESTED BECAUSE I ONLY GOT A DIRECT INTERNET CONNECTION !!!!!!
-        # long2ip(ip2long($lastip)) makes sure we got nothing else than an ip into our script ;-)
-        # !!!!! WARNING the 'HTTP_X_FORWARDED_FOR' Part is NOT TESTED Too MUCH!!!!!
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) and !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $iplist = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $lastip = array_pop($iplist);
-            $ip .= long2ip(ip2long($lastip));
-        } /* If theres no other supported info we just use REMOTE_ADDR
-        If we have a fiendly proxy supporting  HTTP_X_FORWARDED_FOR its ok to use the full address.
-        But if there is no HTTP_X_FORWARDED_FOR we can  not be sure if its a proxy or whatever, so we use the
-        blocklimit for IP address.
-         */
-        else {
-            $ip = long2ip(ip2long($_SERVER['REMOTE_ADDR']));
-
-            # ipblocks used here defines how many blocks of the ip adress are checked xxx.xxx.xxx.xxx
-            $blocks = explode('.', $ip);
-            for ($i = 0; $i < $ipblocks; $i++) {
-                $cutip .= $blocks[$i] . '.';
-            }
-            $ip = substr($cutip, 0, -1);
-        }
-
-        return $ip;
-    }
-
-    /**
-     * Build an MD5 fingerprint from combined server and client characteristics.
-     *
-     * The fingerprint ties CSRF tokens to a specific client/server combination.
-     * It is included in the token secret so tokens cannot be moved between
-     * environments (different browser, server, or IP range).
-     */
-    private function _generate_fingerprint(): string
-    {
-
-        // server depending values
-        $fingerprint = $this->_generate_serverdata();
-
-        // client depending values
-        $fingerprint .= (isset($_SERVER['HTTP_USER_AGENT'])) ? $_SERVER['HTTP_USER_AGENT'] : '17';
-        $usedOctets = (defined('FINGERPRINT_WITH_IP_OCTETS')) ? intval(defined('FINGERPRINT_WITH_IP_OCTETS')) : 0;
-        $clientIp = (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
-
-        if (($clientIp != '') && ($usedOctets > 0)) {
-            $ip = explode('.', $clientIp);
-            while (sizeof($ip) > $usedOctets) {
-                array_pop($ip);
-            }
-            $clientIp = implode('.', $ip);
-        } else {
-            $clientIp = 19;
-        }
-
-        $fingerprint .= $clientIp;
-
-        return md5($fingerprint);
-    }
-
-    /**
-     * Collect stable server-side values for use in fingerprinting and token signing.
-     *
-     * Includes server software, name, IP, port, admin address, and PHP version.
+     * Includes server software, name, port, admin address, and PHP version.
      * These values stay constant across requests and ensure that tokens generated
      * on one server cannot be replayed on a different server.
+     *
+     * The server IP is deliberately not included (it was, cut to
+     * FINGERPRINT_WITH_IP_OCTETS blocks, up to 1.7.0): behind a load balancer
+     * or with several addresses per host it differs between requests and
+     * would reject valid tokens.
      */
     private function _generate_serverdata(): string
     {
 
-        $usedOctets = (defined('FINGERPRINT_WITH_IP_OCTETS')) ? (intval(FINGERPRINT_WITH_IP_OCTETS) % 5) : 2;
         $serverdata = '';
         $serverdata .= (isset($_SERVER['SERVER_SIGNATURE'])) ? $_SERVER['SERVER_SIGNATURE'] : '2';
         $serverdata .= (isset($_SERVER['SERVER_SOFTWARE'])) ? $_SERVER['SERVER_SOFTWARE'] : '3';
         $serverdata .= (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : '5';
-        $serverIp = (isset($_SERVER['SERVER_ADDR'])) ? $_SERVER['SERVER_ADDR'] : '';
-
-        if (($serverIp != '') && ($usedOctets > 0)) {
-            $ip = explode('.', $serverIp);
-            while (sizeof($ip) > $usedOctets) {
-                array_pop($ip);
-            }
-            $serverdata .= implode('.', $ip);
-        } else {
-            $serverdata .= '7';
-        }
-
         $serverdata .= (isset($_SERVER['SERVER_PORT'])) ? $_SERVER['SERVER_PORT'] : '11';
         $serverdata .= (isset($_SERVER['SERVER_ADMIN'])) ? $_SERVER['SERVER_ADMIN'] : '13';
         $serverdata .= PHP_VERSION;
@@ -367,7 +211,6 @@ class SecureForm
      *   - The configured base secret (WB_SECFORM_SECRET)
      *   - The server name (ties tokens to this domain)
      *   - Stable server environment data
-     *   - Optionally the browser fingerprint (if WB_SECFORM_USEFP is enabled)
      *
      * Deliberately NOT included (both were part of this secret up to 1.7.0):
      *   - A daily time seed: token lifetime is now enforced by the signed
@@ -380,11 +223,8 @@ class SecureForm
     {
 
         $secret = $this->_secret;
-        $secret .= md5($_SERVER['SERVER_NAME']);
+        $secret .= md5($_SERVER['SERVER_NAME'] ?? '');
         $secret .= $this->_serverdata;
-        if ($this->_usefingerprint) {
-            $secret .= $this->_browser_fingerprint;
-        }
 
         return $secret;
     }
@@ -438,11 +278,10 @@ class SecureForm
      * SessionTokenIdentifier. The token survives session_regenerate_id() calls
      * because it is tied to the identifier rather than the raw session ID.
      *
-     * Multiple browser tabs are supported; tokens from a different browser
-     * or machine are rejected via fingerprint binding (if WB_SECFORM_USEFP is enabled).
+     * Multiple browser tabs are supported.
      *
      * Tokens expire after $this->_ftanMaxAge seconds (WB_SECFORM_FTAN_MAXAGE,
-     * default one day), counted from the moment the token was issued, and in
+     * default 8 hours), counted from the moment the token was issued, and in
      * any case with the session (logout, session timeout).
      *
      * For action links prefer getIDKEY(): an FTAN is reusable within its
