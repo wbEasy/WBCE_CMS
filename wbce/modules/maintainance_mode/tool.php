@@ -46,8 +46,10 @@ if(count(get_included_files())==1) header("Location: ../index.php",TRUE,301);
 // but only check if form was send. Maybe we move this to tool too if all tools got secform
 if($doSave) {
     if (!$admin->checkFTAN()) {
-        //3rd param = false =>no auto footer, no exit.
-        $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $returnUrl, false); 
+        //3rd param = false =>no auto footer, no exit. So stop here ourselves,
+        // otherwise the save branches below run anyway.
+        $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $returnUrl, false);
+        return;
     }
 }
 

@@ -20,7 +20,9 @@ $sCodeMirrorPath = WB_PATH . '/modules/CodeMirror_Config/codemirror';
 
 // are we saving the form or just showing the form and needing config from DB?
 if ($doSave && !$admin->checkFTAN()) {
+    // 3rd param = false => no exit; stop here, otherwise the save below runs anyway
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $returnUrl, false);
+    return;
 }
 
 if ($saveSettings) {
