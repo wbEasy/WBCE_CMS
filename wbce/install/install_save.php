@@ -491,10 +491,8 @@ $settings = [
     'redirect_timer'        => '500',
     'sec_anchor'            => 'wbce_',
     'wb_secform_secret'     => bin2hex(random_bytes(16)),
-    'wb_secform_secrettime' => '86400',
     'wb_secform_timeout'    => '7200',
     'wb_secform_tokenname'  => 'formtoken',
-    'wb_secform_usefp'      => false,
     'er_level'              => 'E3',
 ];
 

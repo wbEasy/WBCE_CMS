@@ -1,8 +1,8 @@
 # Secure Form Switcher
 
-Actually the name is misleading as it only provides some additional security features like fingerprinting and a few additional options for the CSRF protection. This only has historical reasons. 
+Actually the name is misleading: the tool provides a few settings for sessions and for the CSRF protection of forms (the FTAN). The name only has historical reasons.
 
-Fingerprinting is now deactivated by default but you better turn it on ;-) 
+Settings: token name, secret, session timeout and the maximum age of a form token. Fingerprinting was removed in 1.4.0 — it never took effect and cannot protect a CSRF token (see the header of `framework/SecureForm.php`).
 
 Have Fun  
 Norbert

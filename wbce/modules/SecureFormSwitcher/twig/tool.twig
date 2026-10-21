@@ -1,0 +1,86 @@
+{#
+    SecureFormSwitcher/twig/tool.twig
+
+    Variables (injected by tool.php + admintools framework):
+      FTAN              — FTAN hidden input (raw HTML)
+      returnUrl         — form action URL
+      RETURN_TO_TOOLS   — back-button URL (tools list)
+      SFS               — module language array (languages/XX.php)
+      cfg               — { tokenName, secret, timeout, ftanMaxAge } from {TP}settings
+
+    getTwig() runs with autoescape off: every value gets an explicit |e.
+#}
+
+<form name="sfs_settings" action="{{ returnUrl|e('html_attr') }}" method="post">
+    {{ FTAN }}
+
+    <div class="cp-settings">
+        <div class="cp-toggle-section">
+            <div class="cp-card-head">
+                <label><i class="fa fa-lock"></i> {{ SFS.HEADER|e }}</label>
+            </div>
+
+            <section id="settings">
+
+                <blockquote>
+                    <div class="info">{{ SFS.DESCRIPTION|e }}</div>
+                </blockquote>
+
+                {# ── Session timeout ───────────────────────────────────────── #}
+                <div class="cp-setting-row">
+                    <div class="cp-setting-name"><label for="timeout">{{ SFS.TIMEOUT|e }}</label></div>
+                    <div class="cp-setting-value">
+                        <input type="number" id="timeout" name="timeout" min="60" max="86400" step="1" required
+                               value="{{ cfg.timeout|e('html_attr') }}">
+                        <div class="cp-setting-hint">{{ SFS.TIMEOUT_HINT|e }}</div>
+                    </div>
+                </div>
+
+                {# ── Form token max. age ───────────────────────────────────── #}
+                <div class="cp-setting-row">
+                    <div class="cp-setting-name"><label for="ftanMaxAge">{{ SFS.FTAN_MAXAGE|e }}</label></div>
+                    <div class="cp-setting-value">
+                        <input type="number" id="ftanMaxAge" name="ftanMaxAge" min="0" max="604800" step="1" required
+                               value="{{ cfg.ftanMaxAge|e('html_attr') }}">
+                        <div class="cp-setting-hint">{{ SFS.FTAN_MAXAGE_HINT|e }}</div>
+                    </div>
+                </div>
+
+                {# ── Token name ────────────────────────────────────────────── #}
+                <div class="cp-setting-row">
+                    <div class="cp-setting-name"><label for="tokenName">{{ SFS.TOKENNAME|e }}</label></div>
+                    <div class="cp-setting-value">
+                        <input type="text" id="tokenName" name="tokenName" pattern="[a-zA-Z]{5,20}" required
+                               value="{{ cfg.tokenName|e('html_attr') }}">
+                        <div class="cp-setting-hint">{{ SFS.TOKENNAME_HINT|e }}</div>
+                    </div>
+                </div>
+
+                {# ── Secret ────────────────────────────────────────────────── #}
+                <div class="cp-setting-row">
+                    <div class="cp-setting-name"><label for="secret">{{ SFS.SECRET|e }}</label></div>
+                    <div class="cp-setting-value">
+                        <input type="text" id="secret" name="secret" pattern="[a-zA-Z0-9]{20,60}" required
+                               autocomplete="off" spellcheck="false"
+                               value="{{ cfg.secret|e('html_attr') }}">
+                        <div class="cp-setting-hint">{{ SFS.SECRET_HINT|e }}</div>
+                    </div>
+                </div>
+
+                {# ── Buttons ───────────────────────────────────────────────── #}
+                <div class="cp-buttons-row">
+                    <a href="{{ RETURN_TO_TOOLS|e('html_attr') }}" class="button">&laquo; {{ L_('TEXT:BACK') }}</a>
+                    <button type="submit" name="save_default" class="button" formnovalidate
+                            onclick="return confirm({{ SFS.RESET_CONFIRM|json_encode|e('html_attr') }});">
+                        {{ L_('HEADING:DEFAULT_SETTINGS') }}
+                    </button>
+                    <button type="submit" name="save_settings" class="button ico-save pos-right">
+                        {{ L_('TEXT:SAVE') }}
+                    </button>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+</form>

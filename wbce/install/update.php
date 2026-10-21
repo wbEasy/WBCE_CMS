@@ -396,12 +396,13 @@ Settings::set('sec_anchor',                  'wbce_', false);
 Settings::set('redirect_timer',              '1500', false);
 Settings::set('mediasettings',               '', false);
 Settings::set('wb_secform_secret',           bin2hex(random_bytes(12)), false);
-Settings::set('wb_secform_secrettime',       '86400', false);
 Settings::set('wb_secform_timeout',          '7200', false);
 Settings::set('wb_secform_tokenname',        'formtoken', false);
-Settings::set('wb_secform_usefp',            false, false);
-Settings::set('fingerprint_with_ip_octets',  '0', false);
 Settings::delete('secure_form_module');
+// fingerprinting and the secret rotation time were removed from SecureForm
+Settings::delete('wb_secform_usefp');
+Settings::delete('fingerprint_with_ip_octets');
+Settings::delete('wb_secform_secrettime');
 log_ok('Settings updated');
 
 // DB field additions

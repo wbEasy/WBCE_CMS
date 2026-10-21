@@ -12,11 +12,9 @@ if (count(get_included_files())==1) {
     header("Location: ../index.php", true, 301);
 }
 
- $setError = Settings::del("wb_secform_secret");
- $setError = Settings::del("wb_secform_secrettime");
- $setError = Settings::del("wb_secform_timeout");
- $setError = Settings::del("wb_secform_tokenname");
- $setError = Settings::del("wb_secform_usefp");
- $setError = Settings::del("fingerprint_with_ip_octets");
+ $setError = Settings::delete("wb_secform_secret");
+ $setError = Settings::delete("wb_secform_timeout");
+ $setError = Settings::delete("wb_secform_ftan_maxage");
+ $setError = Settings::delete("wb_secform_tokenname");
 
 $msg = 'Secureform switcher setting deleted, now you need to use config.php again ';

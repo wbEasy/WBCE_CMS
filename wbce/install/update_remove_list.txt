@@ -191,6 +191,7 @@
 [MODULES]/jsadmin/images/
 [MODULES]/jsadmin/languages/
 [MODULES]/wrapper/languages/
+[MODULES]/SecureFormSwitcher/templates/
 [TEMPLATE]/advancedThemeWbFlat/
 [TEMPLATE]/argos_theme/
 [TEMPLATE]/argos_theme_classic/

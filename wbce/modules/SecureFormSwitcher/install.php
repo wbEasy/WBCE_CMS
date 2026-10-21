@@ -13,10 +13,8 @@ if (count(get_included_files())==1) {
 }
 
 $setError = Settings::set("wb_secform_secret", bin2hex(random_bytes(12)));
-$setError = Settings::set("wb_secform_secrettime", '86400');
 $setError = Settings::set("wb_secform_timeout", '7200');
 $setError = Settings::set("wb_session_timeout", '7200');
+$setError = Settings::set("wb_secform_ftan_maxage", '28800');
 $setError = Settings::set("wb_secform_tokenname", 'formtoken');
-$setError = Settings::set("wb_secform_usefp", false);
-$setError = Settings::set("fingerprint_with_ip_octets", "2");
 $msg = '';
