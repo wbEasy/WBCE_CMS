@@ -35,7 +35,7 @@ I::insertJsFile(WB_URL . '/modules/wysiwyg/ajax_save.js', 'BODY BTM-');
     <input type="hidden" name="page_id"    value="<?= $page_id ?>">
     <input type="hidden" name="section_id" value="<?= $section_id ?>">
     <?= $admin->getFTAN() ?>
-    <input type="hidden" name="idKey" value="<?= $admin->getIDKEY($section_id) ?>">
+    <input type="hidden" name="idKey" value="<?= $admin->getIDKEY($section_id, 'section') ?>">
     <?php
     // No 'height' override here on purpose: an explicit value always wins over
     // the preset's own configured height (tinymce_wbce_render_editor() does

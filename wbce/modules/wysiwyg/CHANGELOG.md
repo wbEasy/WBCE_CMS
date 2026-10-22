@@ -1,6 +1,25 @@
 
 ## wysiwyg — Changelog
 
+### 3.1.1 — 2026-10-22
+> Security fixes: cross-page content overwrite in `ajax_save.php` and `save.php`.
+> Reported and first fixed by Rik van Loenhout (review of 2026-10-18); the
+> IDKEY handling below is adapted to the purpose-bound keys of the core.
+
+#### ajax_save.php
+- The IDKEY was only checked for existence; `section_id`/`page_id` were taken from the POST body. Any IDKEY of the session (from any backend screen) allowed overwriting any section's content, without the `wysiwyg` module right and without rights on the page — stored XSS on pages the user has no rights on.
+- Keys are now redeemed with a purpose: `'section'` (value = section ID, issued by `modify.php`) or `'page'` (a page-scoped key; the posted `section_id` must then live on that page). A key issued for anything else is refused.
+- Authorization re-checked server-side: the section exists and is a `wysiwyg` section, the user has the `wysiwyg` module right and admin rights on the section's page. `page_id` always comes from the section row, never from the POST.
+- A posted `section_id` that disagrees with the key's section, or a missing `content{section_id}` field, is refused (400) instead of saving empty content over the key's section.
+- Version history snapshot (tinymce_wbce) on every real save, if that module is installed.
+
+#### save.php
+- Verify that the posted `section_id` belongs to the posted `page_id` and is a `wysiwyg` section. `modules/admin.php` only checks the page right for `page_id`, so an editor of one page could overwrite any wysiwyg section and repoint its `page_id`.
+- Version history snapshot (tinymce_wbce) on every real save, if that module is installed.
+
+#### modify.php
+- The AjaxSave `idKey` is issued with the purpose `'section'`.
+
 ### 3.1.0 — 2026-05-31
 > This update implements AjaxSave, Saving of WYSIWYG sections without page reload.
 

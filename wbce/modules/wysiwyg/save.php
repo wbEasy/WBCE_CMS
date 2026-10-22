@@ -24,6 +24,15 @@ if (!$admin->checkFTAN()) {
     );
 }
 
+// modules/admin.php checks the page right for the request's page_id and the
+// module right of the request's section_id ($section), but not that the
+// section lives on that page — without this, an editor of one page could
+// overwrite any wysiwyg section (and repoint its page_id).
+if (!$section_id || (int) $section['page_id'] !== $page_id || $section['module'] !== 'wysiwyg') {
+    $admin->print_header();
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL . '/pages/index.php');
+}
+
 $admin->print_header();
 
 $sMediaUrl = WB_URL . MEDIA_DIRECTORY;
@@ -45,6 +54,14 @@ if (isset($_POST['content' . $section_id])) {
         'content'    => $content,
         'text'       => strip_tags($content),
     ]);
+
+    // Version history (tinymce_wbce): record a version on this REAL save.
+    // Decoupled — no-op if the tinymce_wbce module is not installed.
+    if (!$database->hasError()
+        && file_exists(WB_PATH . '/modules/tinymce_wbce/history.php')) {
+        require_once WB_PATH . '/modules/tinymce_wbce/history.php';
+        tinymce_wbce_history_snapshot_section((int) $section_id, $content, $admin, 'wysiwyg');
+    }
 }
 
 $sec_anchor = defined('SEC_ANCHOR') && SEC_ANCHOR !== ''
