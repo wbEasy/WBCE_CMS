@@ -13,6 +13,34 @@
 // prevent this file from being accessed directly
 if (!defined('WB_PATH')) exit("Cannot access this file directly " . __FILE__);
 
+if (!function_exists('wbSeoToolRewriteColumnAllowed')) {
+
+    /**
+     * May this {TP}pages column be used as the "rewrite URL" column?
+     *
+     * The column becomes a free text field for every editor in the tree, so
+     * it must be a column of its own (e.g. `slug`), never one of the core
+     * structure or permission columns — otherwise the tree would let anyone
+     * with pages_modify rewrite admin_groups, visibility, link, …
+     *
+     * @param  string $column
+     * @return bool
+     */
+    function wbSeoToolRewriteColumnAllowed(string $column): bool
+    {
+        static $coreColumns = [
+            'page_id', 'parent', 'root_parent', 'level', 'link', 'target',
+            'page_trail', 'template', 'visibility', 'visibility_backup',
+            'position', 'menu', 'language', 'searching', 'admin_groups',
+            'admin_users', 'viewing_groups', 'viewing_users', 'modified_when',
+            'modified_by', 'page_code',
+        ];
+
+        return preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $column) === 1
+            && !in_array(strtolower($column), $coreColumns, true);
+    }
+}
+
 if (!function_exists('seoPageTree')) {
 
     /**

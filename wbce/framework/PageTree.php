@@ -45,7 +45,8 @@
  *   children        — nested child nodes, absent on leaf nodes
  *
  * Set by applyPermissions():
- *   pageIDKEY, frontend_link, can_modify,
+ *   pageIDKEY       — IDKEY (purpose 'page') for pages with can_modify, else ''
+ *   frontend_link, can_modify,
  *   canModifyPage, canModifySettings, canManageSections,
  *   canDeleteAndModify, canAddChild,
  *   pageIsMovable, canMoveUp, canMoveDown,
@@ -291,7 +292,10 @@ class PageTree
             $p['canMoveUp']          = $p['pageIsMovable'] && $p['position'] > 1;
             $p['canMoveDown']        = $p['pageIsMovable'] && $p['position'] < $p['siblings'];
 
-            $p['pageIDKEY']     = $admin->getIDKEY($p['page_id']);
+            // Only pages the user may modify get a key, issued for the purpose
+            // 'page': a key is what endpoints such as wbSeoTool's ajax/save.php
+            // redeem to find out which page to write to.
+            $p['pageIDKEY']     = $cm ? $admin->getIDKEY($p['page_id'], 'page') : '';
             $p['frontend_link'] = $ctx['pagesDir'] . $p['link'] . $ctx['pageExt'];
 
             if ($p['has_menu_link']) {

@@ -32,7 +32,7 @@ if (isset($_POST['save_config'])) {
     }
 
     $rewriteColumn = trim((string) ($_POST['rewriteUrl_dbString'] ?? ''));
-    if ($rewriteColumn !== '' && !preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $rewriteColumn)) {
+    if ($rewriteColumn !== '' && !wbSeoToolRewriteColumnAllowed($rewriteColumn)) {
         $rewriteColumn = '';
     }
 

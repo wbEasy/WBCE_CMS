@@ -24,7 +24,11 @@ I::insertCssFile(WB_URL . '/modules/wbSeoTool/assets/backend.css', 'head_late', 
 // GET TOOL SETTINGS (shared {TP}settings table via Settings::)
 $cfg = json_decode((string) Settings::get('seo_cfg', '{}'), true) ?: [];
 
-if (!defined('REWRITE_URL') && !empty($cfg['rewriteUrl']['use'])) {
+require_once dirname(__FILE__) . '/functions.php';
+
+// an older config may still name a core column, see wbSeoToolRewriteColumnAllowed()
+if (!defined('REWRITE_URL') && !empty($cfg['rewriteUrl']['use'])
+    && wbSeoToolRewriteColumnAllowed((string) $cfg['rewriteUrl']['dbString'])) {
     define('REWRITE_URL', (string) $cfg['rewriteUrl']['dbString']);
 }
 if (!defined('KEYWORDS_CONFIG') && !empty($cfg['keywordsConfig']['use'])) {
@@ -39,7 +43,6 @@ if (!defined('USE_MENU_TITLE') && !empty($cfg['menuTitleConfig']['use'])) {
 $useRemainingChars = !empty($cfg['bUseRemainingChars']);
 $sCounterText = str_replace('{COUNTER_REMAINING}', ($useRemainingChars ? $TXT['COUNTER_REMAINING'] : ''), $TXT['COUNTER_STRING']);
 
-require_once dirname(__FILE__) . '/functions.php';
 ?>
 <noscript><?=$TXT['NOSCRIPT_MESSAGE']; ?></noscript>
 <script type="text/javascript">

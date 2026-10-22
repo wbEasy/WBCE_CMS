@@ -356,10 +356,18 @@ class SecureForm
      * form or URL. Each key can be redeemed exactly once via checkIDKEY() — after
      * redemption all keys from the same page call are invalidated to prevent replay.
      *
-     * @param  mixed  $value  Scalar or array to store (arrays are serialized automatically)
-     * @return string         Opaque one-time key to embed in the form
+     * Purpose: all IDKEYs of a session share one store, and checkIDKEY() alone
+     * returns whatever value a key holds. A section ID handed out by one screen
+     * would therefore be accepted as a page ID by another endpoint. Give keys a
+     * purpose (e.g. 'page') and redeem them with the same purpose, and a key
+     * issued for anything else is refused. Keys without a purpose behave as
+     * before.
+     *
+     * @param  mixed  $value    Scalar or array to store (arrays are serialized automatically)
+     * @param  string $purpose  What the value is, e.g. 'page'; '' = unspecified (legacy)
+     * @return string           Opaque one-time key to embed in the form
      */
-    public function getIDKEY(mixed $value): string
+    public function getIDKEY(mixed $value, string $purpose = ''): string
     {
 
         // serialize value, if it's an array
@@ -378,15 +386,27 @@ class SecureForm
             $_SESSION[$this->_idkey_name][$key]['value'] = $value;
             $_SESSION[$this->_idkey_name][$key]['time'] = time();
             $_SESSION[$this->_idkey_name][$key]['page'] = $this->_page_uid;
+            $_SESSION[$this->_idkey_name][$key]['purpose'] = $purpose;
         } // if key already exist, try again, dont store as it already been stored
         else {
-            $key = $this->getIDKEY($value);
+            $key = $this->getIDKEY($value, $purpose);
         }
 
         return $key;
     }
 
-    public function checkIDKEY($fieldname, $default = 0, $request = 'POST', $ajax = false)
+    /**
+     * Redeem an IDKEY created by getIDKEY() and return the value it stands for.
+     *
+     * @param  string      $fieldname  Request field holding the key (or the key itself)
+     * @param  mixed       $default    Returned when the key is unknown, expired or has the wrong purpose
+     * @param  string      $request    'POST', 'GET' or anything else = $fieldname is the key
+     * @param  bool        $ajax       true = peek: keep the key and its siblings valid
+     * @param  string|null $purpose    Accept only keys issued with this purpose (see
+     *                                 getIDKEY()); null = any key (legacy behaviour)
+     * @return mixed
+     */
+    public function checkIDKEY($fieldname, $default = 0, $request = 'POST', $ajax = false, ?string $purpose = null)
     {
 
         //Remove timed out idkeys
@@ -410,6 +430,11 @@ class SecureForm
         if (preg_match('/[0-9a-zA-Z\-\_]{1,32}$/', $key)) {
             // check if key is stored in IDKEYs-list
             if (array_key_exists($key, $_SESSION[$this->_idkey_name])) {
+                // a key issued for something else is no key for this purpose;
+                // refuse it without consuming anything
+                if ($purpose !== null && ($_SESSION[$this->_idkey_name][$key]['purpose'] ?? '') !== $purpose) {
+                    return $default;
+                }
                 // fetch stored value
                 $return_value = $_SESSION[$this->_idkey_name][$key]['value'];
                 // fetch page identifier used to remove all keys generated on the former pagecall

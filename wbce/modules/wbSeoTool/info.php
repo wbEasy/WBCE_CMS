@@ -14,7 +14,7 @@
 $module_directory   = 'wbSeoTool';
 $module_name        = 'SEO Meta Tree';
 $module_function    = 'tool';
-$module_version     = '1.3.0';
+$module_version     = '1.3.2';
 $module_status      = 'Stable';
 $module_platform    = '1.7.0';
 $module_author      = 'Christian M. Stefan, Colinax, Bianka Martinovic ("WebBird"), BerndJM';
@@ -24,6 +24,21 @@ $module_icon        = '<svg width="100%" height="100%" viewBox="0 0 512 493" ver
 
 /**
  * Version History
+ *
+ * 1.3.2 - security fixes, based on Rik van Loenhout's review (wbSeoTool
+ *         1.3.3 report, 2026-10-18)
+ *       - ajax/save.php checks the tool right itself (it is reached
+ *         directly, not through admintools/tool.php) and re-checks the page
+ *         permission; before, any IDKEY with a matching number (a section,
+ *         user or group ID) let an editor overwrite SEO fields of pages they
+ *         have no rights on
+ *       - the page key is redeemed with the purpose 'page' (new optional
+ *         purpose of getIDKEY()/checkIDKEY(); PageTree issues page keys only
+ *         for editable pages)
+ *       - the "rewrite URL" column may no longer be a core structure or
+ *         permission column (admin_groups, visibility, link, …)
+ *       - (1.3.1 below was recorded in the history but never set as
+ *         $module_version)
  *
  * 1.3.1 - Christian M. Stefan
  *       - added a custom SVG icon for the AdminTools overview
