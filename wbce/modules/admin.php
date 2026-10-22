@@ -29,20 +29,18 @@ if (($section_id == 0) && isset($section_required)) {
     exit(0);
 }
 
-// be sure is is numeric
+// be sure it is numeric
 $page_id = intval($page_id);
 $section_id = intval($section_id);
 
 // Create js back link
-// $js_back = 'javascript: history.go(-1);';
 $js_back = ADMIN_URL . '/pages/sections.php?page_id=' . $page_id;
 
-// Create new admin object, you can set the next variable in your module
+// Create new Admin object, you can set the next variable in your module
 // to print with or without header, default is with header
 // it is recommed to set the variable before including the /modules/admin.php
 $admin_header = (!isset($admin_header)) ? true : $admin_header;
-require_once WB_PATH . '/framework/class.admin.php';
-$admin = new admin('Pages', 'pages_modify', (bool) $admin_header);
+$admin = new Admin('Pages', 'pages_modify', (bool) $admin_header);
 
 // this catches XSS in these params, too
 if (!$page_id && !$section_id) {
@@ -70,10 +68,14 @@ if ((!$in_group) && !is_numeric(array_search($admin->get_user_id(), $old_admin_u
 }
 
 // some additional security checks:
-// Check whether the section_id belongs to the page_id at all
+// The page permission above was checked for $page_id only. A section of
+// another page would let a user who may edit page A write into page B
+// (page_id=A&section_id=<section of B>), so the section must belong to
+// $page_id — and its module must not be denied to the user.
 if ($section_id != 0) {
     $section = $admin->get_section_details($section_id, ADMIN_URL . '/pages/index.php');
-    if (!$admin->get_permission($section['module'], 'module')) {
+    if ((int) $section['page_id'] !== $page_id
+        || !$admin->get_permission($section['module'], 'module')) {
         $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS']);
     }
 }
