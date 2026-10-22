@@ -29,20 +29,19 @@ if(file_exists(WB_PATH.'/modules/miniform/new_frontend.css') && !file_exists(WB_
 }
 if(file_exists(WB_PATH.'/modules/miniform/new_frontend.css')) {
 	$url = ADMIN_URL."/pages/modify.php?page_id=$page_id";
-	if(isset($_GET['unlink'])) {
+	// one-time IDKEY: a forged link must not delete files
+	if(isset($_GET['unlink']) && $admin->checkIDKEY('unlink', false, 'GET') === 'new_frontend.css') {
 		unlink (WB_PATH.'/modules/miniform/new_frontend.css');
 	} else {
 		echo "<h6 style='background:rgba(231, 76, 60,0.5);padding:10px;border-radius:10px;'>If you upgraded this module from an older version and you want to use the new responsive forms you need to rename the file new_frontend.css to frontend.css.";
-		echo '<br>Otherwise <a style="text-decoration:underline" href="'.$url.'&unlink=1">click here</a> to remove the file new_frontend.css</h6>';
+		echo '<br>Otherwise <a style="text-decoration:underline" href="'.$url.'&unlink='.$admin->getIDKEY('new_frontend.css').'">click here</a> to remove the file new_frontend.css</h6>';
 	}
 }
 $mform = new mForm();
 
-$d = 0;
-if(isset($_GET['delete'])) {
-	$d = intval($_GET['delete']);
-	$mform->delete_record($d);
-}
+// Submissions are deleted via ajax_delete_message.php only (FTAN + check
+// that the user may manage the form). The former GET ?delete=<id> deleted
+// any message_id of any form without a token.
 if (!isset($links)) {
 	$links = array();
 	$mform->build_pagelist(0, $page_id);
@@ -105,6 +104,7 @@ $(function() {
     <form action="<?=WB_URL ?>/modules/miniform/save.php" method="post"  >
 	<input type="hidden" name="page_id" value="<?=$page_id ?>" />
 	<input type="hidden" name="section_id" value="<?=$section_id ?>" />
+	<?=$admin->getFTAN() ?>
 	<table class="settable" id="mfsettings-<?=$section_id ?>" cellpadding="3" cellspacing="3" border="0">
 		<tr>
 			<td colspan="3"><h2><?=$MF['MINIFORM'] ?> - <?=$MF['SETTINGS'] ?></h2></td>
@@ -232,7 +232,6 @@ $(function() {
 		<tbody>
 
 	<?php if($show_messages){ 		
-		$delete_url = ADMIN_URL.'/pages/modify.php?page_id='.$page_id.'&section_id='.$section_id.'&delete=';
 		include __DIR__ .'/messages_loop.php';
 	} ?>
 	</tbody>

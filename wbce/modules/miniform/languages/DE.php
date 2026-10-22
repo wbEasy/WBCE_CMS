@@ -15,6 +15,8 @@
 
 
 
+$module_name    = 'MiniForm';
+
 $MF['MINIFORM'] = 'MiniForm';
 $MF['SETTINGS'] = 'Einstellungen';
 $MF['SUBTITLE'] = '';
@@ -26,6 +28,7 @@ $MF['TEXT_NOPAGE'] = 'Keine separate Erfolgreich-Seite, Standardtext anzeigen';
 $MF['TEXT_CANCEL'] = 'Abbrechen';
 $MF['TEXT_SAVE'] = 'Speichern';
 $MF['TEXT_NO_STORE'] = 'Empfangene Daten nicht in der Datenbank speichern';
+$MF['INVALID_TEMPLATE_NAME'] = 'Ungültiger Template-Name: nur Buchstaben, Ziffern, Leerzeichen, "_", "-" und Klammern sind erlaubt (max. 64 Zeichen).';
 $MF['TEXT_AJAX'] = 'Ajax post verwenden';
 $MF['TEXT_RECAPTCHA'] = 'reCaptcha verwenden';
 $MF['TEXT_RCKEY'] = 'reCaptcha Site key';

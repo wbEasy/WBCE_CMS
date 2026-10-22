@@ -95,6 +95,11 @@ function timeago($iTimestamp) {
 if(is_array($aMiniforms)){
 	foreach($aMiniforms as $miniform){
 		$section_id = $miniform['section_id'];
+		// the tool right alone does not grant access to every form's
+		// submissions; same rule as on the page itself
+		if (!miniform_may_manage_section($admin, (int) $section_id)) {
+			continue;
+		}
 		$page_id = $database->fetchValue("SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ?", [$section_id]);
 		$heighestTimestamp = $database->fetchValue("SELECT max(`submitted_when`) FROM `{TP}mod_miniform_data` WHERE `section_id` = ?", [$section_id]);
 	?>
@@ -159,8 +164,6 @@ if(is_array($aMiniforms)){
 		</thead>
 		<tbody>
 		<?php if($show_messages){ 		
-			$delete_url = ADMIN_URL.'/pages/modify.php?page_id='.$page_id.'&section_id='.$section_id.'&delete=';
-			$delete_url = 'javascript:void(0)';
 			include __DIR__ .'/messages_loop.php';
 		} ?>
 		</tbody>

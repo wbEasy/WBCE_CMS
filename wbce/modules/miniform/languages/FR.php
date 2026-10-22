@@ -26,6 +26,7 @@ $MF['TEXT_NOPAGE'] = 'pas de redirection de Page, utiliser le texte standard seu
 $MF['TEXT_CANCEL'] = 'Annuller';
 $MF['TEXT_SAVE'] = 'Sauvegarder';
 $MF['TEXT_NO_STORE'] = 'Ne pas stocker les données reçues dans la base de données';
+$MF['INVALID_TEMPLATE_NAME'] = 'Nom de modèle invalide : seuls les lettres, chiffres, espaces, « _ », « - » et parenthèses sont autorisés (64 caractères max.).';
 $MF['TEXT_AJAX'] = 'Use Ajax post';
 $MF['TEXT_RECAPTCHA'] = 'Use reCaptcha';
 $MF['TEXT_RCKEY'] = 'reCaptcha Site key';

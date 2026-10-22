@@ -26,6 +26,7 @@ $MF['TEXT_NOPAGE'] = 'No successpage, standard text only';
 $MF['TEXT_CANCEL'] = 'Cancel';
 $MF['TEXT_SAVE'] = 'Save';
 $MF['TEXT_NO_STORE'] = 'Do not store received data in the database';
+$MF['INVALID_TEMPLATE_NAME'] = 'Invalid template name: only letters, digits, spaces, "_", "-" and brackets are allowed (max. 64 characters).';
 $MF['TEXT_AJAX'] = 'Use Ajax post';
 $MF['TEXT_RECAPTCHA'] = 'Use reCaptcha';
 $MF['TEXT_RCKEY'] = 'reCaptcha Site key';

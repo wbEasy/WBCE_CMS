@@ -15,7 +15,7 @@ $tpl_msg_row ='
 		<small><i>{{TEXT_SUBMITTED}}: {{SHOW_DATE}}</i></small>
 	</td>
 	<td align="right" class="delete_submission">
-		<a href="{{DELETE_URL}}{{MESSAGE_ID}}" class="del_icon">&times;</a>
+		<a href="#" class="del_icon" style="cursor:pointer">&times;</a>
 	</td>
 </tr>
 <tr class="msg_text">
@@ -42,7 +42,6 @@ foreach ($sub as $msg) {
 		'{{TEXT_MESSAGE}}'   => $TEXT['MESSAGE'],
 		'{{TEXT_SUBMITTED}}' => $TEXT['SUBMITTED'],
 		'{{MSG_DATA}}'       => $msg['data'],
-		'{{DELETE_URL}}'     => $delete_url
 	);
 	echo strtr($tpl_msg_row, $arr_row_replace);
 }
@@ -78,57 +77,34 @@ if(!isset($js_functions_loaded)){
 	var TPL_MSG_ROW  = <?=json_encode($tpl_msg_row)?>;	
 	var TPL_ROW_LOAD_MORE  = <?=json_encode($tpl_row_load_more)?>;	
 	var TEXT_ARE_YOU_SURE  = '<?=utf8_fast_entities_to_umlauts($TEXT['ARE_YOU_SURE'])?>';	
-	// Ajax Delete Message
-	(function($) {
-		$.fn.ajaxDeleteRecord = function(options) {
+	// "formtoken=…" — sent in the POST body, never in a URL
+	var MF_FTAN = <?=json_encode($admin->getFTAN(false))?>;
 
-			var aOpts = $.extend({}, $.fn.ajaxDeleteRecord.defaults, options);
-			$(this).find('a').removeAttr("href").css('cursor', 'pointer');
+	// Ajax delete message. Delegated, so rows added by "load more" get the
+	// same handler (they used to fall back to a plain GET link).
+	$(document).on('click', 'td.delete_submission', function(e) {
+		e.preventDefault();
+		var oRecord   = $(this).closest('tr');
+		var iRecordID = oRecord.attr('id').substring(11); // "message_id_<id>"
 
-			$(this).click(function() {
-				var iRecordID  = $(this).parent().attr("id").substring(11);
-				var iSectionID = $(this).parent().parent().parent().attr("id").substring(8);
-				var oLink      = $(this).find('a');
-				var oRecord    = $("tr#" + aOpts.DB_COLUMN +'_'+ iRecordID);
-
-				if (confirm(TEXT_ARE_YOU_SURE)) {
-
-					$.ajax({
-						url: "<?=WB_URL ?>/modules/miniform/ajax_delete_message.php",
-						type: "POST",
-						dataType: 'json',
-						
-						data: 'purpose=delete_record&action=delete'
-							 +'&DB_RECORD_TABLE='+aOpts.DB_RECORD_TABLE
-							 +'&DB_COLUMN='+aOpts.DB_COLUMN
-							 +'&MODULE='+aOpts.MODULE
-							 +'&iRecordID='+iRecordID
-							 +'&iSectionID='+iSectionID,
-						
-						success: function(json_respond) {
-							if(json_respond.success == true) {
-								oRecord.find("td").animate({backgroundColor:  '#fdbbbb'}, 'slow');
-								oRecord.next('tr').fadeOut(1200);
-								oRecord.fadeOut(1200);
-								//window.location.reload();
-							} else {
-								alert(json_respond.message);
-							}
-						}
-					});
-				}
-			});
+		if (!confirm(TEXT_ARE_YOU_SURE)) {
+			return;
 		}
-	})(jQuery);
-	
-	$(document).ready(function(){				
-		// AjaxHelper delete submissions records
-		$("td.delete_submission").ajaxDeleteRecord({
-			MODULE : 'miniform',
-			DB_RECORD_TABLE: 'miniform_data',
-			DB_COLUMN: 'message_id',
-			sFTAN: ''
-		});		
+		$.ajax({
+			url: "<?=WB_URL ?>/modules/miniform/ajax_delete_message.php",
+			type: "POST",
+			dataType: 'json',
+			data: 'iRecordID=' + encodeURIComponent(iRecordID) + '&' + MF_FTAN,
+			success: function(json_respond) {
+				if(json_respond.success == true) {
+					oRecord.find("td").animate({backgroundColor:  '#fdbbbb'}, 'slow');
+					oRecord.next('tr').fadeOut(1200);
+					oRecord.fadeOut(1200);
+				} else {
+					alert(json_respond.message);
+				}
+			}
+		});
 	});
 	</script>
 <?php 
@@ -182,7 +158,6 @@ $(document).ready(function(){
 							'{{SHOW_DATE}}'     : row.submitted_when,
 							'{{TEXT_MESSAGE}}'  : '<?=$TEXT['MESSAGE']?>',
 							'{{TEXT_SUBMITTED}}': '<?=$TEXT['SUBMITTED']?>',
-							'{{DELETE_URL}}'    : '<?=$delete_url?>',
 							'"even"'            : '"even new-rows"'
 						};
 						console.log(row);

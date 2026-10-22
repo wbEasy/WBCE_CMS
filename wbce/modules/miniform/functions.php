@@ -367,7 +367,8 @@ class mform {
 			function ($matches) { return "s:".strlen($matches[2]).':"'.$matches[2].'";'; },
 			$sObject
 		);
-		return unserialize($__ret);
+		// only plain arrays/strings are ever stored here, never objects
+		return unserialize($__ret, ['allowed_classes' => false]);
 	}
 
 	function guid() {
@@ -388,6 +389,45 @@ class mform {
 	}
 
 } //end class
+
+/**
+ * page_id of a miniform section, 0 if the section does not exist or is not
+ * a miniform section.
+ */
+function miniform_section_page_id(int $section_id): int
+{
+    global $database;
+    return (int) $database->fetchValue(
+        "SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ? AND `module` = 'miniform'",
+        [$section_id]
+    );
+}
+
+/**
+ * May the current backend user read and delete the submissions of this
+ * section? Same rule as editing the page the form sits on: admins, and
+ * users/groups with admin rights on that page. Holding the module right or
+ * the miniform AdminTool right alone is not enough — submissions are
+ * personal data of whoever filled in that particular form.
+ */
+function miniform_may_manage_section($admin, int $section_id): bool
+{
+    $page_id = miniform_section_page_id($section_id);
+    if ($page_id === 0) {
+        return false;
+    }
+    return $admin->isAdmin() || $admin->get_page_permission($page_id, 'admin');
+}
+
+/**
+ * A form template is stored as templates/form_<name>.htt, so the name must
+ * not carry path characters. Allows what the bundled names use, e.g.
+ * "DE_contactform (HTML5)".
+ */
+function miniform_valid_template_name($name): bool
+{
+    return is_string($name) && preg_match('/^[A-Za-z0-9 _()-]{1,64}$/', $name) === 1;
+}
 
 function isAjaxRequest () {
 	if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") return true;

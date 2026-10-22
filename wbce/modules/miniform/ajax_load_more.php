@@ -5,20 +5,22 @@ $aToJson['message'] = 'failure';
 if(!empty($_POST["message_id"])){
 	require_once '../../config.php';
 
-	// module directory
-	$mod_dir = 'miniform';
-	// Include WB admin wrapper script
 	require_once(WB_PATH.'/framework/class.admin.php');
-    $admin = new admin('Pages', 'pages_modify', false, false);
-    if (!($admin->is_authenticated() && $admin->get_permission($mod_dir, 'module'))) {
-        $aToJson['message'] = 'insuficcient rights';
-        exit(json_encode($aToJson));
-    }
+	require_once __DIR__ . '/functions.php';
+	$admin = new admin('Pages', 'pages_modify', false, false);
 
-       // Get records from the database
-	$section_id  = (int) $_POST['section_id'];
+	$section_id  = (int) ($_POST['section_id'] ?? 0);
 	$msg_id      = (int) $_POST['message_id'];
-    $number_load = (int) $_POST['load'];
+	$number_load = max(1, min(100, (int) ($_POST['load'] ?? 0)));
+
+	// submissions are personal data: only for whoever may edit the page the
+	// form sits on (get_permission('miniform', 'module') was checked here
+	// before; module rights are a deny-list, so that was true for almost
+	// every backend user, for every form)
+	if (!$admin->is_authenticated() || !miniform_may_manage_section($admin, $section_id)) {
+		$aToJson['message'] = 'insufficient rights';
+		exit(json_encode($aToJson));
+	}
 
 
 

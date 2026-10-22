@@ -18,6 +18,12 @@ require_once (WB_PATH.'/framework/functions.php');
 $update_when_modified = true; 
 require(WB_PATH.'/modules/admin.php');
 
+if (!$admin->checkFTAN()) {
+	$admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], ADMIN_URL.'/pages/modify.php?page_id='.(int)$page_id);
+	$admin->print_footer();
+	exit;
+}
+
 if(isset($_POST['section_id'])) {
 	$email = strip_tags($_POST['email']);
 	$emailfrom = strip_tags($_POST['emailfrom']);

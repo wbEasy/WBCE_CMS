@@ -26,6 +26,7 @@ $MF['TEXT_NOPAGE'] = 'Geen succespagina, gebruik de standaard tekst.';
 $MF['TEXT_CANCEL'] = 'Afbreken';
 $MF['TEXT_SAVE'] = 'Opslaan';
 $MF['TEXT_NO_STORE'] = 'Sla ontvangen data niet op in database';
+$MF['INVALID_TEMPLATE_NAME'] = 'Ongeldige sjabloonnaam: alleen letters, cijfers, spaties, "_", "-" en haakjes zijn toegestaan (max. 64 tekens).';
 $MF['TEXT_AJAX'] = 'Gebruik Ajax post';
 $MF['TEXT_RECAPTCHA'] = 'Gebruik reCaptcha';
 $MF['TEXT_RCKEY'] = 'reCaptcha Site key';

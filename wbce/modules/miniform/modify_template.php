@@ -71,7 +71,13 @@ if(isset($_POST['remote'])) {
 $_action = (isset($_POST['action']) ? $_POST['action'] : '');
 $_action = ($_action != 'save' ? 'edit' : 'save');
 if ($_action == 'save') {
-	$template = $admin->add_slashes($_POST['name']);
+	$template = $_POST['name'] ?? '';
+	// the name becomes part of a file path (templates/form_<name>.htt)
+	if (!miniform_valid_template_name($template)) {
+		$admin->print_error($MF['INVALID_TEMPLATE_NAME'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+		$admin->print_footer();
+		exit;
+	}
 	$data = $_POST['template_data'];
 	$filename = dirname(__FILE__).'/templates/form_'.$template.'.htt';
 	if (false !== file_put_contents($filename,$data)) {
@@ -81,18 +87,21 @@ if ($_action == 'save') {
 	}
 } else {
 	
-	$template = $admin->add_slashes($_GET['name']);
+	$template = $_GET['name'] ?? '';
+	if (!miniform_valid_template_name($template)) {
+		$template = '';
+	}
 	$filename = dirname(__FILE__).'/templates/form_'.$template.'.htt';
 	$data = '';
-	if (file_exists($filename)) $data = file_get_contents($filename) ;
+	if ($template !== '' && file_exists($filename)) $data = file_get_contents($filename) ;
 	if($nwdata) $data = $nwdata;
 	echo registerEditArea ('code_area','html',true,'both',true,true,600,450,$toolbar = 'default');
 	?>
-	<form name="edit_module_file" action="<?=$manage_url.$template;?>" method="post" style="margin: 0;">
+	<form name="edit_module_file" action="<?=$manage_url.rawurlencode($template);?>" method="post" style="margin: 0;">
 			<input type="hidden" name="page_id" value="<?=$page_id; ?>" />
 			<input type="hidden" name="section_id" value="<?=$section_id; ?>" />
 			<input type="hidden" name="action" value="save" />
-			<span class="sleft"><?=$MF['SAVEAS']; ?>: </span><input required type="text" class="mf-input" name="name" value="<?=$template; ?>" />
+			<span class="sleft"><?=$MF['SAVEAS']; ?>: </span><input required type="text" class="mf-input" name="name" value="<?=htmlspecialchars($template); ?>" pattern="[A-Za-z0-9 _()\-]{1,64}" title="<?=htmlspecialchars($MF['INVALID_TEMPLATE_NAME']); ?>" />
 			<span style="float:right"><a class="mf-button" href="http://miniform.dev4me.nl/template-help/basic-structure/" target="_blank"><?=$MF['HELP']; ?></a></span>
 			<span style="float:right"><a class="mf-button" href="http://miniform.dev4me.nl/form-creator/<?=$remote ? '?load='.$remote:''; ?>" target="_blank"><?=$MF['TPL_GEN']; ?></a></span>
 			<span style="float:right"><a class="doremote mf-button" href="#" ><?=$MF['DOREMOTE']; ?></a></span>
@@ -115,7 +124,7 @@ if ($_action == 'save') {
 	</form>
 	<div class="mf_remote" style="display:none;">
 		<br><br>
-		<form name="load_remote" action="<?=$manage_url.$template;?>" method="post" > 
+		<form name="load_remote" action="<?=$manage_url.rawurlencode($template);?>" method="post" > 
 			<input type="hidden" name="page_id" value="<?=$page_id; ?>" />
 			<input type="hidden" name="section_id" value="<?=$section_id; ?>" />
 			<span class="sleft"><?=$MF['REMOTE']; ?>: </span><input type="text" class="mf-input" name="remote" value="<?=$remote; ?>" />
