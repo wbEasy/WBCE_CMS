@@ -27,14 +27,17 @@ if(LANGUAGE_LOADED) {
 //
 //	Toggle Settings View
 //
-if(isset($_GET['show_settings']) && in_array($_GET['show_settings'], array(1,0))){
-	if(isset($_GET['page_id']) && $_GET['page_id'] == $page_id){
-		if(isset($_GET['section_id']) && $_GET['section_id'] == $section_id){
-			$database->upsertRow('{TP}mod_sitemap', 'section_id', [
-				'section_id'    => $section_id,
-				'show_settings' => (int) $_GET['show_settings'],
-			]);
-		}
+// The link carries a one-time IDKEY whose value binds the new state to this
+// section ("<section_id>:<0|1>"). The section_id check only routes the request
+// to the right section (this file runs once per sitemap section on the page);
+// the IDKEY is what stops a forged link (CSRF).
+if (isset($_GET['show_settings'], $_GET['section_id']) && (int) $_GET['section_id'] === (int) $section_id) {
+	$sToggle = $admin->checkIDKEY('show_settings', false, 'GET');
+	if (in_array($sToggle, [$section_id . ':0', $section_id . ':1'], true)) {
+		$database->upsertRow('{TP}mod_sitemap', 'section_id', [
+			'section_id'    => $section_id,
+			'show_settings' => (int) substr($sToggle, -1),
+		]);
 	}
 }
 $sAcpiCheckfile = WB_URL.'/templates/'.DEFAULT_THEME.'/ACPI_READY';
@@ -161,8 +164,8 @@ else {$show_hidden='';}
 					$TEXT['TOGGLE_VIEW'] = $TEXT['HIDE'];	
 					$toggle = 0;			
 				}			
-				$sLink = ADMIN_URL."/pages/modify.php?page_id=%d&section_id=%d&show_settings=%d#%s";
-				$sLink = sprintf($sLink, $page_id, $section_id, $toggle, SEC_ANCHOR.$section_id);
+				$sLink = ADMIN_URL."/pages/modify.php?page_id=%d&section_id=%d&show_settings=%s#%s";
+				$sLink = sprintf($sLink, $page_id, $section_id, $admin->getIDKEY($section_id.':'.$toggle), SEC_ANCHOR.$section_id);
 				?>
 				<a href="<?=$sLink?>">
 					<?=$SMTEXT['LSETTINGS']." ".strtolower($TEXT['TOGGLE_VIEW'])?>
