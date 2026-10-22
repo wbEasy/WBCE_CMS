@@ -272,10 +272,11 @@ function getLanguagesArray(): array
             $aRec['active_pages'] = array_column($pages, 'page_id');
         }
 
-        $iconRel      = '/languages/' . strtolower($aRec['directory']) . '.png';
-        $aRec['icon'] = is_readable(WB_PATH . $iconRel)
-            ? '../..' . $iconRel
-            : "../../modules/$moduleBase/icons/unknown.png";
+        // Flags are languages/<CODE>.svg — same case as the directory, which
+        // matters on case-sensitive file systems. No flag: no image (the
+        // template skips an empty icon) instead of a broken fallback path.
+        $iconRel      = '/languages/' . $aRec['directory'] . '.svg';
+        $aRec['icon'] = is_readable(WB_PATH . $iconRel) ? '../..' . $iconRel : '';
 
         $aAddons['addons'][] = $aRec;
     }

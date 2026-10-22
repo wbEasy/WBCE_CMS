@@ -10,7 +10,7 @@
 $module_directory    = 'addon_monitor';
 $module_name         = 'AddonMonitor';
 $module_function     = 'tool';
-$module_version      = '1.0.1';
+$module_version      = '1.1.1';
 $module_platform     = '1.7.0';  // !addon won't work with earlier versions of WBCE
 $module_author       = 'Christian M. Stefan';
 $module_license      = 'GNU/GPL v.2';
@@ -20,6 +20,15 @@ $module_description  = 'Monitoring of installed Add-Ons. Find out what Addons '
 $module_icon         = 'fa fa-plug';
 /**
  * VERSION HISTORY
+ *
+ * 1.1.1 - Enforce the tab permissions server-side: ?addons= only accepts a
+ *         tab the user has the system permission for (modules, templates,
+ *         languages); before, the restriction only hid the tab link.
+ *         Reported by Rik van Loenhout.
+ *       - Language flags: use languages/<CODE>.svg in the directory's own
+ *         case (the lower-cased .png path never matched on case-sensitive
+ *         file systems); no flag means no image instead of a broken
+ *         fallback to the removed icons/ folder.
  *
  * 1.1.0 - Make use of the newly introduced MarkdownReader class.
  *         Each module and template that contains a README.md will show a README

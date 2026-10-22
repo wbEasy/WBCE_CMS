@@ -20,20 +20,23 @@ Lang::loadLanguage();
 // set ur of this Tool
 $toolUrl  = ADMIN_URL . '/admintools/tool.php?tool=' . basename(__DIR__);
     
-// what tabs does this tool have?
-$tabs = [
-    'modules',
-    'templates',
-    'languages',
-];
+// what tabs does this tool have? Each belongs to the system permission of
+// the same name; the filtered list is both the whitelist for ?addons= and
+// the source of the navigation, so a tab hidden from the menu can't be
+// opened by URL either.
+$tabs = array_values(array_filter(
+    ['modules', 'templates', 'languages'],
+    fn($tab) => $admin->get_permission($tab)
+));
+if (!$tabs) {
+    echo $MESSAGE['ADMIN_INSUFFICIENT_PRIVELLIGES'];
+    return;
+}
 
-// what tab do we have to show?
-$showTab = isset($_GET['addons']) ? (string) $_GET['addons'] : 'modules';
-
-// Whitelist to prevent arbitrary template loading
-if (!in_array($showTab, $tabs)) {
-    $showTab = 'modules'; // `modules` is default if something 
-                          // strange was put as get parameter
+// what tab do we have to show? (anything not allowed falls back to the first allowed one)
+$showTab = isset($_GET['addons']) ? (string) $_GET['addons'] : $tabs[0];
+if (!in_array($showTab, $tabs, true)) {
+    $showTab = $tabs[0];
 }
 
 // load functions
@@ -46,11 +49,7 @@ switch ($showTab) {
 ?>
 <div class="am-header">
     <nav class="am-tabs" role="tablist">
-        <?php foreach ($tabs as $tab): 
-            
-            // only show tab if user has permission to access (modules, templates, languages).
-            if($admin->get_permission($tab) == false) continue;
-        ?>
+        <?php foreach ($tabs as $tab): ?>
         <a class="am-tab<?= ($showTab === $tab) ? ' am-tab--active' : '' ?>"
            href="<?= $toolUrl ?>&addons=<?= $tab ?>"
            role="tab"
