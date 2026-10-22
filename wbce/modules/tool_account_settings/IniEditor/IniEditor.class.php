@@ -162,14 +162,14 @@ class IniEditor {
                 mkdir($this->sBackupDir, 0755);
             }
             $backup = file_put_contents(
-                $this->sBackupDir.'/'.basename($this->backupFilename($_REQUEST['ini_file'])).'_'.date('Ymd_His'), 
-                file_get_contents($_REQUEST['ini_file'])
+                $this->sBackupDir.'/'.basename($this->backupFilename($this->sIniFile)).'_'.date('Ymd_His'),
+                file_get_contents($this->sIniFile)
             );
         }
 
         $backup = true;
         if ($backup) {
-            $aVals = $this->preg_grep_keys('/ini#.*$/', $_REQUEST);
+            $aVals = $this->preg_grep_keys('/ini#.*$/', $_POST);
             $aSave = array();
             foreach ($aVals as $key => $val) {
                 $conf = explode('#', $key);
@@ -192,7 +192,7 @@ class IniEditor {
             $sPhpPrefix = '';
             $sPhpPrefix .=  ";<?php  die('Illegal file access'); ?>".PHP_EOL;
             $sPhpPrefix .=  ";###########################################".PHP_EOL;
-            $sPhpPrefix .=  ";#   ".basename($_REQUEST['ini_file'])."".PHP_EOL;
+            $sPhpPrefix .=  ";#   ".basename($this->sIniFile)."".PHP_EOL;
             $sPhpPrefix .=  ";#   saved: ".date(DATE_RFC822)."".PHP_EOL;
             $sPhpPrefix .=  ";###########################################". PHP_EOL . PHP_EOL . PHP_EOL;
 
@@ -217,8 +217,20 @@ class IniEditor {
     public function getForm() {
             $conf = parse_ini_file($this->sIniFile, true);
             $sToHtml = '<div class="editor-container cpForm">';
-            if (isset($_REQUEST['save_ini_form'])) {
-                $sToHtml .= $this->saveForm();
+            // Only a POST with a valid FTAN saves. A plain GET used to be enough
+            // ($_REQUEST), so a foreign link could rewrite the config. Fails
+            // closed: without an $admin object nothing is saved.
+            if (isset($_POST['save_ini_form'])) {
+                $oAdmin = $GLOBALS['admin'] ?? null;
+                if (is_object($oAdmin) && $oAdmin->checkFTAN()) {
+                    $sToHtml .= $this->saveForm();
+                } else {
+                    // rendered inline: a session-less Alerts object shows
+                    // nothing unless its own output is printed
+                    $sToHtml .= (new Alerts(useSession: false))
+                        ->error('MESSAGE:GENERIC_SECURITY_ACCESS')
+                        ->fetchDisplay();
+                }
             }
 
             if ($this->bShowFileSrc) {
@@ -235,8 +247,8 @@ class IniEditor {
             $sToHtml .= $this->getScripts();
 
             $sToHtml .= '<form method="post">
-            <input type="hidden" name="save_ini_form" value="1"/>
-            <input type="hidden" name="ini_file" value="'.str_replace(WB_PATH, 'BASE_PATH', $this->sIniFile).'"/>'; //prevent PATH from being seen
+            <input type="hidden" name="save_ini_form" value="1"/>'
+            . (isset($GLOBALS['admin']) ? $GLOBALS['admin']->getFTAN() : '');
 
             $additional = array();
             foreach ($conf as $c => $cv) {
