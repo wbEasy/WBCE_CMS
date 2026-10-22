@@ -24,7 +24,10 @@ $admin = new Admin('admintools', 'admintools', false);
 header('Content-Type: application/json; charset=utf-8');
 
 // ── Permission check ──────────────────────────────────────────────────────────
-if (!$admin->get_permission('admintools')) {
+// This endpoint is called directly, not through admin/admintools/tool.php, so
+// it has to apply the tool right itself — 'admintools' alone would let in a
+// user who may use any other AdminTool.
+if (!$admin->get_permission('admintools') || !$admin->hasToolPermission('outputfilter_dashboard')) {
     http_response_code(403);
     (new Alerts(false))->toast('MESSAGE:GENERIC_SECURITY_ACCESS', 'error');
     exit(json_encode(['ok' => false]));

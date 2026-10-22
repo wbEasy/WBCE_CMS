@@ -32,6 +32,7 @@
  **/
 if(!isset($_POST['purpose']) || $_POST['purpose'] != 'delete_row'){
     header( 'Location: ../../index.php' );
+    exit;
 }
 
 // json_respond array which will be sent back to the javascript
@@ -51,10 +52,14 @@ if(is_readable($sConfigFile = '../../../config.php')) {
     exit(json_encode($aRspnd));
 }
 
-// check if user has permissions to access the outputfilter_dashboard module
+// check if user has permissions to access the outputfilter_dashboard module.
+// Same rule as admin/admintools/tool.php: get_permission($dir, 'module') is a
+// deny-list check and was always true here, and Admin's own check is off
+// (4th argument false), so 'admintools' has to be tested explicitly too.
 require WB_PATH.'/framework/class.admin.php';
 $admin = new admin('admintools', 'admintools', false, false);
-if (!($admin->is_authenticated() && $admin->get_permission('outputfilter_dashboard', 'module'))) {
+if (!($admin->is_authenticated() && $admin->get_permission('admintools')
+      && $admin->hasToolPermission('outputfilter_dashboard'))) {
     $aRspnd ['message'] = 'insuficcient privileges';
     exit(json_encode($aRspnd));
 }

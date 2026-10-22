@@ -1,5 +1,27 @@
 # Version History
 
+## 1.7.2 *(Rik van Loenhout, Christian M. Stefan, 22 October 2026)*
+
+Security fix, based on Rik van Loenhout's report of 18 October 2026 (version
+1.7.2 matches his published fix; his 1.7.1 is superseded).
+
+- The five endpoints that load `config.php` themselves and are therefore
+  callable directly — `ajax_save_filter.php`, `ajax_save_css.php`,
+  `ajax/ajax_toggle_state.php`, `ajax/ajax_delete_row.php`,
+  `ajax/ajax_dragdrop.php` — did not enforce the tool right:
+  - the three `ajax/*` endpoints checked
+    `get_permission('outputfilter_dashboard', 'module')`, a deny-list check
+    that is always true for a tool, and created `Admin` with its own check
+    switched off, so any logged-in backend user passed;
+  - the two save endpoints checked only `admintools`, so the right to use any
+    other AdminTool was enough to store filter code.
+  All five now require `admintools` and
+  `$admin->hasToolPermission('outputfilter_dashboard')` — the rule
+  `admin/admintools/tool.php` applies.
+- `ajax_toggle_state.php` / `ajax_delete_row.php`: the redirect for a request
+  without the expected POST field now ends the script (`exit`), and
+  `ajax_toggle_state.php` no longer reports `success: true` on failure.
+
 ## 1.7.0 *(Christian M. Stefan, 18 August – 11 September 2026)*
 
 - Documentation reorganised. `README.md` was a 1665-line manual; it is now a

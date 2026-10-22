@@ -59,10 +59,14 @@ if(!isset($_POST['action']) || !isset($_POST['id']) )
 {
     $aRows = $_POST['id'];
     require_once('../../../config.php');
-    // check if user has permissions to access the outputfilter_dashboard module
+    // check if user has permissions to access the outputfilter_dashboard module.
+    // Same rule as admin/admintools/tool.php: get_permission($dir, 'module') is a
+    // deny-list check and was always true here, and Admin's own check is off
+    // (4th argument false), so 'admintools' has to be tested explicitly too.
     require_once(WB_PATH.'/framework/class.admin.php');
     $admin = new admin('admintools', 'admintools', false, false);
-    if (!($admin->is_authenticated() && $admin->get_permission('outputfilter_dashboard', 'module'))) {
+    if (!($admin->is_authenticated() && $admin->get_permission('admintools')
+          && $admin->hasToolPermission('outputfilter_dashboard'))) {
         $aJsonRespond['message'] = 'insuficcient rights';
         exit(json_encode($aJsonRespond));
     }

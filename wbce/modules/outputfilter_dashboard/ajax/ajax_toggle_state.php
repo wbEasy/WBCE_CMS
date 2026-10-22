@@ -30,12 +30,17 @@
  * along with OutputFilter-Dashboard. If not, see <http://www.gnu.org/licenses/>.
  *
  **/
-isset($_POST['action']) or header( 'Location: ../../index.php' );
+if (!isset($_POST['action'])) {
+    header( 'Location: ../../index.php' );
+    exit;
+}
 
 // json_respond array wich is sent back to the backend
 $aRspnd = array();
 $aRspnd['message'] = 'failed to change status';
-$aRspnd['success'] = true;
+// starts false: every early exit below is a failure, and the dashboard's JS
+// treats success == true as "status changed"
+$aRspnd['success'] = false;
 #exit(json_encode($aRspnd));
 
 if (!isset($_POST['idkey'])){
@@ -52,10 +57,14 @@ if(is_readable($sConfigFile = '../../../config.php')) {
     exit(json_encode($aRspnd));
 }
 
-// check if user has permissions to access the outputfilter_dashboard module
+// check if user has permissions to access the outputfilter_dashboard module.
+// Same rule as admin/admintools/tool.php: get_permission($dir, 'module') is a
+// deny-list check and was always true here, and Admin's own check is off
+// (4th argument false), so 'admintools' has to be tested explicitly too.
 require_once(WB_PATH.'/framework/class.admin.php');
 $admin = new admin('admintools', 'admintools', false, false);
-if (!($admin->is_authenticated() && $admin->get_permission('outputfilter_dashboard', 'module'))) {
+if (!($admin->is_authenticated() && $admin->get_permission('admintools')
+      && $admin->hasToolPermission('outputfilter_dashboard'))) {
     $aRspnd['message'] = 'insuficcient rights';
     exit(json_encode($aRspnd));
 }
