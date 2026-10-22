@@ -2,6 +2,23 @@
 
 All notable changes to the `MarkdownWbce` module.
 
+## 0.3.3 - 2026-10-22 Rik van Loenhout, Christian M. Stefan
+
+### Security
+- **Write access no longer bypasses the `admintools` system right.**
+  `reader.php` (edit mode) and `ajax_save_doc.php` granted write access to
+  any group with the `MarkdownWbce_tool` entry, even without `admintools` —
+  which the AdminTool router requires. Such a group (typically page editors)
+  could overwrite any `.md` file below WB_PATH; since the reader renders raw
+  HTML, that meant stored script running in an administrator's session.
+  Both use `$admin->hasToolPermission('MarkdownWbce')`, which now applies
+  the router's full rule (core fix in `framework/Admin.php`).
+- **`safePath()` checks the resolved target, too.** The `.md` extension was
+  only checked on the requested path, so a `*.md` symlink below WB_PATH could
+  have pointed at any other file there.
+
+Reported with fixes by Rik van Loenhout.
+
 ## 0.3.2 - 2026-09-12 Christian M. Stefan
 
 ### Fixed

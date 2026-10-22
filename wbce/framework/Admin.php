@@ -146,10 +146,13 @@ class Admin extends Wbce
     /**
      * Check whether the current user may use a given AdminTool.
      *
-     * Admins always may; everyone else needs the '<toolDir>_tool' allow entry
-     * in MODULE_PERMISSIONS. This is the rule admin/admintools/tool.php applies
-     * before it includes a tool — call it in every entry point of an AdminTool
-     * that is reached directly instead (AJAX endpoints, save/download scripts).
+     * Admins always may; everyone else needs the 'admintools' system right AND
+     * the '<toolDir>_tool' allow entry in MODULE_PERMISSIONS. This is the rule
+     * admin/admintools/tool.php applies before it includes a tool (the system
+     * right through its Admin constructor) — call it in every entry point of
+     * an AdminTool that is reached directly instead (AJAX endpoints,
+     * save/download scripts), since those often boot Admin with another
+     * section and would otherwise skip the 'admintools' part.
      *
      * Do NOT use get_permission($toolDir, 'module') for this: module
      * permissions are a deny-list, tool permissions an allow-list, so that
@@ -161,7 +164,8 @@ class Admin extends Wbce
     public function hasToolPermission(string $toolDir): bool
     {
         return $this->isAdmin()
-            || in_array($toolDir . '_tool', (array) $this->get_session('MODULE_PERMISSIONS'), true);
+            || ($this->get_permission('admintools')
+                && in_array($toolDir . '_tool', (array) $this->get_session('MODULE_PERMISSIONS'), true));
     }
 
     /**

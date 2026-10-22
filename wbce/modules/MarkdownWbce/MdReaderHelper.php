@@ -55,6 +55,11 @@ class MdReaderHelper
             return null;
         }
 
+        // The resolved target must be a .md file too (a *.md symlink could point elsewhere)
+        if (!preg_match('/\.md$/i', $real)) {
+            return null;
+        }
+
         // Must be a readable file
         if (!is_file($real) || !is_readable($real)) {
             return null;
