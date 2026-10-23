@@ -35,4 +35,14 @@ if(($sOldType = $database->getTableEngine($sTable))) {
 } else {
 	$msg = $database->getError();
 }
-// ------------------------------------
+
+
+// since 2.0.2: move_to.php (a WB 2.8 leftover, unused since 2.0.0's drag & drop)
+// wrote positions via GET without a token. The addon installer copies over the
+// directory and never deletes files, so remove a leftover copy here.
+$file = '/move_to.php';
+$filePath = __DIR__ . $file;
+if (is_file($filePath)) {
+    $signal = removePath($filePath);
+    echo L_("SIGNAL['$signal']", $file) . '<br>';
+}

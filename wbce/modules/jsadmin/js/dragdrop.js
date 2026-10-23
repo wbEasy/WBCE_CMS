@@ -162,7 +162,7 @@
         $.ajax({
             type:     'POST',
             url:      JsAdmin.ADMIN_URL + '/pages/ajax/ajax_dragdrop.php',
-            data:     { action: 'updateArray', pageID: pageIDs },
+            data:     { action: 'updateArray', pageID: pageIDs, idkey: JsAdmin.IDKEY },
             dataType: 'json',
             success:  function (res) { setStatus(res.success ? 'success' : 'failure'); },
             error:    function ()    { setStatus('failure'); }
@@ -266,7 +266,8 @@ function initSectionsSortable() {
             $.ajax({
                 type:     'POST',
                 url:      JsAdmin.ADMIN_URL + '/pages/ajax/ajax_dragdrop_sections.php',
-                data:     $tbody.sortable('serialize') + '&action=updateArray&page_id=' + pageId,
+                data:     $tbody.sortable('serialize') + '&action=updateArray&page_id=' + pageId
+                          + '&idkey=' + encodeURIComponent(JsAdmin.IDKEY),
                 dataType: 'json',
                 success:  function (res) { setStatus(res.success ? 'success' : 'failure'); },
                 error:    function ()    { setStatus('failure'); }

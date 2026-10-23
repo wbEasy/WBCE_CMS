@@ -76,7 +76,10 @@ if($page_type != '') {
 	// AssetQueue renders JS files before inline JS within the same position bucket.
 	// Use body_early so this block lands before body_late JS files execute.
 	// Use PHP values directly — no runtime dependency on WB_URL/ADMIN_URL JS vars.
-	$sToJS  = "var JsAdmin      = { WB_URL: '" . addslashes(WB_URL)    . "', ADMIN_URL: '" . addslashes(ADMIN_URL) . "' };\n";
+	// IDKEY for the drag & drop endpoints (admin/pages/ajax/ajax_dragdrop*.php),
+	// read there in peek mode: one key serves every drop on this page.
+	$sToJS  = "var JsAdmin      = { WB_URL: '" . addslashes(WB_URL)    . "', ADMIN_URL: '" . addslashes(ADMIN_URL)
+	        . "', IDKEY: '" . addslashes($admin->getIDKEY('jsadmin_dragdrop')) . "' };\n";
 	$sToJS .= "var JsAdminTheme = { THEME_URL: '" . addslashes(THEME_URL) . "' };\n";
 	$sToJS .= "var buttonCell   = " . (int)$js_buttonCell . ";\n";
 	I::insertJsCode($sToJS, "BODY TOP", 'JsAdminVars');
