@@ -26,7 +26,10 @@ if (!$group_id){
     $admin->print_footer();
     exit();
 }
-
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_group_in_section($group_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
 
 $database->query("UPDATE `".TABLE_PREFIX."mod_news_img_posts` SET `group_id` = '0' where `group_id`='$group_id'");
 // Update row

@@ -113,7 +113,11 @@ try {
             }
 	    $filepath=$mod_nwi_file_dir.$imagename;
             // check
-            if (empty($picture['size']) || $picture['size'] > $imagemaxsize) {
+            if (!in_array(pathinfo($imagename, PATHINFO_EXTENSION), $allowed_suffixes, true)) {
+                // images only: the file would otherwise sit in the web-accessible
+                // media folder until the resize step removes it
+                $imageErrorMessage .= $MOD_NEWS_IMG['IMAGE_INVALID_TYPE'].'<br />';
+            } elseif (empty($picture['size']) || $picture['size'] > $imagemaxsize) {
                 $imageErrorMessage .= $MOD_NEWS_IMG['IMAGE_LARGER_THAN'].mod_nwi_byte_convert($imagemaxsize).'<br />';
             } elseif (strlen($imagename) > '256') {
                 $imageErrorMessage .= $MOD_NEWS_IMG['IMAGE_FILENAME_ERROR'].'1<br />';

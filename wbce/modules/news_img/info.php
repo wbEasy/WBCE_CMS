@@ -16,13 +16,29 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.32';
+$module_version     = '5.0.33';
 $module_platform    = '1.4';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';
 $module_description = 'This page module is designed for making a news page with images and lightbox effect.';
 
 /**
+ * v5.0.33 - 2026/10/23
+ *         - Rik van Loenhout (review), Christian M. Stefan
+ *         * SQL injection via manage_posts[] in the mass actions (activate,
+ *           clear dates, delete, tags): post/tag ids are cast to int
+ *         * a page editor could change, delete, copy or move posts, groups
+ *           and tags of other pages by sending their ids with his own
+ *           page_id: every endpoint now checks the object belongs to the
+ *           section modules/admin.php has verified; copy/move/group targets
+ *           on another page need admin rights there; global tags are
+ *           admin-only
+ *         * unserialize() of the group target without allowed_classes
+ *         * "settings only for admins" is enforced on save, not just in the form
+ *         * uploader: image extensions only, checked before the file is moved
+ *         * deleting several posts at once removed the image folder of an
+ *           unrelated post ("<1st id><2nd id>") instead of the 2nd post's
+ *
  * v5.0.32 - 2026/08/10
  *         - Christian M. Stefan
  *         * multi-driver SQL corrections (MySQL/SQLite) as preparation for

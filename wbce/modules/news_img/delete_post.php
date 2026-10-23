@@ -55,6 +55,12 @@ if (isset($_GET['post_id'])){
         $posts=$_POST['manage_posts'];
 } 
 
+$posts = mod_nwi_posts_in_section($posts, $section_id);
+// The object must belong to the section modules/admin.php has checked
+if ($posts === null) {
+    mod_nwi_refuse($page_id);
+}
+
 mod_nwi_post_delete($posts);
 
 // Check if there is a db error, otherwise say successful

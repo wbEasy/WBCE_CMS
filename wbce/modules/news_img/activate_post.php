@@ -61,7 +61,12 @@ if (isset($_GET['value']) && ($_GET['value']==0)) {
     $value=0;
 }
 
-$_POST['manage_posts'] = array($post_id);
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_post_in_section($post_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
+
+$_POST['manage_posts'] = array((int) $post_id);
 $result = mod_nwi_post_activate($value);
 
 // Check if there is a db error, otherwise say successful

@@ -542,6 +542,125 @@ function mod_nwi_img_upload($post_id,$is_preview_image=false)
     return $imageErrorMessage;
 }
 
+// ===== OWNERSHIP =============================================================
+// modules/admin.php guarantees that $section_id belongs to the request's
+// $page_id and that the user may administer that page. These helpers bind the
+// object an endpoint acts on (post, group, tag, target section) to what was
+// checked there, so an id taken from another page is refused.
+
+/**
+ * Stops the request with "insufficient permissions" (header is printed by the
+ * caller already, as everywhere in this module).
+ */
+function mod_nwi_refuse($page_id)
+{
+    global $admin, $MESSAGE;
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL.'/pages/modify.php?page_id='.(int) $page_id);
+    $admin->print_footer();
+    exit();
+}
+
+/**
+ * Post ids that all belong to $section_id, cast to int; null if any of them
+ * does not (the whole action is refused then, not silently trimmed).
+ */
+function mod_nwi_posts_in_section($post_ids, $section_id)
+{
+    global $database;
+    $ids = array();
+    foreach ((array) $post_ids as $id) {
+        $id = (int) $id;
+        if ($id <= 0) {
+            return null;
+        }
+        $owner = $database->fetchValue(
+            "SELECT `section_id` FROM `{TP}mod_news_img_posts` WHERE `post_id` = ?", [$id]
+        );
+        if ($owner === '' || (int) $owner !== (int) $section_id) {
+            return null;
+        }
+        $ids[] = $id;
+    }
+    return $ids;
+}
+
+function mod_nwi_post_in_section($post_id, $section_id)
+{
+    return mod_nwi_posts_in_section(array($post_id), $section_id) !== null;
+}
+
+function mod_nwi_group_in_section($group_id, $section_id)
+{
+    global $database;
+    $owner = $database->fetchValue(
+        "SELECT `section_id` FROM `{TP}mod_news_img_groups` WHERE `group_id` = ?", [(int) $group_id]
+    );
+    return $owner !== '' && (int) $owner === (int) $section_id;
+}
+
+/**
+ * A tag may be changed from $section_id if it is linked to that section;
+ * a global tag (section 0) only by administrators.
+ */
+function mod_nwi_tag_in_section($tag_id, $section_id)
+{
+    global $database, $admin;
+    $sections = $database->fetchAll(
+        "SELECT `section_id` FROM `{TP}mod_news_img_tags_sections` WHERE `tag_id` = ?", [(int) $tag_id]
+    );
+    $sections = array_map('intval', array_column($sections ?: array(), 'section_id'));
+    if (in_array(0, $sections, true)) {
+        return $admin->isAdmin();
+    }
+    return in_array((int) $section_id, $sections, true);
+}
+
+/**
+ * A news_img section on a page the user may administer (target of copy,
+ * move or a group assignment, which can lie on another page).
+ */
+function mod_nwi_may_manage_section($section_id)
+{
+    global $database, $admin;
+    $section = $database->fetchRow(
+        "SELECT `page_id`, `module` FROM `{TP}sections` WHERE `section_id` = ?", [(int) $section_id]
+    );
+    return $section !== null
+        && $section['module'] === 'news_img'
+        && ($admin->isAdmin() || $admin->get_page_permission((int) $section['page_id'], 'admin'));
+}
+
+/**
+ * Reads the serialized target {s: section, g: group, p: page} that the group
+ * select posts (copy/move/assign group, save_post). Returns null when there
+ * is no target ('p' = 0, i.e. "no group" in the current section), false when
+ * the target is invalid or not the user's to manage.
+ */
+function mod_nwi_parse_target($raw)
+{
+    if ($raw === null || $raw === '') {
+        return null;
+    }
+    $values = unserialize(urldecode((string) $raw), ['allowed_classes' => false]);
+    if (!is_array($values) || !isset($values['s'], $values['g'], $values['p'])) {
+        return false;
+    }
+    $target = array('s' => (int) $values['s'], 'g' => (int) $values['g'], 'p' => (int) $values['p']);
+    if ($target['p'] === 0) {
+        return null;
+    }
+    global $database;
+    $page_of_section = $database->fetchValue(
+        "SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ?", [$target['s']]
+    );
+    if ($page_of_section === '' || (int) $page_of_section !== $target['p']
+        || !mod_nwi_may_manage_section($target['s'])
+        || ($target['g'] !== 0 && !mod_nwi_group_in_section($target['g'], $target['s']))) {
+        return false;
+    }
+    return $target;
+}
+
 // ===== POSTS =================================================================
 
 function mod_nwi_post_activate($value)
@@ -556,6 +675,7 @@ function mod_nwi_post_activate($value)
 
     $errors = 0;
     foreach($posts as $post_id) {
+        $post_id = (int) $post_id; // ids come straight from $_POST['manage_posts']
         // Update row
         $database->query(sprintf(
             "UPDATE `%smod_news_img_posts`"
@@ -607,6 +727,7 @@ function mod_nwi_post_clear($value)
 
     $errors = 0;
     foreach($posts as $post_id) {
+        $post_id = (int) $post_id; // ids come straight from $_POST['manage_posts']
         // Update row
 	if ((strcmp($value,'published_when')==0) or(strcmp($value,'published_until')==0)){
         	$database->query(sprintf(
@@ -667,20 +788,16 @@ function mod_nwi_post_copy($section_id,$page_id,$with_tags=false)
     $old_section_id = $section_id;
     $old_page_id = $page_id;
 
-    $group = $admin->get_post_escaped('group');
-
-    if (!empty($group)) {
-        $gid_value = urldecode($group);
-        $values = unserialize($gid_value);
-        if (!isset($values['s']) or  !isset($values['g']) or  !isset($values['p'])) {
-            header("Location: ".ADMIN_URL."/pages/index.php");
-            exit(0);
-        }
-        if (intval($values['p'])!=0) {
-            $group_id = intval($values['g']);
-            $section_id = intval($values['s']);
-            $page_id = intval($values['p']);
-        }
+    // target section/page may lie on another page: only one the user may
+    // administer, and the group must belong to it
+    $target = mod_nwi_parse_target($admin->get_post('group'));
+    if ($target === false) {
+        return false;
+    }
+    if ($target !== null) {
+        $group_id = $target['g'];
+        $section_id = $target['s'];
+        $page_id = $target['p'];
     }
 
     // store this one for later use
@@ -868,6 +985,7 @@ function mod_nwi_post_delete($posts)
 
     foreach($posts as $post_id)
     {
+        $post_id = (int) $post_id; // ids come straight from $_POST['manage_posts']
         // Get post details
         $get_details = mod_nwi_post_get($post_id);
 
@@ -878,9 +996,9 @@ function mod_nwi_post_delete($posts)
         	    unlink(WB_PATH.PAGES_DIRECTORY.$get_details['link'].PAGE_EXTENSION);
             }
 
-            // delete images
-            $mod_nwi_file_base .= "$post_id";
-            rm_full_dir($mod_nwi_file_base);
+            // delete images (per post: appending to the base itself made the
+            // 2nd post of a batch delete the folder of post "<1st><2nd>")
+            rm_full_dir($mod_nwi_file_base.$post_id);
             $database->query(sprintf(
                 "DELETE FROM `%smod_news_img_img` WHERE `post_id` = ".$post_id,
                 TABLE_PREFIX
@@ -981,20 +1099,16 @@ function mod_nwi_post_move($section_id,$page_id,$with_tags=false)
     $old_section_id = $section_id;
     $old_page_id = $page_id;
 
-    $group = $admin->get_post_escaped('group');
-
-    if (!empty($group)) {
-        $gid_value = urldecode($group);
-        $values = unserialize($gid_value);
-        if (!isset($values['s']) or  !isset($values['g']) or  !isset($values['p'])) {
-            header("Location: ".ADMIN_URL."/pages/index.php");
-            exit(0);
-        }
-        if (intval($values['p'])!=0) {
-            $group_id = intval($values['g']);
-            $section_id = intval($values['s']);
-            $page_id = intval($values['p']);
-        }
+    // target section/page may lie on another page: only one the user may
+    // administer, and the group must belong to it
+    $target = mod_nwi_parse_target($admin->get_post('group'));
+    if ($target === false) {
+        return false;
+    }
+    if ($target !== null) {
+        $group_id = $target['g'];
+        $section_id = $target['s'];
+        $page_id = $target['p'];
     }
 
     //store this one for later use

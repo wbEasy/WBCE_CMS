@@ -35,6 +35,13 @@ if (!defined('CAT_PATH')) {
     }
 }
 
+// "settings only for admins" was enforced by the form (modify_settings.php)
+// only; check it here too, before the first write (incl. the mode switch)
+$current_settings = mod_nwi_settings_get($section_id);
+if (!$admin->isAdmin() && ($current_settings['show_settings_only_admins'] ?? 'N') == 'Y') {
+    mod_nwi_refuse($page_id);
+}
+
 // change mode
 if(isset($_POST['mode']) && in_array($_POST['mode'], array('default', 'advanced'))) {
     $database->query(

@@ -46,6 +46,13 @@ if(!defined('CAT_PATH')) {
     }
 }
 
+// The post must belong to the section modules/admin.php has checked
+if (!mod_nwi_post_in_section($post_id, $section_id)) {
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+    $admin->print_footer();
+    exit();
+}
+
 if(!defined('CAT_PATH')) {
     include __DIR__.'/config/wbce_config.php';
 } else {
@@ -87,18 +94,18 @@ $group_id = 0;
 $old_section_id = $section_id;
 $old_page_id = $page_id;
 
-if (!empty($group)) {
-    $gid_value = urldecode($group);
-    $values = unserialize($gid_value);
-    if (!isset($values['s']) or  !isset($values['g']) or  !isset($values['p'])) {
-        header("Location: ".ADMIN_URL."/pages/index.php");
-        exit(0);
-    }
-    if (intval($values['p'])!=0) {
-        $group_id = intval($values['g']);
-        $section_id = intval($values['s']);
-        $page_id = intval($values['p']);
-    }
+// The group select may move the post into a section on another page: only
+// one the user may administer, and the group must belong to it
+$target = mod_nwi_parse_target($admin->get_post('group'));
+if ($target === false) {
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+    $admin->print_footer();
+    exit();
+}
+if ($target !== null) {
+    $group_id = $target['g'];
+    $section_id = $target['s'];
+    $page_id = $target['p'];
 }
 
 // Get page link URL

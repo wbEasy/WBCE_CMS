@@ -30,6 +30,10 @@ if (!$tag_id || !$section_id){
     exit();
 }
 $tag_id = intval($tag_id);
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_tag_in_section($tag_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
 
 
 

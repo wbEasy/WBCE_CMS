@@ -26,6 +26,11 @@ if (!$group_id){
     exit();
 }
 
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_group_in_section($group_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
+
 $FTAN = $admin->getFTAN();
 
 $group = mod_nwi_get_group($group_id);

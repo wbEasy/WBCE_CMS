@@ -58,6 +58,12 @@ $tag_section_id = $section_id;
 if($admin->get_post('global_tag') == 'on') {
     $tag_section_id = 0;
 }
+// An existing tag must belong to this section; global tags (new or
+// existing) are shared by every news_img section, so administrators only
+if ((!empty($tag_id) && !mod_nwi_tag_in_section($tag_id, $section_id))
+    || ($tag_section_id === 0 && !$admin->isAdmin())) {
+    mod_nwi_refuse($page_id);
+}
 // Update row
 if(empty($tag_id)) {
     if(mod_nwi_tag_exists($tag_section_id,$tag)) {

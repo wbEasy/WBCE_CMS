@@ -56,6 +56,19 @@ if (in_array($_POST['action'], $known_actions)) {
     exit(0);
 }
 
+// Every post id must belong to this section (modules/admin.php has checked
+// that the section belongs to page_id and that the user may administer it);
+// a single foreign id refuses the whole action.
+if (isset($_POST['manage_posts'])) {
+    $owned_posts = mod_nwi_posts_in_section($_POST['manage_posts'], $section_id);
+    if ($owned_posts === null) {
+        $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+        $admin->print_footer();
+        exit();
+    }
+    $_POST['manage_posts'] = $owned_posts;
+}
+
 if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
     switch($action) {
         case "copy":
@@ -93,20 +106,18 @@ if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
             if(isset($_POST['manage_posts']) && is_array($_POST['manage_posts'])) {
                 $posts = $_POST['manage_posts'];
             }
-            // get group
-            if(isset($_POST['group']) && !empty($_POST['group'])) {
-                $gid_value = urldecode($_POST['group']);
-                $values = unserialize($gid_value);
-                if (!isset($values['s']) or  !isset($values['g']) or  !isset($values['p'])) {
-                    header("Location: ".ADMIN_URL."/pages/index.php");
-                    exit(0);
-                }
-                if (intval($values['p'])!=0) {
-                    $group_id = intval($values['g']);
-                    $section_id = intval($values['s']);
-                    $page_id = intval($values['p']);
-                    $group = mod_nwi_get_group($group_id);
-                }
+            // get group (target section/page may differ, see mod_nwi_parse_target())
+            $target = mod_nwi_parse_target($_POST['group'] ?? null);
+            if ($target === false) {
+                $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+                $admin->print_footer();
+                exit();
+            }
+            if ($target !== null) {
+                $group_id = $target['g'];
+                $section_id = $target['s'];
+                $page_id = $target['p'];
+                $group = mod_nwi_get_group($group_id);
             }
 						
             if(!empty($posts)) {
@@ -133,7 +144,7 @@ if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
             }
             $tags = mod_nwi_get_tags($section_id);
             // validate tag IDs
-            $assign = $_POST['tags'];
+            $assign = isset($_POST['tags']) && is_array($_POST['tags']) ? array_values($_POST['tags']) : array();
             if(is_array($assign) && count($assign)>0) {
                 for($i=count($assign)-1; $i>=0; $i--) {
                     if(!array_key_exists($assign[$i],$tags)) {
@@ -148,8 +159,8 @@ if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
                     $database->query(sprintf(
                         "REPLACE INTO `%smod_news_img_tags_posts`"
                         . " (`post_id`, `tag_id`) VALUES "
-                        . " ($post_id, $tag_id)",
-                        TABLE_PREFIX
+                        . " (%d, %d)",
+                        TABLE_PREFIX, (int) $post_id, (int) $tag_id
                     ));
                 }
             }

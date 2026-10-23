@@ -38,6 +38,11 @@ if (!$post_id) {
     exit();
 }
 
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_post_in_section($post_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
+
 $FTAN = $admin->getFTAN();
 $post_id_key = $admin->getIDKEY($post_id);
 if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {

@@ -26,6 +26,11 @@ if (!$tag_id){
     exit();
 }
 
+// The object must belong to the section modules/admin.php has checked
+if (!mod_nwi_tag_in_section($tag_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
+
 $FTAN = $admin->getFTAN();
 
 // Get header and footer

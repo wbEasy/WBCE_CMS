@@ -45,6 +45,11 @@ if (!defined('CAT_PATH')) {
     }
 }
 
+// The object must belong to the section modules/admin.php has checked
+if ($group_id > 0 && !mod_nwi_group_in_section($group_id, $section_id)) {
+    mod_nwi_refuse($page_id);
+}
+
 // Validate all fields
 if ($admin->get_post('title') == '') {
     $admin->print_error($MESSAGE['GENERIC_FILL_IN_ALL'], WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id).'&tab=g');
