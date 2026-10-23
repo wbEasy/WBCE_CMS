@@ -4,6 +4,11 @@
  *
  * Receives the new page order from jQuery UI sortable
  * and writes positions back to the database via PDO.
+ *
+ * The request must carry the IDKEY jsadmin issues for this purpose (read in
+ * peek mode, so one key serves every drop on the page), every page in the
+ * list must be one the user may administrate, and all of them must be
+ * siblings — the list is one level of the page tree, nothing else.
  */
 
 require '../../../config.php';
@@ -28,16 +33,39 @@ if (!$admin->is_authenticated()
 }
 
 if ($_POST['action'] === 'updateArray') {
-    $pageIDs = isset($_POST['pageID']) ? (array)$_POST['pageID'] : [];
+    $pageIDs = array_map('intval', isset($_POST['pageID']) ? (array)$_POST['pageID'] : []);
+
+    $refuse = function (string $message) use (&$response): never {
+        $response['message'] = $message;
+        $response['icon']    = 'failure.gif';
+        header('Content-Type: application/json');
+        exit(json_encode($response));
+    };
+
+    if ($admin->checkIDKEY('idkey', false, 'POST', true) !== 'jsadmin_dragdrop') {
+        $refuse($MESSAGE['GENERIC_SECURITY_ACCESS'] ?? 'Security offense');
+    }
+    if ($pageIDs === [] || min($pageIDs) < 1 || count(array_unique($pageIDs)) !== count($pageIDs)) {
+        $refuse('Invalid parameters');
+    }
+
+    $placeholders = implode(',', array_fill(0, count($pageIDs), '?'));
+    $rows = $database->fetchAll(
+        "SELECT `page_id`, `parent`, `admin_groups`, `admin_users`
+           FROM `{TP}pages` WHERE `page_id` IN ($placeholders)",
+        $pageIDs
+    );
+    if (count($rows) !== count($pageIDs) || count(array_unique(array_column($rows, 'parent'))) !== 1) {
+        $refuse('Invalid parameters');
+    }
+    foreach ($rows as $row) {
+        if (!$admin->isAdmin() && !$admin->get_page_permission($row, 'admin')) {
+            $refuse('Insufficient privileges');
+        }
+    }
 
     $position = 1;
-    foreach ($pageIDs as $rawID) {
-        $pageID = (int)$rawID;
-        if ($pageID < 1) {
-            $position++;
-            continue;
-        }
-
+    foreach ($pageIDs as $pageID) {
         $database->query(
             'UPDATE `{TP}pages` SET `position` = ? WHERE `page_id` = ?',
             [$position, $pageID]

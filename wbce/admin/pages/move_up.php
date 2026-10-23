@@ -33,6 +33,21 @@ if (isset($_GET['page_id']) and is_numeric($_GET['page_id'])) {
 
 $admin  = new Admin('Pages', 'pages_settings', false);
 $alerts = new Alerts();
+
+// pages_settings is only the general right. The user must also be allowed
+// to administrate this very page, and a section must belong to it —
+// otherwise page_id=A&section_id=<section of B> reorders page B's sections.
+$iCheckPageId = (int) ($id_field == 'page_id' ? $id : $page_id);
+$bAllowed     = $admin->isAdmin() || $admin->get_page_permission($iCheckPageId, 'admin');
+if ($bAllowed && $id_field == 'section_id') {
+    $bAllowed = (int) $database->fetchValue(
+        "SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ?", [(int) $id]
+    ) === $iCheckPageId;
+}
+if (!$bAllowed) {
+    $admin->print_header();
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL . '/pages/index.php');
+}
 $order  = new Order($table, 'position', $id_field, $common_field);
 
 if ($id_field == 'page_id') {

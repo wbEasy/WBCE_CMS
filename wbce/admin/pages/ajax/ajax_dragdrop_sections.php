@@ -4,6 +4,10 @@
  *
  * Receives the new section order from jQuery UI sortable
  * and writes positions back to the database via PDO.
+ *
+ * The request must carry the IDKEY jsadmin issues for this purpose (read in
+ * peek mode) and the user must be allowed to administrate the page; the
+ * UPDATE itself only touches sections of that page.
  */
 
 require '../../../config.php';
@@ -25,6 +29,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'updateArray') {
 
     if ($page_id < 1 || empty($sectionIDs)) {
         $response['message'] = 'Invalid parameters';
+        header('Content-Type: application/json');
+        exit(json_encode($response));
+    }
+
+    if ($admin->checkIDKEY('idkey', false, 'POST', true) !== 'jsadmin_dragdrop') {
+        $response['message'] = $MESSAGE['GENERIC_SECURITY_ACCESS'] ?? 'Security offense';
+        header('Content-Type: application/json');
+        exit(json_encode($response));
+    }
+    if (!$admin->isAdmin() && !$admin->get_page_permission($page_id, 'admin')) {
+        $response['message'] = 'Insufficient privileges';
         header('Content-Type: application/json');
         exit(json_encode($response));
     }
