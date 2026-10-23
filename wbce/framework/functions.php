@@ -1375,7 +1375,9 @@ function removePath(string $path, bool $empty = false): string
     }
 
     if (is_file($path)) {
-        return unlink($path) ? 'RM_FILE_OK' : 'RM_PATH_COULD_NOT_REMOVE';
+        // @: a failure is reported through the signal; a PHP warning on top
+        // would only end up as noise in the upgrade/uninstall output
+        return @unlink($path) ? 'RM_FILE_OK' : 'RM_PATH_COULD_NOT_REMOVE';
     }
 
     if (!is_dir($path)) {
@@ -1405,7 +1407,7 @@ function removePath(string $path, bool $empty = false): string
                 return $result;
             }
         } else {
-            if (!unlink($fullItemPath)) {
+            if (!@unlink($fullItemPath)) {
                 closedir($handle);
                 return 'RM_DIR_COULD_NOT_REMOVE';
             }
@@ -1415,7 +1417,7 @@ function removePath(string $path, bool $empty = false): string
     closedir($handle);
 
     if (!$empty) {
-        if (!rmdir($path)) {
+        if (!@rmdir($path)) {
             return 'RM_DIR_COULD_NOT_REMOVE';
         }
     }
