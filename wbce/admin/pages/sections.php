@@ -30,28 +30,47 @@ require_once WB_PATH . '/framework/class.admin.php';
 $admin = new admin('Pages', 'pages_modify', false);
 
 $action = 'show';
+$admin_header = true;
 // Get page id
 $requestMethod = '_' . strtoupper($_SERVER['REQUEST_METHOD']);
 $page_id = intval((isset(${$requestMethod}['page_id'])) ? ${$requestMethod}['page_id'] : 0);
 $action = ($page_id ? 'show' : $action);
-// Get section id if there is one
-$requestMethod = '_' . strtoupper($_SERVER['REQUEST_METHOD']);
+$backlink = ADMIN_URL . '/pages/sections.php?page_id=' . $page_id;
+
+// Admin right on the page before anything else: 'add' and 'delete' below
+// change this page, and used to run before the check further down.
+$aPagePerms = $database->fetchRow(
+    'SELECT `admin_groups`, `admin_users` FROM `{TP}pages` WHERE `page_id` = ?',
+    [$page_id]
+);
+if ($aPagePerms === null) {
+    $admin->print_header();
+    $admin->print_error($MESSAGE['PAGES_NOT_FOUND'], ADMIN_URL . '/pages/index.php');
+}
+if (!$admin->isPageAdmin((string) $aPagePerms['admin_groups'], (string) $aPagePerms['admin_users'])) {
+    $admin->print_header();
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'], ADMIN_URL . '/pages/index.php');
+}
+
+// Get section id if there is one — the delete link carries a one-time key
+// issued for this section ('section' purpose, see VAR_SECTION_IDKEY below);
+// any other key of the session is refused, and the section must sit on
+// this page.
 $section_id = null;
 if (isset(${$requestMethod}['section_id'])) {
-    if ((!($section_id = intval($admin->checkIDKEY('section_id', 0, $_SERVER['REQUEST_METHOD']))))) {
-        if ($admin_header) {
-            $admin->print_header();
-        }
+    $section_id = (int) $admin->checkIDKEY('section_id', 0, $_SERVER['REQUEST_METHOD'], false, 'section');
+    $iSectionPage = $section_id
+        ? (int) $database->fetchValue('SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ?', [$section_id])
+        : 0;
+    if ($section_id === 0 || $iSectionPage !== $page_id) {
+        $admin->print_header();
         $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $backlink);
     }
 }
 $action = ($section_id ? 'delete' : $action);
 // Get module if there is one
-$requestMethod = '_' . strtoupper($_SERVER['REQUEST_METHOD']);
 $module = ((isset(${$requestMethod}['module'])) ? ${$requestMethod}['module'] : '');
 $action = (!empty($module) ? 'add' : $action);
-$admin_header = true;
-$backlink = ADMIN_URL . '/pages/sections.php?page_id=' . $page_id;
 
 #debug_dump($section_id);
 switch ($action) {
@@ -98,6 +117,18 @@ switch ($action) {
         }
         $action = 'show';
         $module = preg_replace('/\W/', '', $module); // fix secunia 2010-91-4
+        // Same rule as the module list of the add form below: an installed
+        // page module the user is not denied
+        $bModuleAllowed = $module !== ''
+            && $database->fetchValue(
+                "SELECT COUNT(*) FROM `{TP}addons` WHERE `type` = 'module' AND `directory` = ? AND `function` LIKE '%page%'",
+                [$module]
+            ) > 0
+            && $admin->get_permission($module, 'module');
+        if (!$bModuleAllowed) {
+            $admin->print_header();
+            $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $backlink);
+        }
         require_once WB_PATH . '/framework/class.order.php';
         // Get new order
         $order = new order('{TP}sections', 'position', 'section_id', 'page_id');
@@ -138,17 +169,7 @@ switch ($action) {
         if ($admin_header) {
             $admin->print_header();
         }
-        // Get perms
-        $results = $database->query(
-            'SELECT `admin_groups`, `admin_users` FROM `{TP}pages` WHERE `page_id` = ?',
-            [$page_id]
-        );
-
-        $results_array = $results->fetchRow(MYSQLI_ASSOC);
-        if (!$admin->isPageAdmin($results_array['admin_groups'], $results_array['admin_users'])) {
-            $admin->print_header();
-            $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS']);
-        }
+        // page right: checked at the top, before any action
 
         // Get page details
         $rPageDetails = $database->query('SELECT * FROM `{TP}pages` WHERE `page_id` = ?', [$page_id]);
@@ -183,10 +204,9 @@ switch ($action) {
             $block[1] = $TEXT['MAIN'];
         }
 
-        // Load css files with jquery
         // Include Flatpickr setup
         $fp_use_time = true; // enable timepicker
-        if(file_exists($f = INCLUDE_PATH . '/date_time_picker/wbce_setup.php')){
+        if (file_exists($f = INCLUDE_PATH . '/date_time_picker/wbce_setup.php')) {
             require_once $f;
         }
 
@@ -311,7 +331,7 @@ switch ($action) {
                                 'NAME_SIZE' => 300,
                                 'INPUT_ATTRIBUTE' => $input_attribute,
                                 'VAR_SECTION_ID' => $section['section_id'],
-                                'VAR_SECTION_IDKEY' => $admin->getIDKEY($section['section_id']),
+                                'VAR_SECTION_IDKEY' => $admin->getIDKEY($section['section_id'], 'section'),
                                 'VAR_POSITION' => $section['position'],
                                 'LINK_MODIFY_URL_VAR_MODUL_NAME' => $sLinkEditSection,
                                 'SELECT' => '',
@@ -343,7 +363,7 @@ switch ($action) {
                                 'NAME_SIZE' => 300,
                                 'INPUT_ATTRIBUTE' => $input_attribute,
                                 'VAR_SECTION_ID' => $section['section_id'],
-                                'VAR_SECTION_IDKEY' => $admin->getIDKEY($section['section_id']),
+                                'VAR_SECTION_IDKEY' => $admin->getIDKEY($section['section_id'], 'section'),
                                 'VAR_POSITION' => $section['position'],
                                 'LINK_MODIFY_URL_VAR_MODUL_NAME' => $sLinkEditSection,
                                 'NAME' => htmlentities(strip_tags($block[1])),
