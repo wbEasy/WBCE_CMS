@@ -19,7 +19,7 @@ require_once __DIR__.'/functions.inc.php';
 $update_when_modified = false; // Tells script to update when this page was last updated
 require(WB_PATH.'/modules/admin.php');
 
-$tag_id = $admin->checkIDKEY('tag_id', 0, 'GET');
+$tag_id = $admin->checkIDKEY('tag_id', 0, 'GET', false, 'tag');
 $section_id = (isset($_GET['section_id']) ? intval($_GET['section_id']) : null);
 
 if (!$tag_id || !$section_id){

@@ -17,7 +17,7 @@ require_once __DIR__.'/functions.inc.php';
 
 // Include WB admin wrapper script
 require(WB_PATH.'/modules/admin.php');
-$section_key = $admin->checkIDKEY('section_key', 0, 'GET');
+$section_key = $admin->checkIDKEY('section_key', 0, 'GET', false, 'section');
 if (!$section_key || $section_key != $section_id) {
     $admin->print_error(
         $MESSAGE['GENERIC_SECURITY_ACCESS']
@@ -43,7 +43,7 @@ if ($database->is_error()) {
 } else {
     // Get the id
     $post_id = $database->lastInsertId();
-    $post_id_key = $admin->getIDKEY($post_id);
+    $post_id_key = $admin->getIDKEY($post_id, 'post');
     if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
        $post_id_key = $post_id;
     }

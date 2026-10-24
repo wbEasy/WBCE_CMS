@@ -42,7 +42,7 @@ if(!defined('CAT_PATH')) {
         }
     } else {
         $admin->print_header();
-        $section_key = $admin->checkIDKEY('section_key', 0, 'GET');
+        $section_key = $admin->checkIDKEY('section_key', 0, 'GET', false, 'section');
         if (!$section_key || $section_key != $section_id) {
             $admin->print_error(
                 $MESSAGE['GENERIC_SECURITY_ACCESS']

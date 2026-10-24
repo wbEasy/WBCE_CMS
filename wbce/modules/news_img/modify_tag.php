@@ -17,7 +17,7 @@ require_once __DIR__.'/functions.inc.php';
 
 // Include WB admin wrapper script
 require(WB_PATH.'/modules/admin.php');
-$tag_id = $admin->checkIDKEY('tag_id', 0, 'GET');
+$tag_id = $admin->checkIDKEY('tag_id', 0, 'GET', false, 'tag');
 if (!$tag_id){
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS']
 	 .' (IDKEY) '.__FILE__.':'.__LINE__,

@@ -96,7 +96,7 @@ function mod_nwi_get_groups(int $section_id) : array
     if ($query->numRows() > 0) {
         // Loop through groups
         while ($group = $query->fetchRow()) {
-            $group['id_key'] = $admin->getIDKEY($group['group_id']);
+            $group['id_key'] = $admin->getIDKEY($group['group_id'], 'group');
             if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
                 $group['id_key'] = $group['group_id'];
             }
@@ -582,6 +582,25 @@ function mod_nwi_posts_in_section($post_ids, $section_id)
         $ids[] = $id;
     }
     return $ids;
+}
+
+/**
+ * Section a post, group or gallery image belongs to (0 if it does not exist).
+ * $kind: 'post' | 'group' | 'image'
+ */
+function mod_nwi_owner_section($kind, $id)
+{
+    global $database;
+    $sql = array(
+        'post'  => "SELECT `section_id` FROM `{TP}mod_news_img_posts` WHERE `post_id` = ?",
+        'group' => "SELECT `section_id` FROM `{TP}mod_news_img_groups` WHERE `group_id` = ?",
+        'image' => "SELECT p.`section_id` FROM `{TP}mod_news_img_img` i"
+                 . " JOIN `{TP}mod_news_img_posts` p ON p.`post_id` = i.`post_id` WHERE i.`id` = ?",
+    );
+    if (!isset($sql[$kind])) {
+        return 0;
+    }
+    return (int) $database->fetchValue($sql[$kind], array((int) $id));
 }
 
 function mod_nwi_post_in_section($post_id, $section_id)
@@ -1578,7 +1597,7 @@ function mod_nwi_post_process($post,$section_id,$users)
     }
 
     // secure form
-    $post['id_key'] = $admin->getIDKEY($post['post_id']);
+    $post['id_key'] = $admin->getIDKEY($post['post_id'], 'post');
     if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
         $post['id_key'] = $post['post_id'];
     }

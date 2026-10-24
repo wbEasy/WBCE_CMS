@@ -15,7 +15,7 @@ if(!isset($_GET['post_id'])){
     throw new RuntimeException('missing parameters');
 }
 
-$post_id = $admin->checkIDKEY('post_id', false, 'GET', true);
+$post_id = $admin->checkIDKEY('post_id', false, 'GET', true, 'post');
 if(defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) 
     $post_id = intval($_GET['post_id']);
 if(! is_numeric($post_id) || (intval($post_id)<=0)){
@@ -23,16 +23,20 @@ if(! is_numeric($post_id) || (intval($post_id)<=0)){
 }
 
 require_once __DIR__.'/../functions.inc.php';
+$post_id = (int) $post_id;
 
-// get section id
-$query_content = $database->query("SELECT `section_id` FROM `".TABLE_PREFIX."mod_news_img_posts` WHERE `post_id` = '$post_id'");
-$fetch_content = $query_content->fetchRow();
-$section_id = intval($fetch_content['section_id']);
-
+// The key only proves the post was shown in this session; the upload also
+// needs the admin right on the page the post's section sits on.
+$section_id = mod_nwi_owner_section('post', $post_id);
+if (!$section_id || !mod_nwi_may_manage_section($section_id)) {
+    http_response_code(403);
+    exit(json_encode(['status' => 'error', 'message' => 'insufficient rights']));
+}
 
 // fetch settings
-$query_content = $database->query("SELECT * FROM `".TABLE_PREFIX."mod_news_img_settings` WHERE `section_id` = '$section_id'");
-$fetch_content = $query_content->fetchRow();
+$fetch_content = $database->fetchRow(
+    "SELECT * FROM `{TP}mod_news_img_settings` WHERE `section_id` = ?", [$section_id]
+);
 
 $fetch_content['imgmaxsize'] = intval($fetch_content['imgmaxsize']);
 $iniset = ini_get('upload_max_filesize');
@@ -156,9 +160,10 @@ try {
 
 
     // All good, send the response
+    // no file path in the answer: the client does not use it, and it
+    // disclosed the absolute server path
     echo json_encode([
-        'status' => 'ok',
-        'path' => $filepath
+        'status' => 'ok'
     ]);
 
 } catch (RuntimeException $e) {

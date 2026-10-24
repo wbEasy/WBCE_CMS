@@ -23,7 +23,7 @@ $admin_header = false;
 // Include WB admin wrapper script
 require WB_PATH.'/modules/admin.php';
 
-$post_id = $admin->checkIDKEY('post_id', 0, 'GET', true);
+$post_id = $admin->checkIDKEY('post_id', 0, 'GET', true, 'post');
 if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
     $post_id = intval($_GET['post_id']);
 }
@@ -44,7 +44,7 @@ if (!mod_nwi_post_in_section($post_id, $section_id)) {
 }
 
 $FTAN = $admin->getFTAN();
-$post_id_key = $admin->getIDKEY($post_id);
+$post_id_key = $admin->getIDKEY($post_id, 'post');
 if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
     $post_id_key = intval($_GET['post_id']);
 }
@@ -82,33 +82,32 @@ $mod_nwi_thumb_dir = $mod_nwi_file_dir . "thumb/";
 
 // ----- delete gallery image --------------------------------------------------
 if (isset($_GET['img_id'])) {
-    $img_id = $admin->checkIDKEY('img_id', 0, 'GET');
+    $img_id = $admin->checkIDKEY('img_id', 0, 'GET', false, 'image');
     if (!$img_id) {
         $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS']
              .' (IDKEY) '.__FILE__.':'.__LINE__, ADMIN_URL.'/pages/index.php');
         $admin->print_footer();
         exit();
     }
-    
+
+    // only an image of this post (the post is already bound to the section)
     $img_id = intval($img_id);
     $row = mod_nwi_img_get($img_id);
- 
-    if (!$row) {
-        echo "Datei existiert nicht!";
-    } else {
-        unlink($mod_nwi_file_dir.$row['picname']);
-        unlink($mod_nwi_thumb_dir.$row['picname']);
+    if (!$row || (int) $row['post_id'] !== (int) $post_id) {
+        mod_nwi_refuse($page_id);
     }
-    $database->query(sprintf(
-        "DELETE FROM `%smod_news_img_img` WHERE `id` = '%d'",
-        TABLE_PREFIX, $img_id
-    ));
+    unlink($mod_nwi_file_dir.$row['picname']);
+    unlink($mod_nwi_thumb_dir.$row['picname']);
+    $database->query(
+        "DELETE FROM `{TP}mod_news_img_img` WHERE `id` = ? AND `post_id` = ?",
+        [$img_id, (int) $post_id]
+    );
 }   //end delete gallery image
 
 // re-order images
 if (isset($_GET['id']) && (isset($_GET['up']) || isset($_GET['down']))) {
     $order = new order(TABLE_PREFIX.'mod_news_img_img', 'position', 'id', 'post_id');
-    $id = $admin->checkIDKEY('id', 0, 'GET');
+    $id = $admin->checkIDKEY('id', 0, 'GET', false, 'image');
     if (!$id) {
         $admin->print_error(
             $MESSAGE['GENERIC_SECURITY_ACCESS']
@@ -117,6 +116,10 @@ if (isset($_GET['id']) && (isset($_GET['up']) || isset($_GET['down']))) {
         );
         $admin->print_footer();
         exit();
+    }
+    $row = mod_nwi_img_get(intval($id));
+    if (!$row || (int) $row['post_id'] !== (int) $post_id) {
+        mod_nwi_refuse($page_id);
     }
     if (isset($_GET['up'])) {
         $order->move_up(intval($id));
@@ -176,7 +179,7 @@ $seenimg = array();
 if (count($postimg)>0) {
     $i=1;
     foreach ($postimg as $row) {
-        $row['id_key'] = $admin->getIDKEY($row['id']);
+        $row['id_key'] = $admin->getIDKEY($row['id'], 'image');
         if (defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) {
             $row['id_key'] = $row['id'];
         }

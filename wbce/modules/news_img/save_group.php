@@ -52,7 +52,7 @@ if ($group_id > 0 && !mod_nwi_group_in_section($group_id, $section_id)) {
 
 // Validate all fields
 if ($admin->get_post('title') == '') {
-    $admin->print_error($MESSAGE['GENERIC_FILL_IN_ALL'], WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id).'&tab=g');
+    $admin->print_error($MESSAGE['GENERIC_FILL_IN_ALL'], WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id, 'group').'&tab=g');
     $admin->print_footer();
     exit();
 } else {
@@ -109,7 +109,7 @@ if (isset($_POST['delete_image']) and $_POST['delete_image'] != '') {
 }
 
 if ($database->is_error()) {
-    $admin->print_error($database->get_error(), WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id).'&tab=g');
+    $admin->print_error($database->get_error(), WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id, 'group').'&tab=g');
 } else {
     $admin->print_success($TEXT['SUCCESS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id.'&tab=g');
 }

@@ -18,7 +18,7 @@ require_once __DIR__.'/functions.inc.php';
 // Include WB admin wrapper script
 require(WB_PATH.'/modules/admin.php');
 $request = (isset($_GET['section_key']) ? 'GET' : 'POST');
-$section_key = $admin->checkIDKEY('section_key', 0, $request);
+$section_key = $admin->checkIDKEY('section_key', 0, $request, false, 'section');
 if (!$section_key || $section_key != $section_id){
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS']
 	 .' (IDKEY) '.__FILE__.':'.__LINE__,
@@ -55,7 +55,7 @@ $database->query(sprintf(
 // Get the id
 $group_id = $database->lastInsertId();
 
-$forward_url = WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id);
+$forward_url = WB_URL.'/modules/news_img/modify_group.php?page_id='.$page_id.'&section_id='.$section_id.'&group_id='.$admin->getIDKEY($group_id, 'group');
 if($request=='POST') {
     $forward_url = ADMIN_URL.'/pages/modify.php?page_id='.$page_id.'&tab=g';
 }

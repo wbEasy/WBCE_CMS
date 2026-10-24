@@ -17,7 +17,7 @@ require_once __DIR__.'/functions.inc.php';
 
 // Include WB admin wrapper script
 require(WB_PATH.'/modules/admin.php');
-$group_id = $admin->checkIDKEY('group_id', 0, 'GET');
+$group_id = $admin->checkIDKEY('group_id', 0, 'GET', false, 'group');
 if (!$group_id){
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS']
 	 .' (IDKEY) '.__FILE__.':'.__LINE__,

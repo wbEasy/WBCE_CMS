@@ -24,14 +24,14 @@ if(!isset($_GET['post_id'])) {
 		header("Location: index.php");
 	    exit( 0 );
 	} else {
-		$id = $admin->checkIDKEY('group_id', false, 'GET');
+		$id = $admin->checkIDKEY('group_id', false, 'GET', false, 'group');
 		if(defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) 
     		    $id = $_GET['group_id'];
 		$id_field = 'group_id';
 		$table = TABLE_PREFIX.'mod_news_img_groups';
 	}
 } else {
-	$id = $admin->checkIDKEY('post_id', false, 'GET');
+	$id = $admin->checkIDKEY('post_id', false, 'GET', false, 'post');
 	if(defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) 
     	    $id = $_GET['post_id'];
 	$id_field = 'post_id';
@@ -44,6 +44,14 @@ if (!$id){
          ADMIN_URL.'/pages/index.php');
     $admin->print_footer();
     exit();
+}
+
+// The object must belong to the section modules/admin.php has checked
+$bOwned = ($id_field === 'post_id')
+    ? mod_nwi_post_in_section($id, $section_id)
+    : mod_nwi_group_in_section($id, $section_id);
+if (!$bOwned) {
+    mod_nwi_refuse($page_id);
 }
 
 // Create new order object an reorder

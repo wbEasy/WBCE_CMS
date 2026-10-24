@@ -36,7 +36,7 @@ if ( isset($_POST['manage_posts']) && is_array($_POST['manage_posts']) && !$admi
     exit();
 } else $admin->print_header();
 
-$post_id = $admin->checkIDKEY('post_id', 0, 'GET');
+$post_id = $admin->checkIDKEY('post_id', 0, 'GET', false, 'post');
 if(defined('WB_VERSION') && (version_compare(WB_VERSION, '2.8.3', '>'))) 
     $post_id = intval($_GET['post_id']);
 if (!$post_id && isset($_GET['post_id'])){

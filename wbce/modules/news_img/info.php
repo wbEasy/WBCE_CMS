@@ -16,7 +16,7 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.33';
+$module_version     = '5.0.34';
 $module_platform    = '1.4';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';

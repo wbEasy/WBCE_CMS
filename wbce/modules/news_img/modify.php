@@ -28,7 +28,7 @@ $database->query("DELETE FROM `".TABLE_PREFIX."mod_news_img_groups` WHERE `secti
 if (function_exists('ini_set')) {
     ini_set('arg_separator.output', '&amp;');
 }
-$section_key = $admin->getIDKEY($section_id);
+$section_key = $admin->getIDKEY($section_id, 'section');
 
 // map order to lang string
 $lang_map = array(
