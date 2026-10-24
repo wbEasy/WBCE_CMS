@@ -96,22 +96,26 @@ if (!defined('KEEP_INSTALL_DIR') || !KEEP_INSTALL_DIR) {
 }
 
 if ($admin->get_group_id() == 1) {
+    // one note from this chain (the first that applies) ...
+    $sWarning = '';
     if (file_exists(WB_PATH . '/install/')) {
-        $template->set_var('DISPLAY_WARNING', 'display:block');
-        $msg = $MESSAGE['START_INSTALL_DIR_EXISTS'];
-        if(defined('KEEP_INSTALL_DIR') && KEEP_INSTALL_DIR){
-            $msg = 'Constant KEEP_INSTALL_DIR is set to guard /install directory.';            
+        $sWarning = $MESSAGE['START_INSTALL_DIR_EXISTS'];
+        if (defined('KEEP_INSTALL_DIR') && KEEP_INSTALL_DIR) {
+            $sWarning = 'Constant KEEP_INSTALL_DIR is set to guard /install directory.';
         }
-        $template->set_var('WARNING', $msg);
     } elseif (file_exists(WB_PATH . '/modules/SimpleCommandDispatcher.inc.php')) {
-        $template->set_var('DISPLAY_WARNING', 'display:block;');
-        $template->set_var('WARNING', $MESSAGE['START_WBCE_NOT_CLEAN']);
-	} elseif (substr(WB_URL,-1)=="/") {
-		$template->set_var('DISPLAY_WARNING', 'display:block;');
-        $template->set_var('WARNING', $MESSAGE['START_WB_URL_SLASH']);	
-    } else {
-        $template->set_var('DISPLAY_WARNING', 'display:none;');
+        $sWarning = $MESSAGE['START_WBCE_NOT_CLEAN'];
+    } elseif (substr(WB_URL, -1) == "/") {
+        $sWarning = $MESSAGE['START_WB_URL_SLASH'];
     }
+    // ... plus, independent of it, an exposed var/ (logs, backups, caches
+    // readable over HTTP because the web server ignores var/.htaccess):
+    // a security problem must not hide behind one of the notes above
+    if (varDirectoryExposure() === true) {
+        $sWarning .= ($sWarning !== '' ? '<hr>' : '') . varExposureHint();
+    }
+    $template->set_var('DISPLAY_WARNING', $sWarning !== '' ? 'display:block;' : 'display:none;');
+    $template->set_var('WARNING', $sWarning);
 } else {
     $template->set_var('DISPLAY_WARNING', 'display:none;');
 }

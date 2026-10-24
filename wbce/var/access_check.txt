@@ -1,0 +1,1 @@
+WBCE var/ access check. If this text can be read in a browser, the var/ directory is not protected.

@@ -617,25 +617,38 @@ if (!function_exists('page_link')) {
 }
 
 /**
- * Make sure var/ carries the .htaccess that closes it for direct web access.
+ * Make sure var/ carries the files that close it for direct web access.
  *
  * var/ holds the SQLite database (var/database/), logs, backups and caches.
- * The file ships with the core, but FTP clients often skip dotfiles, so
- * installer and updater call this to recreate it when it's missing. An
- * existing file is never touched (it may carry local adjustments).
- *
- * Has no effect on nginx/IIS — there the web server config must deny var/.
+ * Shipped with the core, recreated here when missing (FTP clients often skip
+ * dotfiles); installer and updater call this. Existing files are never
+ * touched (they may carry local adjustments).
+ *   - .htaccess          Apache (and LiteSpeed)
+ *   - web.config         IIS
+ *   - access_check.txt   probe for varDirectoryExposure(): if it can be
+ *                        fetched over HTTP, var/ is not protected
+ * nginx reads neither file — there the server config must deny var/; the
+ * start page tells administrators when that is needed (varExposureHint()).
  *
  * @return bool true if var/.htaccess is in place afterwards
  */
 function protectVarDirectory(): bool
 {
-    $sFile = WB_PATH . '/var/.htaccess';
-    if (is_file($sFile)) {
-        return true;
+    $sDir = WB_PATH . '/var';
+    if (!is_dir($sDir)) {
+        return false;
     }
-    return is_dir(WB_PATH . '/var')
-        && file_put_contents($sFile, varHtaccessContent()) !== false;
+    $aFiles = [
+        '.htaccess'        => varHtaccessContent(),
+        'web.config'       => varWebConfigContent(),
+        'access_check.txt' => varAccessCheckContent(),
+    ];
+    foreach ($aFiles as $sName => $sContent) {
+        if (!is_file($sDir . '/' . $sName)) {
+            @file_put_contents($sDir . '/' . $sName, $sContent);
+        }
+    }
+    return is_file($sDir . '/.htaccess');
 }
 
 /**
@@ -663,6 +676,178 @@ function varHtaccessContent(): string
     </IfModule>
 
     HTACCESS;
+}
+
+/**
+ * Content of var/web.config (IIS) — see protectVarDirectory(). Denies every
+ * request below var/ except elFinder's thumbnails. Needs IIS URL
+ * Authorization; without it IIS answers var/ requests with an error, which
+ * still keeps the files closed. The shipped file must stay identical
+ * (tests/Framework/CoreSecurityTest.php checks that).
+ *
+ * @return string
+ */
+function varWebConfigContent(): string
+{
+    return <<<'WEBCONFIG'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!-- WBCE CMS: var/ holds runtime data (logs, backups, caches) that is not
+         meant to be fetched over HTTP. Kept in sync with
+         varWebConfigContent() in framework/functions.php. -->
+    <configuration>
+      <system.webServer>
+        <security>
+          <authorization>
+            <remove users="*" roles="" verbs="" />
+            <add accessType="Deny" users="*" />
+          </authorization>
+        </security>
+      </system.webServer>
+      <!-- elFinder serves its thumbnails from here -->
+      <location path="modules/elfinder/.tmb">
+        <system.webServer>
+          <security>
+            <authorization>
+              <remove users="*" roles="" verbs="" />
+              <add accessType="Allow" users="*" />
+            </authorization>
+          </security>
+        </system.webServer>
+      </location>
+    </configuration>
+
+    WEBCONFIG;
+}
+
+/**
+ * Content of var/access_check.txt — the probe varDirectoryExposure() fetches.
+ *
+ * @return string
+ */
+function varAccessCheckContent(): string
+{
+    return "WBCE var/ access check. If this text can be read in a browser, "
+         . "the var/ directory is not protected.\n";
+}
+
+/**
+ * Reads the answer to a request for var/access_check.txt:
+ * true = var/ is reachable over HTTP, false = closed, null = unknown.
+ *
+ * @param  int    $iStatus  HTTP status (0 = request failed)
+ * @param  string $sBody
+ * @return bool|null
+ */
+function varExposureFromResponse(int $iStatus, string $sBody): ?bool
+{
+    if ($iStatus === 200) {
+        // a 200 with another body is e.g. a CMS error page: not our file
+        return trim($sBody) === trim(varAccessCheckContent()) ? true : null;
+    }
+    if (in_array($iStatus, [401, 403, 404], true)) {
+        return false;
+    }
+    return null;
+}
+
+/**
+ * Is var/ reachable over HTTP? Fetches var/access_check.txt from WB_URL.
+ * "Protected" and "unknown" are cached for a day (setting var_exposure_check);
+ * "exposed" is re-checked on every call, so the warning disappears as soon as
+ * the server is fixed.
+ *
+ * @param  bool $bForce  ignore the cached answer
+ * @return bool|null     true = exposed, false = protected, null = unknown
+ *                       (e.g. the server cannot reach itself — no warning then)
+ */
+function varDirectoryExposure(bool $bForce = false): ?bool
+{
+    $sCached = (string) Settings::get('var_exposure_check', '');
+    if (!$bForce && preg_match('/^(\d+)\|([0u])$/', $sCached, $m) && time() - (int) $m[1] < 86400) {
+        return $m[2] === 'u' ? null : false;
+    }
+    if (!is_file(WB_PATH . '/var/access_check.txt')) {
+        @file_put_contents(WB_PATH . '/var/access_check.txt', varAccessCheckContent());
+    }
+
+    $sUrl    = rtrim(WB_URL, '/') . '/var/access_check.txt';
+    $iStatus = 0;
+    $sBody   = '';
+    if (function_exists('curl_init')) {
+        $ch = curl_init($sUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT        => 3,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            // the site fetches its own file; a self-signed certificate must
+            // not turn the check into "unknown"
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+        $sBody   = (string) curl_exec($ch);
+        $iStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+    } else {
+        $ctx = stream_context_create([
+            'http' => ['timeout' => 3, 'ignore_errors' => true, 'follow_location' => 0],
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+        ]);
+        $sBody = (string) @file_get_contents($sUrl, false, $ctx);
+        if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0] . ' ', $m)) {
+            $iStatus = (int) $m[1];
+        }
+    }
+
+    $bResult = varExposureFromResponse($iStatus, $sBody);
+    Settings::set('var_exposure_check', time() . '|' . ($bResult === null ? 'u' : ($bResult ? '1' : '0')));
+    return $bResult;
+}
+
+/**
+ * Start-page warning for an exposed var/ (see varDirectoryExposure()): what
+ * is wrong, and how to close it on the web server at hand. The server type
+ * only decides which instructions come first; all of them are listed.
+ *
+ * @return string HTML
+ */
+function varExposureHint(): string
+{
+    global $MESSAGE;
+    $e = fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+
+    $sUrlPath = rtrim((string) parse_url(WB_URL, PHP_URL_PATH), '/') . '/var/';
+    $sFsPath  = rtrim(str_replace('\\', '/', WB_PATH), '/') . '/var';
+
+    $aSnippets = [
+        'nginx'  => "location ^~ {$sUrlPath} {\n    deny all;\n}",
+        'apache' => "# server/vHost config (or AllowOverride AuthConfig for the web root)\n"
+                  . "<Directory \"{$sFsPath}\">\n    Require all denied\n</Directory>",
+        'iis'    => "var/web.config ships with WBCE and needs the IIS feature\n"
+                  . "\"URL Authorization\" (Server Manager > Web Server > Security).",
+    ];
+    $aLabels   = ['nginx' => 'nginx', 'apache' => 'Apache', 'iis' => 'IIS'];
+    $sSoftware = strtolower((string) ($_SERVER['SERVER_SOFTWARE'] ?? ''));
+    $sFirst    = str_contains($sSoftware, 'iis') ? 'iis'
+               : (str_contains($sSoftware, 'apache') ? 'apache' : 'nginx');
+    $aOrder    = array_merge([$sFirst], array_values(array_diff(array_keys($aSnippets), [$sFirst])));
+
+    $sHtml  = '<strong>' . $e($MESSAGE['START_VAR_EXPOSED'] ?? 'The directory var/ can be read over the web.') . '</strong><br>';
+    $sHtml .= is_file(WB_PATH . '/var/.htaccess')
+        ? $e($MESSAGE['START_VAR_EXPOSED_IGNORED'] ?? 'var/.htaccess is present, but the web server ignores it.')
+        : $e($MESSAGE['START_VAR_EXPOSED_MISSING'] ?? 'var/.htaccess is missing and could not be created.');
+    $sHtml .= ' ' . $e($MESSAGE['START_VAR_EXPOSED_HOWTO'] ?? 'Close var/ in the web server configuration:');
+
+    foreach ($aOrder as $i => $sKind) {
+        $sBlock = '<pre style="text-align:left;white-space:pre-wrap;margin:.4em 0">' . $e($aSnippets[$sKind]) . '</pre>';
+        $sHtml .= $i === 0
+            ? '<div style="margin-top:.5em;text-align:left"><b>' . $aLabels[$sKind] . '</b>' . $sBlock . '</div>'
+            : '<details style="margin-top:.3em;text-align:left"><summary>' . $aLabels[$sKind] . '</summary>' . $sBlock . '</details>';
+    }
+    $sHtml .= '<div style="margin-top:.4em">'
+            . $e($MESSAGE['START_VAR_EXPOSED_HOSTER'] ?? 'No access to the server configuration? Send these lines to your hosting provider.')
+            . '</div>';
+    return $sHtml;
 }
 
 /**
