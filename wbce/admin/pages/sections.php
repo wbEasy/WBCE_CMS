@@ -400,7 +400,7 @@ switch ($action) {
                     if ($section['position'] != 1) {
                         $oTemplate->set_var(
                             'VAR_MOVE_UP_URL',
-                            '<a href="' . ADMIN_URL . '/pages/move_up.php?page_id=' . $page_id . '&amp;section_id=' . $section['section_id'] . '"' . $sectionMoveStyle . '>
+                            '<a href="' . ADMIN_URL . '/pages/move_up.php?page_id=' . $page_id . '&amp;section_id=' . $section['section_id'] . '&amp;movekey=' . $admin->pagesMoveKey() . '"' . $sectionMoveStyle . '>
                             <img src="' . THEME_URL . '/images/up_16.png" alt="{TEXT_MOVE_UP}" />
                             </a>'
                         );
@@ -410,7 +410,7 @@ switch ($action) {
                     if ($section['position'] != $iSectionsCount) {
                         $oTemplate->set_var(
                             'VAR_MOVE_DOWN_URL',
-                            '<a href="' . ADMIN_URL . '/pages/move_down.php?page_id=' . $page_id . '&amp;section_id=' . $section['section_id'] . '"' . $sectionMoveStyle . '>
+                            '<a href="' . ADMIN_URL . '/pages/move_down.php?page_id=' . $page_id . '&amp;section_id=' . $section['section_id'] . '&amp;movekey=' . $admin->pagesMoveKey() . '"' . $sectionMoveStyle . '>
                             <img src="' . THEME_URL . '/images/down_16.png" alt="{TEXT_MOVE_DOWN}" />
                             </a>'
                         );

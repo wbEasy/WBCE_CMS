@@ -119,13 +119,13 @@ function renderPageTree($pages, $level = 1, $levelLimit = 999)
                     </td>
                     <td class="btnup">
                         <?php if ($canMoveUp) { ?>
-                            <a href="../pages/move_up.php?page_id={PAGE_ID}" title="<?= $TEXT['MOVE_UP'] ?>"><i
+                            <a href="../pages/move_up.php?page_id={PAGE_ID}&amp;movekey=<?= $admin->pagesMoveKey() ?>" title="<?= $TEXT['MOVE_UP'] ?>"><i
                                         class="fa fa-chevron-circle-up" aria-hidden="true"></i></a>
                         <?php } ?>
                     </td>
                     <td class="btndown">
                         <?php if ($canMoveDown) { ?>
-                            <a href="../pages/move_down.php?page_id={PAGE_ID}" title="<?= $TEXT['MOVE_DOWN'] ?>"><i
+                            <a href="../pages/move_down.php?page_id={PAGE_ID}&amp;movekey=<?= $admin->pagesMoveKey() ?>" title="<?= $TEXT['MOVE_DOWN'] ?>"><i
                                         class="fa fa-chevron-circle-down" aria-hidden="true"></i></a>
                         <?php } ?>
                     </td>

@@ -79,7 +79,8 @@ if($page_type != '') {
 	// IDKEY for the drag & drop endpoints (admin/pages/ajax/ajax_dragdrop*.php),
 	// read there in peek mode: one key serves every drop on this page.
 	$sToJS  = "var JsAdmin      = { WB_URL: '" . addslashes(WB_URL)    . "', ADMIN_URL: '" . addslashes(ADMIN_URL)
-	        . "', IDKEY: '" . addslashes($admin->getIDKEY('jsadmin_dragdrop')) . "' };\n";
+	        . "', IDKEY: '" . addslashes($admin->getIDKEY('jsadmin_dragdrop')) . "'"
+	        . ", MOVEKEY: '" . addslashes($admin->pagesMoveKey()) . "' };\n";
 	$sToJS .= "var JsAdminTheme = { THEME_URL: '" . addslashes(THEME_URL) . "' };\n";
 	$sToJS .= "var buttonCell   = " . (int)$js_buttonCell . ";\n";
 	I::insertJsCode($sToJS, "BODY TOP", 'JsAdminVars');

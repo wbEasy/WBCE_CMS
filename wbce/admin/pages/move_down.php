@@ -34,6 +34,13 @@ if (isset($_GET['page_id']) and is_numeric($_GET['page_id'])) {
 $admin  = new Admin('Pages', 'pages_settings', false);
 $alerts = new Alerts();
 
+// CSRF: the arrows carry Wbce::pagesMoveKey(); a link without it (e.g. from
+// a foreign site, which the browser sends with the admin's session) is refused
+if ($admin->checkIDKEY('movekey', false, 'GET', true, 'pages_move') !== 'pages_move') {
+    $admin->print_header();
+    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], ADMIN_URL . '/pages/index.php');
+}
+
 // pages_settings is only the general right. The user must also be allowed
 // to administrate this very page, and a section must belong to it —
 // otherwise page_id=A&section_id=<section of B> reorders page B's sections.

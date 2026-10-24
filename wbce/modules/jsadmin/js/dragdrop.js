@@ -72,7 +72,7 @@
                 $tdUp.empty();
             } else if (!$tdUp.find('a').length) {
                 $tdUp.html(
-                    '<a href="' + JsAdmin.ADMIN_URL + '/pages/move_up.php?page_id=' + pageId + '"' +
+                    '<a href="' + JsAdmin.ADMIN_URL + '/pages/move_up.php?page_id=' + pageId + '&movekey=' + encodeURIComponent(JsAdmin.MOVEKEY || '') + '"' +
                     (titleUp ? ' title="' + titleUp + '"' : '') + '>' +
                     '<i class="' + iconUp + '" aria-hidden="true"></i></a>'
                 );
@@ -83,7 +83,7 @@
                 $tdDown.empty();
             } else if (!$tdDown.find('a').length) {
                 $tdDown.html(
-                    '<a href="' + JsAdmin.ADMIN_URL + '/pages/move_down.php?page_id=' + pageId + '"' +
+                    '<a href="' + JsAdmin.ADMIN_URL + '/pages/move_down.php?page_id=' + pageId + '&movekey=' + encodeURIComponent(JsAdmin.MOVEKEY || '') + '"' +
                     (titleDown ? ' title="' + titleDown + '"' : '') + '>' +
                     '<i class="' + iconDown + '" aria-hidden="true"></i></a>'
                 );

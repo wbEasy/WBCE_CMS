@@ -262,7 +262,7 @@ function draw_pagetree($pages_list)
 
                     <td class="page-move-up">
                         <?php if ($canMoveUP) : ?>
-                            <a href="../pages/move_up.php?page_id={PAGE_ID}" title="<?php echo $TEXT['MOVE_UP']; ?>">
+                            <a href="../pages/move_up.php?page_id={PAGE_ID}&amp;movekey=<?php echo $admin->pagesMoveKey(); ?>" title="<?php echo $TEXT['MOVE_UP']; ?>">
                                 <i class="fa fa-lg fa-chevron-up"></i>
                             </a>
                         <?php else: ?>
@@ -272,7 +272,7 @@ function draw_pagetree($pages_list)
 
                     <td class="page-move-down">
                         <?php if ($canMoveDOWN) : ?>
-                            <a href="../pages/move_down.php?page_id={PAGE_ID}"
+                            <a href="../pages/move_down.php?page_id={PAGE_ID}&amp;movekey=<?php echo $admin->pagesMoveKey(); ?>"
                                title="<?php echo $TEXT['MOVE_DOWN']; ?>">
                                 <i class="fa fa-lg fa-chevron-down"></i>
                             </a>
