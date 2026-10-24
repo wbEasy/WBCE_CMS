@@ -426,6 +426,12 @@ class SecureForm
                 $key = $fieldname;
         }
 
+        // an array in the request (field[]=x) is no key — it used to end in a
+        // TypeError from preg_match() instead of the caller's error message
+        if (!is_string($key)) {
+            return $default;
+        }
+
         // key always must match the generated ones
         if (preg_match('/[0-9a-zA-Z\-\_]{1,32}$/', $key)) {
             // check if key is stored in IDKEYs-list

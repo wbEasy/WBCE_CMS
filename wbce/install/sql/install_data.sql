@@ -65,5 +65,4 @@ INSERT INTO `{TP}settings` (`setting_id`, `name`, `value`) VALUES
 (39, 'wbmailer_smtp_password', ''),
 (40, 'wbmailer_smtp_secure', ''),
 (41, 'wbmailer_smtp_port', ''),
-(42, 'fingerprint_with_ip_octets', '0'),
 (43, 'mediasettings', '');

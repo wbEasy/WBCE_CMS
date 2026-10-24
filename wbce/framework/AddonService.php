@@ -1052,14 +1052,17 @@ class AddonService
     }
 
     /**
-     * Add a newly installed addon to the deny list of all non-admin groups.
+     * Block a newly installed addon for all non-admin groups.
      *
-     * Called only on first install (not on upgrade). Mirrors the identifier
-     * logic of PermissionManager::getAllAddonIdentifiers():
-     *   - tools          → directory_tool
-     *   - page modules   → directory
-     *   - page+tool      → both identifiers
-     *   - templates/themes → directory
+     * Called only on first install (not on upgrade). The two kinds of entries
+     * in {TP}groups.module_permissions work in opposite directions (see
+     * PermissionManager::parseAddonPermissionsFromPost()):
+     *   - page modules, templates/themes → deny-list: the directory name is
+     *     added, so the addon is blocked until a group is granted it
+     *   - tools ('<dir>_tool')           → allow-list: present = permitted, so
+     *     a new tool is blocked by NOT adding it. Adding it here used to grant
+     *     every new AdminTool to every group holding 'admintools'.
+     *   - page+tool                      → the page part is blocked as above
      *
      * @param string $dir       Addon directory name
      * @param string $type      'module' | 'template'
@@ -1069,16 +1072,14 @@ class AddonService
     {
         $column = $type . '_permissions';
 
-        // Build identifiers — same logic as PermissionManager::getAllAddonIdentifiers()
+        // Deny-list identifier only — the tool identifier stays absent (see above).
+        // Same split as PermissionManager::getAllAddonIdentifiers().
         $identifiers = [];
-        if (str_contains($function, 'tool')) {
-            $identifiers[] = $dir . '_tool';
-        }
         if (!str_contains($function, 'tool') || str_contains($function, 'page')) {
             $identifiers[] = $dir;
         }
         if (empty($identifiers)) {
-            $identifiers[] = $dir; // fallback for unknown function types
+            return; // a pure tool: blocked by default, nothing to store
         }
 
         // Fetch all non-admin groups (group_id > 1)
