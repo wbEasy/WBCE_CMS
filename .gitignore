@@ -1,2 +1,4 @@
 *.db
 changelog_creator.sh
+# wbstats is no longer shipped (removed in 1.7.0); local installs keep their copy
+/wbce/modules/wbstats/

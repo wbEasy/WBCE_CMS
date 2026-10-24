@@ -317,7 +317,7 @@ try {
 $table_list = [
     'addons','blocking','groups','pages','search','sections','settings','users',
     'mod_droplets','mod_menu_link','mod_miniform','mod_news_img_posts',
-    'mod_outputfilter_dashboard','mod_sitemap','mod_wbstats_day',
+    'mod_outputfilter_dashboard','mod_sitemap',
 ];
 
 $aDefaultThemes = ['wbce_flat_theme','argos_theme_reloaded','fraggy-backend-theme'];
@@ -510,7 +510,6 @@ $coreModules = [
     'news_img'                 => ['mod_news_img_posts',         'install', 'upgrade'],
     'outputfilter_dashboard'   => ['mod_outputfilter_dashboard', 'install', 'upgrade'],
     'sitemap'                  => ['mod_sitemap',                'install', 'upgrade'],
-    'wbstats'                  => ['mod_wbstats_day',            'install', 'upgrade'],
 ];
 
 foreach ($coreModules as $mod => $cfg) {
