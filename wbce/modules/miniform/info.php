@@ -14,7 +14,9 @@
  * v0.24.3 - "Manage template": the IDKEY moved to its own parameter
  *           section_key (purpose 'section'); in section_id it was turned into
  *           a section number by modules/admin.php whenever it began with a
- *           digit, and the link failed. Reported by Rik van Loenhout.
+ *           digit, and the link failed. view.php initialises $fields
+ *           before use ("Undefined variable $fields" warning on submit).
+ *           Both reported by Rik van Loenhout.
  * v0.24.2 - security: submissions readable/deletable only by users with admin
  *           rights on the form's page (AJAX load/delete, AdminTool list);
  *           FTAN on settings save and AJAX delete, GET delete removed,

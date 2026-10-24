@@ -132,6 +132,7 @@ $captcha = "";
 
 if($mf->myPost) {
 
+	$fields = array();
 	//Find all posted data
 	foreach ($_POST as $key => $rawpost) { 
 		$fields[$key] = '!';
