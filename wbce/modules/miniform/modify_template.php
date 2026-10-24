@@ -26,16 +26,21 @@ if(LANGUAGE != 'EN'){
 
 // Include WB admin wrapper script
 require WB_PATH.'/modules/admin.php';
-$section_id = $admin->checkIDKEY('section_id', 0, 'GET');
-if (!$section_id){
+// modules/admin.php has checked the page right and that $section_id belongs
+// to the page; the key (issued by modify.php for this section) must match it.
+// It used to travel in section_id itself, where modules/admin.php's intval()
+// turned a key starting with digits into an unrelated section number.
+$section_key = $admin->checkIDKEY('section_key', 0, 'GET', false, 'section');
+$settings = $section_key
+    ? $database->fetchRow("SELECT * FROM {TP}mod_miniform WHERE section_id = ?", [$section_id])
+    : null;
+if ((int) $section_key !== (int) $section_id || $settings === null) {
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS']
 	 .' (IDKEY) '.__FILE__.':'.__LINE__,
          ADMIN_URL.'/pages/index.php');
     $admin->print_footer();
     exit();
 }
-
-$settings = $database->fetchRow("SELECT * FROM {TP}mod_miniform WHERE section_id = ?", [$section_id]);
 $remote = $settings['remote_id'];
 
 
@@ -43,7 +48,10 @@ $remote = $settings['remote_id'];
 require_once WB_PATH.'/framework/module.functions.php';
 
 $backlink = ADMIN_URL.'/pages/modify.php?page_id='.(int)$page_id;
-$manage_url = WB_URL.'/modules/miniform/modify_template.php?page_id='.$page_id.'&section_id='.$admin->getIDKEY($section_id).'&mt=1&name=';
+// section_id is the plain number modules/admin.php checks (page right, section on
+// that page); the one-time key travels separately and must match it
+$manage_url = WB_URL.'/modules/miniform/modify_template.php?page_id='.$page_id.'&section_id='.(int)$section_id
+    .'&section_key='.$admin->getIDKEY($section_id, 'section').'&mt=1&name=';
 
 
 require_once __DIR__ . '/functions.php';

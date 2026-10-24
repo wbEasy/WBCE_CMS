@@ -9,8 +9,12 @@
  * @platform        WebsiteBaker 2.8.x / WBCE CMS 1.x
  * @requirements    PHP 8.0 and higher
  * @version         0.24.2
- * @lastmodified    October 22, 2026
+ * @lastmodified    October 24, 2026
  *
+ * v0.24.3 - "Manage template": the IDKEY moved to its own parameter
+ *           section_key (purpose 'section'); in section_id it was turned into
+ *           a section number by modules/admin.php whenever it began with a
+ *           digit, and the link failed. Reported by Rik van Loenhout.
  * v0.24.2 - security: submissions readable/deletable only by users with admin
  *           rights on the form's page (AJAX load/delete, AdminTool list);
  *           FTAN on settings save and AJAX delete, GET delete removed,
@@ -45,7 +49,7 @@
 $module_directory   = 'miniform';
 $module_name        = 'MiniForm WBCE CMS Edition';
 $module_function    = 'page';
-$module_version     = '0.24.2';
+$module_version     = '0.24.3';
 $module_platform    = '1.7.0';
 $module_author      = 'Ruud / Dev4me';
 $module_license     = 'GNU General Public License';

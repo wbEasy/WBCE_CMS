@@ -56,7 +56,10 @@ if(!$settings['subject'])         $settings['subject'] = $MF['SUBJECT'];
 if(!$settings['confirm_subject']) $settings['confirm_subject'] = $MF['SUBJECT'];
 $remote = $settings['remote_id'];
 
-$manage_url = WB_URL.'/modules/miniform/modify_template.php?page_id='.$page_id.'&section_id='.$admin->getIDKEY($section_id).'&mt=1&name=';
+// section_id is the plain number modules/admin.php checks (page right, section on
+// that page); the one-time key travels separately and must match it
+$manage_url = WB_URL.'/modules/miniform/modify_template.php?page_id='.$page_id.'&section_id='.(int)$section_id
+    .'&section_key='.$admin->getIDKEY($section_id, 'section').'&mt=1&name=';
 
 $cu_checked       = $settings['confirm_user'] ? 'checked': '';
 $cs_display       = $settings['confirm_user'] ? '' : 'style="display:none;"';
