@@ -24,7 +24,15 @@ $admin = new Admin('Pages', 'pages_modify', false, false);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-if (!$admin->is_authenticated()) {
+// Editor endpoints serve page editing and the intro page. The right named in
+// the constructor is never checked by it (4th argument false), so this used to
+// let any logged-in backend user through — e.g. a user who may only use one
+// AdminTool.
+// Deliberately open to every editor with that right, not only to admins:
+// remembering newly typed class/rel tokens for the whole team is the purpose of
+// this endpoint, and the tokens are sanitized (tinymce_wbce_link_tokens()).
+if (!$admin->is_authenticated()
+    || !($admin->get_permission('pages_modify') || $admin->get_permission('pages_intro'))) {
     http_response_code(403);
     exit(json_encode(['error' => 'auth']));
 }

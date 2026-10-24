@@ -22,7 +22,12 @@ if (!defined('WB_PATH')) {
 
 require_once WB_PATH . '/framework/class.admin.php';
 $admin = new Admin('Pages', 'pages_modify', false, false);
-if (!$admin->is_authenticated()) {
+// Editor endpoints serve page editing and the intro page. The right named in
+// the constructor is never checked by it (4th argument false), so this used to
+// let any logged-in backend user through — e.g. a user who may only use one
+// AdminTool.
+if (!$admin->is_authenticated()
+    || !($admin->get_permission('pages_modify') || $admin->get_permission('pages_intro'))) {
     http_response_code(403);
     header('Content-Type: application/json');
     echo json_encode(['error' => 'auth']);

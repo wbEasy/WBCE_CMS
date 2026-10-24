@@ -2,6 +2,16 @@
 
 *Changelog entries from v0.2.53 onward are written in English.*
 
+## v0.3.5 — 2026-10-24
+
+### Security
+- **Editor endpoints checked only that someone was logged in.** `upload_image.php`, `link_options_save.php` and `history_ajax.php` boot `Admin('Pages', 'pages_modify', false, false)` — with the 4th argument `false` the named right is never checked, so any backend user passed, e.g. one allowed to use a single AdminTool. All three now require `pages_modify` or `pages_intro` (the intro page's own right). Raised in Rik van Loenhout's review (2026-10-08, recommendation 2).
+- **Pasting an image needs `media_upload`**, the same right as uploading in the media library — a pasted image becomes a file there. Without it the editor shows the message and the image is not inserted.
+- **`link_options_save.php` stays open to editors** on purpose: remembering newly typed `class`/`rel` tokens for the whole team is what it is for, and the tokens are sanitized.
+
+### Changed
+- `info.php` jumps from 0.3.3 to 0.3.5 — the 0.3.4 entry below was released without a version bump, so installs never received it as an update.
+
 ## v0.3.4 — 2026-09-13
 
 ### Fixed
