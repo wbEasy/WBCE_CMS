@@ -16,13 +16,33 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.34';
+$module_version     = '5.0.35';
 $module_platform    = '1.4';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';
 $module_description = 'This page module is designed for making a news page with images and lightbox effect.';
 
 /**
+ * CHANGE LOG
+ * 
+ * v5.0.35 - 2026/10/25
+ *         - Rik van Loenhout (review), Christian M. Stefan
+ *         * "delete group" did nothing since 5.0.33: the link carried no
+ *           section_id, so modules/admin.php set it to 0 and the ownership
+ *           check (group must belong to the section) refused every deletion
+ *
+ * v5.0.34 - 2026/10/24
+ *         - Rik van Loenhout (review), Christian M. Stefan
+ *         * every IDKEY carries a purpose ('post', 'group', 'image', 'tag',
+ *           'section') and every consumer requires it, so a key issued for
+ *           one kind of object is no longer accepted as another
+ *         * gallery images (delete, reorder) must belong to the post
+ *         * uploader: 'post' key plus admin right on the post's page (it
+ *           checked only the module right); no server path in the answer
+ *         * drag & drop: all rows must belong to one section the user may
+ *           administrate, checked before anything is written
+ *         * move_up/move_down: the object must belong to the section
+ *
  * v5.0.33 - 2026/10/23
  *         - Rik van Loenhout (review), Christian M. Stefan
  *         * SQL injection via manage_posts[] in the mass actions (activate,
