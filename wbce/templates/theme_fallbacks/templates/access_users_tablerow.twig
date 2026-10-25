@@ -12,7 +12,7 @@
       md-hide        : id, reg. date, last login    (hidden < 960px)
 #}
 
-{% set IDKEY = getIDKEY(rec.user_id) %}
+{% set IDKEY = getIDKEY(rec.user_id, 'user') %}
 
 <tr id="uid_{{ rec.user_id }}"{% if extra_class|default('') %} class="{{ extra_class }}"{% elseif rec.user_id == hilite %} class="hilite"{% endif %}>
 
@@ -83,7 +83,8 @@
 
     {# Actions — always visible #}
     <td>
-        {% if rec.user_id > 1 %}
+        {# admin accounts: actions for administrators only (the endpoints refuse them anyway) #}
+        {% if rec.user_id > 1 and (IS_ADMIN or 1 not in rec.groups|keys) %}
             <a href="{{ ADMIN_URL }}/users/index.php?user_id={{ IDKEY }}&activation={% if rec.active %}0{% else %}1{% endif %}"
                hx-get="{{ ADMIN_URL }}/users/action.php?do=toggle&user_id={{ IDKEY }}"
                hx-target="#uid_{{ rec.user_id }}"

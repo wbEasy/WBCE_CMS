@@ -25,9 +25,9 @@ $isSuperAdmin = $admin->isAdmin();
 // --- Non-htmx fallback: Delete ---
 if (isset($_GET['delete'])) {
     $admin  = new Admin('Access', 'users_delete', false);
-    $userId = intval($admin->checkIDKEY('user_id', 0, $_SERVER['REQUEST_METHOD']));
+    $userId = intval($admin->checkIDKEY('user_id', 0, $_SERVER['REQUEST_METHOD'], false, 'user'));
 
-    if ($userId > 1) {
+    if ($users->mayManageUser($admin, $userId)) {
         $result = $users->deleteUser($userId);
 
         match ($result) {
@@ -44,9 +44,9 @@ if (isset($_GET['delete'])) {
 // --- Non-htmx fallback: Toggle active ---
 if (isset($_GET['activation'])) {
     $admin  = new Admin('Access', 'users_modify', false);
-    $userId = intval($admin->checkIDKEY('user_id', 0, $_SERVER['REQUEST_METHOD']));
+    $userId = intval($admin->checkIDKEY('user_id', 0, $_SERVER['REQUEST_METHOD'], false, 'user'));
 
-    if ($userId > 1) {
+    if ($users->mayManageUser($admin, $userId)) {
         $newState = $users->toggleActive($userId);
 
         if ($newState !== null) {
@@ -67,9 +67,9 @@ $modifyUserId = 0;
 
 if (isset($_GET['user_id']) && isset($_GET['modify'])) {
     $admin        = new Admin('Access', 'users_modify', false);
-    $modifyUserId = intval($admin->checkIDKEY('user_id', 0, 'GET', true));
+    $modifyUserId = intval($admin->checkIDKEY('user_id', 0, 'GET', true, 'user'));
 
-    if ($modifyUserId >= 2) {
+    if ($users->mayManageUser($admin, $modifyUserId)) {
         $isModifyView = true;
     }
 }
@@ -106,6 +106,7 @@ if ($isModifyView && $modifyUserId > 0) {
     $toTwig['home_folders'] = $users->getHomeFolders($modifyUserId);
     $toTwig['change_pswd']  = isset($_GET['duplicated']);
     $toTwig['INPUT_NEW_PASSWORD'] = $admin->passwordField('password');
+    $toTwig['USER_KEY'] = $admin->getIDKEY($modifyUserId, 'user');
 }
 
 if (isset($_GET['hilite'])) {

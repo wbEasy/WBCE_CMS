@@ -26,8 +26,12 @@ class GroupManager
 
     /**
      * Admin group_id — cannot be modified, deleted, or listed for non-superadmins.
+     * Public: referenced by UserManager (only administrators manage admin
+     * accounts or grant this group), DfAudienceVisibility's 'admin_only'
+     * audience check, and anywhere else that needs the fixed admin-group
+     * convention.
      */
-    private const ADMIN_GROUP_ID = 1;
+    public const ADMIN_GROUP_ID = 1;
 
 
     public function __construct()

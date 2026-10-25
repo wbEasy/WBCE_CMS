@@ -20,6 +20,7 @@
           hx-indicator="#form-save-indicator">
         {{ FTAN }}
         <input type="hidden" name="user_id" value="{{ user.user_id|default(0) }}" />
+        {% if USER_KEY|default('') %}<input type="hidden" name="user_key" value="{{ USER_KEY }}" />{% endif %}
         <div class="cp-settings">
             <div class="cp-toggle-section">
 

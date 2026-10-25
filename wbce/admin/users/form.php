@@ -37,12 +37,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // =================================================================
     //  POST: Save
     // =================================================================
-    $userId = intval($_POST['user_id'] ?? 0);
-    $isAdd  = ($userId === 0);
+    // An existing account comes from the key issued with the form (purpose
+    // 'user'), never from the posted number — that one is only used by
+    // validate.php to exclude the account itself from the duplicate check.
+    $isAdd = trim((string) ($_POST['user_key'] ?? '')) === '';
 
     $admin = new Admin('Access', $isAdd ? 'users_add' : 'users_modify', false);
 
-    if (!$isAdd && $userId < 2) {
+    if (!$isAdd) {
+        $userId = intval($admin->checkIDKEY('user_key', 0, 'POST', true, 'user'));
+    }
+
+    if (!$isAdd && !$users->mayManageUser($admin, $userId)) {
         http_response_code(422);
         $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
         echo $alerts->renderFragment();
@@ -71,6 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['groups'])) {
         $errorMsgs[] = $MESSAGE['USERS_NO_GROUP'] ?? 'Please select at least one group';
     } else {
+        // the form hides the administrators group from non-admins; the
+        // request must not add it either
+        if (!$users->mayAssignGroups($admin, (array) $_POST['groups'])) {
+            http_response_code(422);
+            $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
+            echo $alerts->renderFragment();
+            exit;
+        }
         $groupsId = implode(',', array_map('intval', (array) $_POST['groups']));
     }
 
@@ -133,9 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $admin = new Admin('Access', 'users_add', false);
     } else {
         $admin  = new Admin('Access', 'users_modify', false);
-        $userId = intval($admin->checkIDKEY('user_id', 0, 'GET', true));
+        $userId = intval($admin->checkIDKEY('user_id', 0, 'GET', true, 'user'));
 
-        if ($userId < 2) {
+        if (!$users->mayManageUser($admin, $userId)) {
             http_response_code(422);
             $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
             echo $alerts->renderFragment();
@@ -175,10 +189,10 @@ if ($wasAdded && $userId > 0) {
 
 // Row update triggers FIRST (toast() will merge with these)
 if ($wasAdded && $userId > 0 && empty($errorMsgs)) {
-    $newIDKEY = $admin->getIDKEY($userId);
+    $newIDKEY = $admin->getIDKEY($userId, 'user');
     header('HX-Trigger: {"userAdded": {"idkey": "' . $newIDKEY . '", "userId": ' . $userId . '}}');
 } elseif ($saveData !== null && empty($errorMsgs) && !$wasAdded) {
-    $savedIDKEY = $admin->getIDKEY($userId);
+    $savedIDKEY = $admin->getIDKEY($userId, 'user');
     header('HX-Trigger: {"userSaved": {"idkey": "' . $savedIDKEY . '", "userId": ' . $userId . '}}');
 }
 
@@ -222,6 +236,7 @@ $toTwig = [
     'groups'             => $groupsForForm,
     'home_folders'       => $homeFolders,
     'change_pswd'        => $changePswd,
+    'USER_KEY'           => $isAdd ? '' : $admin->getIDKEY($userId, 'user'),
     'INPUT_NEW_PASSWORD' => $admin->passwordField('password', '', 0, ($saveData !== null && !empty($errorMsgs)) ? ($_POST['password'] ?? '') : ''),
     'is_htmx_fragment'   => true,
 ];

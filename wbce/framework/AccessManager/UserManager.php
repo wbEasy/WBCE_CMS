@@ -45,6 +45,50 @@ class UserManager
     }
 
     /**
+     * Whether the account belongs to the administrators group (as primary
+     * group or as one of its additional groups).
+     */
+    public function isAdminAccount(int $userId): bool
+    {
+        $row = $this->db->fetchRow(
+            "SELECT `group_id`, `groups_id` FROM `{TP}users` WHERE `user_id` = ?",
+            [$userId]
+        );
+        if ($row === null) {
+            return false;
+        }
+        $groups = array_map('intval', explode(',', $row['group_id'] . ',' . $row['groups_id']));
+        return in_array(GroupManager::ADMIN_GROUP_ID, $groups, true);
+    }
+
+    /**
+     * Whether $admin may change the account at all — edit, (de)activate,
+     * delete. Accounts in the administrators group only by administrators:
+     * otherwise a user manager could reset an administrator's password and
+     * take the account over. User 1 is never changed here.
+     */
+    public function mayManageUser(Admin $admin, int $userId): bool
+    {
+        if ($userId <= self::SUPERADMIN_ID) {
+            return false;
+        }
+        return $admin->isAdmin() || !$this->isAdminAccount($userId);
+    }
+
+    /**
+     * Whether $admin may save this group list: only administrators grant
+     * the administrators group. (Taking it away is covered by
+     * mayManageUser(): a non-admin cannot edit an admin account at all.)
+     *
+     * @param  int[] $groupIds
+     */
+    public function mayAssignGroups(Admin $admin, array $groupIds): bool
+    {
+        return $admin->isAdmin()
+            || !in_array(GroupManager::ADMIN_GROUP_ID, array_map('intval', $groupIds), true);
+    }
+
+    /**
      * Load a single user with their group names.
      *
      * Returns the user row plus a 'groups' sub-array [group_id => group_name].

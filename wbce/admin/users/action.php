@@ -11,7 +11,7 @@ $action = $_GET['do'] ?? '';
 $admin  = new Admin('Access', 'users_modify', false);
 $users  = new UserManager();
 $alerts = new Alerts(useSession: false);
-$userId = intval($admin->checkIDKEY('user_id', 0, 'GET', true));
+$userId = intval($admin->checkIDKEY('user_id', 0, 'GET', true, 'user'));
 
 // Non-htmx fallback
 if (!MessageBox::isHtmx()) {
@@ -20,7 +20,10 @@ if (!MessageBox::isHtmx()) {
     exit;
 }
 
-if ($userId < 2) {
+// admin accounts only for administrators; deleting (both stages:
+// deactivate, then remove) needs users_delete, like the non-htmx fallback
+if (!$users->mayManageUser($admin, $userId)
+    || ($action === 'delete' && !$admin->get_permission('users_delete'))) {
     http_response_code(422);
     $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
     echo $alerts->renderFragment();
