@@ -31,7 +31,7 @@ switch ($action) {
 
     case 'delete':
         $admin   = new Admin('Access', 'groups_delete', false);
-        $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD']));
+        $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD'], false, 'group'));
 
         if ($groupId > 1) {
             if ($groups->hasMembers($groupId)) {
@@ -48,8 +48,13 @@ switch ($action) {
 
     case 'duplicate':
         $admin   = new Admin('Access', 'groups_add', false);
-        $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD'], true));
-        $newId   = $groups->duplicateGroup($groupId);
+        $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD'], true, 'group'));
+        // A copy carries all permissions of its source: copying the
+        // administrators group would hand a non-admin a group with every
+        // system permission (it used to accept any key whose value was 1).
+        $newId   = ($groupId > 0 && ($groupId !== GroupManager::ADMIN_GROUP_ID || $admin->isAdmin()))
+            ? $groups->duplicateGroup($groupId)
+            : 0;
 
         if ($newId > 0) {
             $alerts->sessionToast('{TEXT:DUPLICATED}', 'success');
@@ -72,7 +77,7 @@ $toTwig = [
     'MESSAGE_BOX'      => $alerts->render(),
     'TABS'             => renderAddonsTabs($sPos),
     'groups'           => $allGroups,
-    'GROUP_ID'         => (isset($_GET['group_id']) && isset($_GET['modify'])) ? intval($admin->checkIDKEY('group_id', 0, 'GET', true)) : 0,
+    'GROUP_ID'         => (isset($_GET['group_id']) && isset($_GET['modify'])) ? intval($admin->checkIDKEY('group_id', 0, 'GET', true, 'group')) : 0,
 ];
 
 if (isset($_GET['duplicated'])) {

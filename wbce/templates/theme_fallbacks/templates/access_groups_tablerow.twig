@@ -19,7 +19,7 @@
 {% set perm_areas = ['pages','media','modules','templates','languages','settings','admintools','groups','users','preferences'] %}
 
 {# Wir nutzen jetzt die WBCE-Funktion getIDKEY direkt #}
-{% set IDKEY = getIDKEY(rec.group_id) %}
+{% set IDKEY = getIDKEY(rec.group_id, 'group') %}
 
 <tr id="group-row-{{ rec.group_id }}" data-idkey="{{ IDKEY }}" {% if extra_class %}class="{{ extra_class }}"{% endif %}> 
     <td class="sm-hide"><span>{{ rec.group_id }}</span></td>

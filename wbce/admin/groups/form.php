@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // HX-Trigger for table row update FIRST, then toast merges
     if ($groupId > 0 && !$hasError) {
-        $newIDKEY = $admin->getIDKEY($groupId);
+        $newIDKEY = $admin->getIDKEY($groupId, 'group');
         if ($wasAdded) {
             header('HX-Trigger: {"groupAdded": {"idkey": "' . $newIDKEY . '", "groupId": ' . $groupId . '}}');
         } else {
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $admin = new Admin('Access', 'groups_add', false);
     } else {
         $admin   = new Admin('Access', 'groups_modify', false);
-        $groupId = intval($admin->checkIDKEY('group_id', 0, 'GET', true));
+        $groupId = intval($admin->checkIDKEY('group_id', 0, 'GET', true, 'group'));
 
         if ($groupId < 2) {
             $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);

@@ -12,7 +12,7 @@ $admin   = new Admin('Access', ($action === 'getrow') ? 'groups_view' : 'groups_
 $groups  = new GroupManager();
 $perms   = new PermissionManager();
 $alerts = new Alerts(useSession: false);
-$groupId = intval($admin->checkIDKEY('group_id', 0, 'GET', true));
+$groupId = intval($admin->checkIDKEY('group_id', 0, 'GET', true, 'group'));
 
 // Non-htmx fallback
 if (!MessageBox::isHtmx()) {

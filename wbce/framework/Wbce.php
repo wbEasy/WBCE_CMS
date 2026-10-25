@@ -278,6 +278,19 @@ class Wbce extends SecureForm
     }
 
     /**
+     * Key for the move-up/move-down links of pages and sections
+     * (admin/pages/move_up.php, move_down.php). One key per request for all
+     * arrows of a page, redeemed in peek mode, so every arrow on the page keeps
+     * working; it is bound to the session, so a link from a foreign site
+     * (which cannot know it) no longer reorders anything.
+     */
+    public function pagesMoveKey(): string
+    {
+        static $sKey = null;
+        return $sKey ??= $this->getIDKEY('pages_move', 'pages_move');
+    }
+
+    /**
      * Check if the current user has admin rights for a page based on
      * the raw admin_groups / admin_users values from {TP}pages.
      *
@@ -291,19 +304,6 @@ class Wbce extends SecureForm
      * @param  string $adminUsers   admin_users  value from {TP}pages
      * @return bool
      */
-    /**
-     * Key for the move-up/move-down links of pages and sections
-     * (admin/pages/move_up.php, move_down.php). One key per request for all
-     * arrows of a page, redeemed in peek mode, so every arrow on the page keeps
-     * working; it is bound to the session, so a link from a foreign site
-     * (which cannot know it) no longer reorders anything.
-     */
-    public function pagesMoveKey(): string
-    {
-        static $sKey = null;
-        return $sKey ??= $this->getIDKEY('pages_move', 'pages_move');
-    }
-
     public function isPageAdmin(string $adminGroups, string $adminUsers = ''): bool
     {
         if ($this->get_group_id() == 1) {
