@@ -192,6 +192,9 @@
 [MODULES]/jsadmin/languages/
 [MODULES]/wrapper/languages/
 [MODULES]/SecureFormSwitcher/templates/
+[MODULES]/SecureFormSwitcher/backend.css     // replaced by twig/tool.twig (1.4.0)
+[MODULES]/jsadmin/move_to.php                // unkeyed position writes, replaced by IDKEY endpoints
+[MODULES]/news_img/README.nl.md              // renamed to README_NL.md
 [TEMPLATE]/advancedThemeWbFlat/
 [TEMPLATE]/argos_theme/
 [TEMPLATE]/argos_theme_classic/
