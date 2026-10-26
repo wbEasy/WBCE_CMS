@@ -29,7 +29,7 @@
                  src="{{ WB_URL }}/languages/{{ rec.language }}.svg"
                  style="width:16px; vertical-align:middle"/>
         </span>
-        {% if has_permission('users_modify') and rec.user_id > 1 %}
+        {% if has_permission('users_modify') and rec.user_id > 1 and (IS_ADMIN or 1 not in rec.groups|keys) %}
             <a href="{{ ADMIN_URL }}/users/index.php?user_id={{ IDKEY }}&modify=1"
                hx-get="{{ ADMIN_URL }}/users/form.php?user_id={{ IDKEY }}"
                hx-target="#user-form-panel"

@@ -70,7 +70,8 @@ switch ($action) {
 }
 
 // --- Build group list ---
-$allGroups = $groups->getAllGroups();
+// the administrators group only for administrators: non-admins get no key for it
+$allGroups = $groups->getAllGroups(true, $admin->isAdmin());
 
 // --- Render ---
 $toTwig = [
