@@ -18,7 +18,7 @@ $alerts = new Alerts(useSession: false);
 //  Settings defaults
 // =========================================================================
 $defaults = [
-    'columns'         => 1,
+    'columns'         => 2,
     'show_search'     => true,
     'most_used_first' => false,
 ];
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_admintools_setti
     }
 
     $cfg = [
-        'columns'         => (int) ($admin->get_post('columns') ?? 1) === 2 ? 2 : 1,
+        'columns'         => (int) ($admin->get_post('columns') ?? 2) === 1 ? 1 : 2,
         'show_search'     => ($admin->get_post('show_search') !== null),
         'most_used_first' => ($admin->get_post('most_used_first') !== null),
     ];
