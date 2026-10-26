@@ -16,7 +16,7 @@ if (!isset($_POST['default_language']) || $_POST['default_language'] == '') {
 }
 
 // Find out if the user was view advanced options or not
-$advanced = ($_POST['advanced'] == 'yes') ? '?advanced=yes' : '';
+$advanced = (($_POST['advanced'] ?? '') == 'yes') ? '?advanced=yes' : '';
 
 // Print admin header
 require '../../config.php';
@@ -70,6 +70,14 @@ if (isset($_POST['wbmailer_routine']) && ($_POST['wbmailer_routine'] == 'smtp'))
         $admin->print_error($TEXT['REQUIRED'] . ' ' . $TEXT['WBMAILER_SMTP_AUTH'] .
             '<br /><strong>' . $MESSAGE['GENERIC_FILL_IN_ALL'] . '</strong>', $js_back);
     }
+}
+
+// The signup group decides which group every self-registered account gets:
+// never the administrators group (the form leaves it out, the request must not
+// add it).
+if (isset($_POST['frontend_signup'])
+    && !(new GroupManager())->isValidSignupGroup((string) $_POST['frontend_signup'])) {
+    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
 }
 
 if (isset($_POST['app_name'])) {
@@ -160,6 +168,33 @@ if ($advanced == '') {
     }
 }
 
+// What this page may write: the fields of the form, basic part with
+// settings_basic, advanced part only with settings_advanced (the constructor
+// above requires it for advanced=yes). Everything else in {TP}settings has its
+// own screen or none (SecureForm, captcha/ASP, output filters, modules ...) and
+// is never written from here, whatever is posted.
+$basicSettings = array(
+    'app_name', 'default_date_format', 'default_language', 'default_template', 'default_theme',
+    'default_time_format', 'default_timezone', 'frontend_login', 'frontend_signup', 'home_folders',
+    'intro_page', 'page_spacer', 'page_trash', 'search', 'sec_anchor', 'server_email',
+    'wbmailer_default_sendername', 'wbmailer_routine', 'wbmailer_smtp_auth', 'wbmailer_smtp_host',
+    'wbmailer_smtp_password', 'wbmailer_smtp_port', 'wbmailer_smtp_secure', 'wbmailer_smtp_username',
+    'website_description', 'website_footer', 'website_header', 'website_keywords', 'website_title',
+);
+$advancedSettings = array(
+    'default_charset', 'er_level', 'homepage_redirection', 'manage_sections', 'media_directory',
+    'multiple_menus', 'operating_system', 'page_extension', 'page_languages', 'page_level_limit',
+    'pages_directory', 'redirect_timer', 'rename_files_on_upload', 'section_blocks', 'smart_login',
+    'string_dir_mode', 'string_file_mode', 'wysiwyg_editor', 'wysiwyg_style',
+);
+$basicSearch    = array('template');
+$advancedSearch = array(
+    'footer', 'header', 'max_excerpt', 'module_order', 'no_results',
+    'results_footer', 'results_header', 'results_loop', 'time_limit',
+);
+$allowedSettings = ($advanced == '') ? $basicSettings : array_merge($basicSettings, $advancedSettings);
+$allowedSearch   = ($advanced == '') ? $basicSearch   : array_merge($basicSearch, $advancedSearch);
+
 $allow_tags_in_fields = array('website_header', 'website_footer');
 $allow_empty_values = array('website_header', 'website_footer', 'sec_anchor', 'pages_directory', 'page_spacer');
 $disallow_in_fields = array('pages_directory', 'media_directory', 'wb_version');
@@ -174,6 +209,9 @@ if ($res_settings = $database->query($sql)) {
     while ($setting = $res_settings->fetchRow()) {
         $old_settings[$setting['name']] = $setting['value'];
         $setting_name = $setting['name'];
+        if (!in_array($setting_name, $allowedSettings, true)) {
+            continue;
+        }
         $value = $admin->get_post($setting_name);
         $value = isset($_POST[$setting_name]) ? $value : $old_settings[$setting_name];
         switch ($setting_name) {
@@ -209,9 +247,10 @@ if ($res_settings = $database->query($sql)) {
 
         if (!in_array($value, $disallow_in_fields) && (isset($_POST[$setting_name]) || $passed == true)) {
             $value = trim($value);
-            $sSql = "UPDATE `{TP}settings` SET `value`='" . $database->escapeString($value) . "' "
-                . "WHERE `name` != 'wb_version' AND `name`= '" . $setting_name . "'";
-            $database->query($sSql);
+            $database->query(
+                "UPDATE `{TP}settings` SET `value` = ? WHERE `name` = ?",
+                [$value, $setting_name]
+            );
             if ($database->hasError()) {
                 $admin->print_error($database->getError(), $js_back);
                 break;
@@ -222,12 +261,16 @@ if ($res_settings = $database->query($sql)) {
 
 // Query current search settings in the db, then loop through them and update the db with the new value
 $sql = "SELECT `name`, `value` FROM `{TP}search` WHERE `extra`= ''";
-if (!($res_search = $database->query($sql))) {
-    $admin->print_error($database->is_error(), $js_back);
+$res_search = $database->query($sql);
+if ($database->hasError()) {
+    $admin->print_error($database->getError(), $js_back);
 }
 while ($search_setting = $res_search->fetchRow()) {
     $old_value = $search_setting['value'];
     $setting_name = $search_setting['name'];
+    if (!in_array($setting_name, $allowedSearch, true)) {
+        continue;
+    }
     $post_name = 'search_' . $search_setting['name'];
 
     // hold old value if post is empty
@@ -236,14 +279,14 @@ while ($search_setting = $res_search->fetchRow()) {
         ? $old_value
         : $admin->get_post($post_name);
     if (isset($value)) {
-        $value = $admin->add_slashes($value);
-        $sSql = "UPDATE `{TP}search` SET `value`= '" . $value . "' "
-            . "WHERE `name`='" . $setting_name . "' AND `extra`=''";
-        if (!($database->query($sSql))) {
-            $admin->print_error($database->get_error, $js_back);
+        $database->query(
+            "UPDATE `{TP}search` SET `value` = ? WHERE `name` = ? AND `extra` = ''",
+            [$value, $setting_name]
+        );
+        if ($database->hasError()) {
+            $admin->print_error($database->getError(), $js_back);
             break;
         }
-        // $sql_info = mysql_info($database->db_handle); //->> nicht mehr erforderlich
     }
 }
 

@@ -403,6 +403,12 @@ Settings::delete('secure_form_module');
 Settings::delete('wb_secform_usefp');
 Settings::delete('fingerprint_with_ip_octets');
 Settings::delete('wb_secform_secrettime');
+// frontend_signup used to be stored unchecked: the administrators group (or
+// a group that no longer exists) switches the signup off
+if (!(new GroupManager())->isValidSignupGroup((string) Settings::get('frontend_signup', 'false'))) {
+    Settings::set('frontend_signup', 'false');
+    log_warn('frontend_signup pointed to the administrators group or a missing group: signup switched off');
+}
 log_ok('Settings updated');
 
 // DB field additions

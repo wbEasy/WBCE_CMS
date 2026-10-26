@@ -29,10 +29,21 @@ if (isset($_POST['save_settings'])) {
         $alerts->redirect($sRedirect);
     }
 
+    // the dropdown leaves out the administrators group; the request must not add it
+    $signupGroup = (string) ($admin->get_post('frontend_signup') ?? 'false');
+    if (!$groups->isValidSignupGroup($signupGroup)) {
+        $alerts->error(L_('MESSAGE:GENERIC_SECURITY_ACCESS'));
+        if (Alerts::isHtmx()) {
+            echo $alerts->renderFragment();
+            exit;
+        }
+        $alerts->redirect($sRedirect);
+    }
+
     // Switches: unchecked = not in POST = 'false'
     Settings::Set('home_folders',   $admin->get_post('home_folders')   ? 'true' : 'false');
     Settings::Set('frontend_login', $admin->get_post('frontend_login') ? 'true' : 'false');
-    Settings::Set('frontend_signup', $admin->get_post('frontend_signup') ?? 'false');
+    Settings::Set('frontend_signup', $signupGroup);
 
     $bShowSettings = true;
 

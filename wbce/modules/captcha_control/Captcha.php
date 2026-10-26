@@ -598,8 +598,11 @@ class Captcha
     /**
      * Verify the honeypot field.
      * Returns false if the field was filled OR the form was submitted too fast.
+     *
+     * verify() runs this itself when ENABLED_ASP is on. Public for forms that
+     * render the honeypot without a captcha (ASP on, captcha off).
      */
-    private static function verifyHoneypotField(string $sec_id): bool
+    public static function verifyHoneypotField(string $sec_id = ''): bool
     {
         $field = 'hp_' . $sec_id;
 

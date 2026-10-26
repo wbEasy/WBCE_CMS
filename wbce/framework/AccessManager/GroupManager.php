@@ -25,7 +25,8 @@ class GroupManager
     private Database $db;
 
     /**
-     * Admin group_id — cannot be modified, deleted, or listed for non-superadmins.
+     * Admin group_id — cannot be modified or deleted, and is listed only for
+     * administrators.
      * Public: referenced by UserManager (only administrators manage admin
      * accounts or grant this group), DfAudienceVisibility's 'admin_only'
      * audience check, and anywhere else that needs the fixed admin-group
@@ -158,6 +159,26 @@ class GroupManager
               ORDER BY `name`",
             [self::ADMIN_GROUP_ID]
         );
+    }
+
+    /**
+     * Whether $value may be used as the frontend signup group: 'false'
+     * (signup off) or an existing group other than the administrators
+     * group. Every account created through the signup form lands in this
+     * group, so group 1 here would let anyone register an administrator.
+     */
+    public function isValidSignupGroup(string $value): bool
+    {
+        if ($value === 'false') {
+            return true;
+        }
+        if (!ctype_digit($value) || (int) $value === self::ADMIN_GROUP_ID) {
+            return false;
+        }
+        return (int) $this->db->fetchValue(
+            "SELECT COUNT(*) FROM `{TP}groups` WHERE `group_id` = ?",
+            [(int) $value]
+        ) === 1;
     }
 
 

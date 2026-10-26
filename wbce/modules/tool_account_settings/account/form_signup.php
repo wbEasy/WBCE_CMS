@@ -98,6 +98,9 @@ if(isset($_POST['signup_form_sent'])){
         if (!Captcha::verify($_POST['captcha'] ?? '')) {
             $errors['IncorrectCaptcha'] = strtr($MESSAGE['MOD_FORM_INCORRECT_CAPTCHA'], ['{SERVER_EMAIL}' => SERVER_EMAIL]);
         }
+    } elseif (Captcha::isAspEnabled() && !Captcha::verifyHoneypotField()) {
+        // ASP without captcha: the honeypot rendered below still has to be checked
+        $errors['IncorrectCaptcha'] = strtr($MESSAGE['MOD_FORM_INCORRECT_CAPTCHA'], ['{SERVER_EMAIL}' => SERVER_EMAIL]);
     }
 
     // ////////////////////////////////////////////////////////////////////////
