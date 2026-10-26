@@ -6,7 +6,7 @@
 		<h2 style="margin-bottom: 0;">
 			{HEADING_MODIFY_PAGE_SETTINGS}
 			<div class="headline-link">
-				<a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}">
+				<a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MODIFY}">
 					<i class="fa fa-edit"></i>
 					{TEXT_MODIFY_PAGE}
 				</a>

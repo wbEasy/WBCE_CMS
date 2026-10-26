@@ -231,6 +231,9 @@ switch ($action) {
         $oTemplate->set_block('section_block', 'block_block', 'block_list');
         $oTemplate->set_block('main_block', 'calendar_block', 'calendar_list');
 
+        // "change settings" only with pages_settings (settings.php refuses it otherwise)
+        $oTemplate->set_var('DISPLAY_SETTINGS', $admin->get_permission('pages_settings') ? '' : 'display:none;');
+
         // set first defaults and messages
         $oTemplate->set_var(
             array(

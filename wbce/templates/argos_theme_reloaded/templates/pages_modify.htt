@@ -3,11 +3,11 @@
 		<h2 style="margin-bottom: 0;">
 			{HEADING_MODIFY_PAGE}
 			<div class="headline-link">
-				<a href="{ADMIN_URL}/pages/settings.php?page_id={PAGE_IDKEY}">
+				<a href="{ADMIN_URL}/pages/settings.php?page_id={PAGE_IDKEY}" style="{DISPLAY_SETTINGS}">
 					<i class="fa fa-cog"></i>
 					{TEXT_CHANGE_SETTINGS}
 				</a>
-				<span style="{DISPLAY_MANAGE_SECTIONS}">
+				<span style="{DISPLAY_SEPARATOR}">
 					&nbsp;&nbsp;|&nbsp;&nbsp;
 				</span>
 				<a href="{ADMIN_URL}/pages/sections.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MANAGE_SECTIONS}">

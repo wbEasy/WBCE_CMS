@@ -4,7 +4,7 @@
 
 <section id="page-settings">
     <h2 class="page_titel"> {HEADING_MODIFY_PAGE_SETTINGS}
-        <div class="headline-link"> <a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}"> <i class="fa fa-edit"></i> {TEXT_MODIFY_PAGE} </a> <span style="{DISPLAY_MANAGE_SECTIONS}">&nbsp;&nbsp;|&nbsp;&nbsp;</span> <a href="{ADMIN_URL}/pages/sections.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MANAGE_SECTIONS}"> <i class="fa fa-bars"></i> {TEXT_MANAGE_SECTIONS} </a> </div>
+        <div class="headline-link"> <a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MODIFY}"> <i class="fa fa-edit"></i> {TEXT_MODIFY_PAGE} </a> <span style="{DISPLAY_MANAGE_SECTIONS}">&nbsp;&nbsp;|&nbsp;&nbsp;</span> <a href="{ADMIN_URL}/pages/sections.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MANAGE_SECTIONS}"> <i class="fa fa-bars"></i> {TEXT_MANAGE_SECTIONS} </a> </div>
     </h2>
 
     <h2 class="{DISPLAY_MODIFIED}">
@@ -110,6 +110,7 @@
                     </div>
                 </div>
                 </div>
+                <!-- Claude: here should it go -->
                 <div {DISPLAY_CODE_PAGE_LIST}>
                     <div class="row">
                         <div class="fg4">{TEXT_PAGE_CODE}:</div>

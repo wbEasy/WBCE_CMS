@@ -5,7 +5,7 @@
 <div class="jcalendar hide"></div>
 <section id="page-sections">
     <h2 class="page_titel"> {HEADING_MANAGE_SECTIONS}
-        <div class="headline-link"> <a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}"> <i class="fa fa-edit"></i> {HEADING_MODIFY_PAGE} </a> &nbsp;&nbsp;|&nbsp;&nbsp; <a href="{ADMIN_URL}/pages/settings.php?page_id={PAGE_IDKEY}" style="{DISPLAY_MANAGE_SECTIONS}"> <i class="fa fa-cog"></i> {TEXT_CHANGE_SETTINGS} </a> </div>
+        <div class="headline-link"> <a href="{ADMIN_URL}/pages/modify.php?page_id={PAGE_IDKEY}"> <i class="fa fa-edit"></i> {HEADING_MODIFY_PAGE} </a> <span style="{DISPLAY_SETTINGS}">&nbsp;&nbsp;|&nbsp;&nbsp; <a href="{ADMIN_URL}/pages/settings.php?page_id={PAGE_IDKEY}"> <i class="fa fa-cog"></i> {TEXT_CHANGE_SETTINGS} </a></span> </div>
     </h2>
 
     <h2 class="{DISPLAY_MODIFIED}">

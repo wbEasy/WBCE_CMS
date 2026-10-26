@@ -80,6 +80,10 @@ class Admin extends Wbce
         }
 
         if (!$this->get_permission($section_permission)) {
+            // the message is UTF-8; without the header browsers may show "UngenÃ¼gende"
+            if (!headers_sent()) {
+                header('Content-Type: text/html; charset=utf-8');
+            }
             // Typo in key preserved intentionally — matches the language file
             die($MESSAGE['ADMIN_INSUFFICIENT_PRIVELLIGES']);
         }

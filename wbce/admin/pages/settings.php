@@ -112,6 +112,13 @@ if ($bShowMenuLink) {
     $template->set_var('DISPLAY_MANAGE_SECTIONS', 'display:none;');
 }
 
+// "modify page" and "manage sections" both need pages_modify — without it
+// both pages refuse access, so neither link is shown
+if (!$admin->get_permission('pages_modify')) {
+    $template->set_var('DISPLAY_MODIFY', 'display:none;');
+    $template->set_var('DISPLAY_MANAGE_SECTIONS', 'display:none;');
+}
+
 // Visibility
 if ($results_array['visibility'] == 'public') {
     $template->set_var('PUBLIC_SELECTED', ' selected="selected"');
@@ -249,7 +256,6 @@ if ($results_array['visibility'] == 'private' or $results_array['visibility'] ==
 
 //-- insert page_code 20090904-->
 $template->set_var('DISPLAY_CODE_PAGE_LIST', ' id="multi_lingual" style="display:none;"');
-
 // Work-out if page languages feature is enabled
 if ((defined('PAGE_LANGUAGES') && PAGE_LANGUAGES) && $field_set && file_exists(WB_PATH . '/modules/mod_multilingual/update_keys.php')) {
     // workout field is set but module missing
@@ -262,7 +268,6 @@ if ((defined('PAGE_LANGUAGES') && PAGE_LANGUAGES) && $field_set && file_exists(W
     );
 
     // Page_code list
-    /*     $database = new database();  */
     function page_code_list($parent)
     {
         global $admin, $database, $template, $results_array, $pageCode;

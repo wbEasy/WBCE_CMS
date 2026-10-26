@@ -104,6 +104,14 @@ if ($bShowMenuLink) {
     $oTemplate->set_var('DISPLAY_MANAGE_SECTIONS', 'display:none;');
 }
 
+// "change settings" only with pages_settings — settings.php refuses it
+// otherwise (the page tree already hides it); the separator only between
+// two visible links
+$bShowSettings = $admin->get_permission('pages_settings');
+$bShowSections = !$bShowMenuLink && MANAGE_SECTIONS == 'enabled';
+$oTemplate->set_var('DISPLAY_SETTINGS',  $bShowSettings ? '' : 'display:none;');
+$oTemplate->set_var('DISPLAY_SEPARATOR', ($bShowSettings && $bShowSections) ? '' : 'display:none;');
+
 $oTemplate->set_block('main_block', 'section_module_block', 'section_module');
 // get template used for the displayed page (for displaying block details)
 if (SECTION_BLOCKS) {
