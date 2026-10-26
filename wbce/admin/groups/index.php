@@ -33,7 +33,7 @@ switch ($action) {
         $admin   = new Admin('Access', 'groups_delete', false);
         $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD'], false, 'group'));
 
-        if ($groupId > 1) {
+        if ($groupId > 1 && $groups->mayManageGroup($admin, $groupId)) {
             if ($groups->hasMembers($groupId)) {
                 $alerts->error($MESSAGE['GROUP_HAS_MEMBERS'] ?? 'Group has members');
             } elseif ($groups->deleteGroup($groupId)) {
@@ -49,10 +49,11 @@ switch ($action) {
     case 'duplicate':
         $admin   = new Admin('Access', 'groups_add', false);
         $groupId = intval($admin->checkIDKEY('group_id', 0, $_SERVER['REQUEST_METHOD'], true, 'group'));
-        // A copy carries all permissions of its source: copying the
-        // administrators group would hand a non-admin a group with every
-        // system permission (it used to accept any key whose value was 1).
-        $newId   = ($groupId > 0 && ($groupId !== GroupManager::ADMIN_GROUP_ID || $admin->isAdmin()))
+        // A copy carries all permissions of its source: a non-admin may only
+        // copy groups within his own rights — never the administrators group
+        // (it used to accept any key whose value was 1), nor e.g. a webmaster
+        // group that may install modules.
+        $newId   = ($groupId > 0 && $groups->mayManageGroup($admin, $groupId))
             ? $groups->duplicateGroup($groupId)
             : 0;
 
@@ -72,6 +73,11 @@ switch ($action) {
 // --- Build group list ---
 // the administrators group only for administrators: non-admins get no key for it
 $allGroups = $groups->getAllGroups(true, $admin->isAdmin());
+// actions only where the rights ceiling allows them (the endpoints check again)
+foreach ($allGroups as &$rec) {
+    $rec['manageable'] = $groups->mayManageGroup($admin, (int) $rec['group_id']);
+}
+unset($rec);
 
 // --- Render ---
 $toTwig = [

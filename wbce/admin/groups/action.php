@@ -35,6 +35,13 @@ if ($action === 'getrow') {
 }
 
 // --- Delete ---
+if (!$groups->mayManageGroup($admin, $groupId)) {
+    http_response_code(422);
+    $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
+    echo '<tr><td colspan="5">' . $alerts->renderFragment() . '</td></tr>';
+    exit;
+}
+
 if ($groups->hasMembers($groupId)) {
     http_response_code(422);
     $alerts->error($MESSAGE['GROUP_HAS_MEMBERS'] ?? 'Group has members');
@@ -83,6 +90,7 @@ function renderGroupRow(
     }
 
     $signupGroupId = defined('FRONTEND_SIGNUP') ? (int) FRONTEND_SIGNUP : 0;
+    $rec['manageable'] = $groups->mayManageGroup($admin, $groupId);
 
     $toTwig = [
         'rec'             => $rec,

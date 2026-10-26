@@ -16,6 +16,8 @@
 
 {% import '_icons.inc.twig' as ico %}
 {% set is_admin_group = (rec.group_id == 1) %}
+{# within the editor's rights ceiling — the endpoints refuse the others anyway #}
+{% set manageable = rec.manageable|default(false) %}
 {% set perm_areas = ['pages','media','modules','templates','languages','settings','admintools','groups','users','preferences'] %}
 
 {# Wir nutzen jetzt die WBCE-Funktion getIDKEY direkt #}
@@ -27,7 +29,7 @@
         {% if is_admin_group %}<span title="Admin-Group">Ⓐ</span>{% endif %}
         {% if signup_group_id == rec.group_id %}<span title="Signup group">Ⓢ</span>{% endif %}
     
-        {% if not is_admin_group and has_permission('groups_modify') %}
+        {% if not is_admin_group and manageable and has_permission('groups_modify') %}
             <a href="{{ ADMIN_URL }}/groups/index.php?group_id={{ IDKEY }}&modify=1"
                hx-get="{{ ADMIN_URL }}/groups/form.php?group_id={{ IDKEY }}"
                hx-target="#group-form-panel" hx-swap="innerHTML"
@@ -51,7 +53,7 @@
     <td>{% if usercount %}{{ usercount }}{% else %}<i>{{ L_('TEXT:NONE') }}</i>{% endif %}</td>
 
     <td>
-        {% if not is_admin_group %}
+        {% if not is_admin_group and manageable %}
             {% if has_permission('groups_modify') %}
                 <a hx-get="{{ ADMIN_URL }}/groups/form.php?group_id={{ IDKEY }}"
                    hx-target="#group-form-panel" hx-swap="innerHTML"

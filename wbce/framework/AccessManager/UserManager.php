@@ -63,29 +63,45 @@ class UserManager
 
     /**
      * Whether $admin may change the account at all — edit, (de)activate,
-     * delete. Accounts in the administrators group only by administrators:
-     * otherwise a user manager could reset an administrator's password and
-     * take the account over. User 1 is never changed here.
+     * delete. User 1 is never changed here. A non-admin only manages
+     * accounts whose rights lie within his own (rights ceiling, see
+     * PermissionManager::ceilingOf()): otherwise he could reset the password
+     * of an account that may do more than he may — an administrator or,
+     * say, a webmaster who installs modules — and take it over.
      */
     public function mayManageUser(Admin $admin, int $userId): bool
     {
         if ($userId <= self::SUPERADMIN_ID) {
             return false;
         }
-        return $admin->isAdmin() || !$this->isAdminAccount($userId);
+        if ($admin->isAdmin()) {
+            return true;
+        }
+        $perms = new PermissionManager();
+        return !$this->isAdminAccount($userId)
+            && $perms->isWithin($perms->rightsOfUser($userId), $perms->ceilingOf($admin));
     }
 
     /**
-     * Whether $admin may save this group list: only administrators grant
-     * the administrators group. (Taking it away is covered by
-     * mayManageUser(): a non-admin cannot edit an admin account at all.)
+     * Whether $admin may save this group list for an account: only
+     * administrators grant the administrators group, and a non-admin only
+     * groups whose rights together lie within his own (a subset of his own
+     * groups' rights is fine). Taking groups away is covered by
+     * mayManageUser().
      *
-     * @param  int[] $groupIds
+     * @param  int[] $groupIds  in the order they are stored
      */
     public function mayAssignGroups(Admin $admin, array $groupIds): bool
     {
-        return $admin->isAdmin()
-            || !in_array(GroupManager::ADMIN_GROUP_ID, array_map('intval', $groupIds), true);
+        if ($admin->isAdmin()) {
+            return true;
+        }
+        $groupIds = array_map('intval', $groupIds);
+        if (in_array(GroupManager::ADMIN_GROUP_ID, $groupIds, true)) {
+            return false;
+        }
+        $perms = new PermissionManager();
+        return $perms->isWithin($perms->rightsOfGroups($groupIds), $perms->ceilingOf($admin));
     }
 
     /**
@@ -430,15 +446,18 @@ class UserManager
      *
      * Used to render group checkboxes in the modify/add user form.
      *
-     * @param  int    $userId        Load assigned groups from DB for this user (0 = none)
-     * @param  array  $preselected   Override: group IDs to mark as active (e.g. from POST on error)
-     * @param  bool   $showAdminGroup  Whether to include group_id=1
+     * @param  int         $userId          Load assigned groups from DB for this user (0 = none)
+     * @param  array       $preselected     Override: group IDs to mark as active (e.g. from POST on error)
+     * @param  bool        $showAdminGroup  Whether to include group_id=1
+     * @param  array|null  $ceiling         PermissionManager::ceilingOf() the editor: only groups
+     *                                      within it are offered; null = all
      * @return array  Keyed by group_id: [id, name, active => bool]
      */
     public function getGroupsForForm(
-        int   $userId = 0,
-        array $preselected = [],
-        bool  $showAdminGroup = false
+        int    $userId = 0,
+        array  $preselected = [],
+        bool   $showAdminGroup = false,
+        ?array $ceiling = null
     ): array {
         // Determine which groups are assigned
         $assigned = $preselected;
@@ -469,8 +488,12 @@ class UserManager
         $sql .= " ORDER BY `name`";
         $rows = $this->db->fetchAll($sql, $params);
 
+        $perms  = ($ceiling !== null) ? new PermissionManager() : null;
         $groups = [];
         foreach ($rows as $rec) {
+            if ($perms !== null && !$perms->isWithin($perms->rightsOfGroups([(int) $rec['id']]), $ceiling)) {
+                continue;
+            }
             $rec['active'] = in_array((int) $rec['id'], $assigned, true);
             $groups[$rec['id']] = $rec;
         }

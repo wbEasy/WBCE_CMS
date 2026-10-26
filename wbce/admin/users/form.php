@@ -77,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['groups'])) {
         $errorMsgs[] = $MESSAGE['USERS_NO_GROUP'] ?? 'Please select at least one group';
     } else {
-        // the form hides the administrators group from non-admins; the
-        // request must not add it either
+        // the form offers non-admins only groups within their own rights
+        // (never the administrators group); the request must not add others
         if (!$users->mayAssignGroups($admin, (array) $_POST['groups'])) {
             http_response_code(422);
             $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
@@ -217,7 +217,8 @@ $changePswd = (isset($_POST['change_pswd']) && $_POST['change_pswd'] == 1);
 $groupsForForm = $users->getGroupsForForm(
     $userId,
     ($wasAdded) ? [] : ($saveData['groups'] ?? []),
-    in_array(1, $admin->get_groups_id())
+    in_array(1, $admin->get_groups_id()),
+    (new PermissionManager())->ceilingOf($admin)
 );
 
 $homeFolders = $users->getHomeFolders(

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if (!$isNew && $groupId < 2) {
+    if (!$isNew && ($groupId < 2 || !$groups->mayManageGroup($admin, $groupId))) {
         $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
         echo $alerts->renderFragment();
         exit;
@@ -69,6 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'default_module' => trim($admin->get_post('default_module') ?? ''),
             ...$perms->parseFromPost($admin),
         ];
+
+        // A non-admin grants only what he has himself; the form greys out
+        // the rest, the request must not add it either.
+        if (!$groups->mayStoreRights($admin, $data)) {
+            http_response_code(422);
+            $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
+            echo $alerts->renderFragment();
+            exit;
+        }
 
         if ($isNew) {
             $groupId = $groups->createGroup($data);
@@ -115,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $admin   = new Admin('Access', 'groups_modify', false);
         $groupId = intval($admin->checkIDKEY('group_id', 0, 'GET', true, 'group'));
 
-        if ($groupId < 2) {
+        if ($groupId < 2 || !$groups->mayManageGroup($admin, $groupId)) {
             $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
             echo $alerts->renderFragment();
             exit;
@@ -127,19 +136,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // =====================================================================
 //  Render form
 // =====================================================================
+// rights outside the editor's own are shown greyed out (rights ceiling)
+$ceiling = $perms->ceilingOf($admin);
+
 $toTwig = [
     'MESSAGE_BOX'  => $alerts->renderFragment(),
     'group_id'     => $groupId,
     'GROUP_NAME'     => ($groupId > 0) ? $groups->getGroupName($groupId)                             : '',
     'GROUP_DESC'     => ($groupId > 0) ? $groups->getGroupDescription($groupId)                      : '',
     'default_module' => ($groupId > 0) ? ($groups->getGroup($groupId)['default_module'] ?? '')       : '',
-    'access_perms' => $perms->getStructure($groupId),
+    'access_perms' => $perms->getStructure($groupId, $ceiling),
     'addon_list'   => [
-        'page'     => $perms->getAddonList('page',     $groupId),
-        'tool'     => $perms->getAddonList('tool',     $groupId),
-        'setting'  => $perms->getAddonList('setting',  $groupId),
-        'template' => $perms->getAddonList('template', $groupId),
-        'theme'    => $perms->getAddonList('theme',    $groupId),
+        'page'     => $perms->getAddonList('page',     $groupId, $ceiling),
+        'tool'     => $perms->getAddonList('tool',     $groupId, $ceiling),
+        'setting'  => $perms->getAddonList('setting',  $groupId, $ceiling),
+        'template' => $perms->getAddonList('template', $groupId, $ceiling),
+        'theme'    => $perms->getAddonList('theme',    $groupId, $ceiling),
     ],
 ];
 

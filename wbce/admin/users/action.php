@@ -91,6 +91,8 @@ function renderUserRow($userId, $admin, $users, $extraClass = ''): void
         return;
     }
 
+    $rec['manageable'] = $users->mayManageUser($admin, (int) $userId);
+
     $toTwig = [
         'rec'         => $rec,
         'extra_class' => $extraClass,

@@ -18,6 +18,12 @@
  *   parseFromPost()
  *   getAddonList()
  *   getDefaults()
+ *   mergeRights(), rightsOfGroups(), rightsOfUser()
+ *   ceilingOf(), excessRights(), isWithin()
+ *
+ * Rights ceiling: a non-admin may only hand out what lies within his own
+ * effective rights — see ceilingOf() and "Permissions & the Rights Ceiling" in
+ * .claude/wbce-architecture.md.
  */
 
 declare(strict_types=1);
@@ -147,10 +153,128 @@ class PermissionManager
         'pages'      => ['functions' => ['page', 'template'], 'column' => 'module_permissions, template_permissions'],
     ];
 
+    /** Group rows by group_id, loaded once per request by groupRow(). */
+    private ?array $groupRows = null;
+
     public function __construct()
     {
         global $database;
         $this->db = $database;
+    }
+
+    // =========================================================================
+    //  EFFECTIVE RIGHTS AND THE RIGHTS CEILING
+    // =========================================================================
+
+    /**
+     * Merge group rows into effective rights, exactly as Login does at sign-in:
+     * system permissions are united; module and template lists are
+     * intersected, the first group starting the intersection, a group with
+     * an empty list skipped.
+     *
+     * module = deny-list of page modules plus allow-list of '<dir>_tool'
+     * entries; template = deny-list.
+     *
+     * @param  array[] $rows  group rows (system_permissions, module_permissions,
+     *                        template_permissions) in the user's group order
+     * @return array{system: string[], module: string[], template: string[]}
+     */
+    public static function mergeRights(array $rows): array
+    {
+        $rights = ['system' => [], 'module' => [], 'template' => []];
+        $first  = true;
+
+        foreach ($rows as $row) {
+            if (!empty($row['system_permissions'])) {
+                $rights['system'] = array_merge($rights['system'], explode(',', $row['system_permissions']));
+            }
+            foreach (['module', 'template'] as $type) {
+                if (!empty($row[$type . '_permissions'])) {
+                    $list = explode(',', $row[$type . '_permissions']);
+                    $rights[$type] = $first ? $list : array_values(array_intersect($rights[$type], $list));
+                }
+            }
+            $first = false;
+        }
+
+        return $rights;
+    }
+
+    /**
+     * Effective rights of a list of groups (unknown ids are skipped).
+     *
+     * @param  int[] $groupIds  in the stored order
+     */
+    public function rightsOfGroups(array $groupIds): array
+    {
+        $rows = [];
+        foreach ($groupIds as $groupId) {
+            $row = $this->groupRow((int) $groupId);
+            if ($row !== null) {
+                $rows[] = $row;
+            }
+        }
+        return self::mergeRights($rows);
+    }
+
+    /**
+     * Effective rights of an account, from its groups as stored now (not
+     * from a session: rights taken away since the login count).
+     */
+    public function rightsOfUser(int $userId): array
+    {
+        $groupsId = (string) $this->db->fetchValue(
+            "SELECT `groups_id` FROM `{TP}users` WHERE `user_id` = ?",
+            [$userId]
+        );
+        return $this->rightsOfGroups(array_filter(explode(',', $groupsId), 'strlen'));
+    }
+
+    /**
+     * The rights ceiling of $admin: what he may hand out to groups and
+     * accounts. Null for administrators (no ceiling).
+     */
+    public function ceilingOf(Admin $admin): ?array
+    {
+        return $admin->isAdmin() ? null : $this->rightsOfUser((int) $admin->get_user_id());
+    }
+
+    /**
+     * What $rights grants beyond $ceiling, per kind:
+     *   system   — system permissions the ceiling lacks
+     *   module   — page modules allowed although the ceiling denies them
+     *   tool     — admin tools the ceiling has no access to
+     *   template — frontend templates allowed although the ceiling denies them
+     *
+     * Only addons installed now are compared (deny-lists keep entries of
+     * uninstalled addons); backend themes are left out, they are not
+     * group-configurable.
+     *
+     * @return array{system: string[], module: string[], tool: string[], template: string[]}
+     */
+    public function excessRights(array $rights, array $ceiling): array
+    {
+        $modules   = array_values(array_filter($this->getAllAddonIdentifiers('module'), fn($id) => !str_ends_with($id, '_tool')));
+        $templates = array_values(array_diff(
+            $this->getAllAddonIdentifiers('template'),
+            array_column($this->getAddonList('theme'), 'directory')
+        ));
+        $tools     = fn(array $list) => array_filter($list, fn($id) => str_ends_with($id, '_tool'));
+
+        return [
+            'system'   => array_values(array_diff(array_filter($rights['system'], 'strlen'), $ceiling['system'])),
+            'module'   => array_values(array_diff(array_intersect($ceiling['module'], $modules), $rights['module'])),
+            'tool'     => array_values(array_diff($tools($rights['module']), $tools($ceiling['module']))),
+            'template' => array_values(array_diff(array_intersect($ceiling['template'], $templates), $rights['template'])),
+        ];
+    }
+
+    /**
+     * Whether $rights lies within $ceiling (null ceiling = administrator).
+     */
+    public function isWithin(array $rights, ?array $ceiling): bool
+    {
+        return $ceiling === null || !array_filter($this->excessRights($rights, $ceiling));
     }
 
     // =========================================================================
@@ -161,17 +285,19 @@ class PermissionManager
      * Get the full permission structure for a group, ready for the Twig template.
      *
      * Each area includes:
-     *   'checked'  => bool    (parent checkbox state)
-     *   'state'    => string  'none' | 'partial' | 'full'
-     *   'children' => [perm => [title, checked]]
+     *   'checked'   => bool    (parent checkbox state)
+     *   'state'     => string  'none' | 'partial' | 'full'
+     *   'grantable' => bool    (at least one child within the ceiling)
+     *   'children'  => [perm => [title, checked, grantable]]
      *
      * State is computed from child checkboxes only (not addon counts).
      * For overview icons that also consider addons, use getAreaStates().
      *
-     * @param  int   $groupId  0 = new group (uses defaults)
-     * @return array           Nested structure per area
+     * @param  int        $groupId  0 = new group (uses defaults)
+     * @param  array|null $ceiling  ceilingOf() the editor; null = everything grantable
+     * @return array                Nested structure per area
      */
-    public function getStructure(int $groupId = 0): array
+    public function getStructure(int $groupId = 0, ?array $ceiling = null): array
     {
         $activePerms = ($groupId > 0)
             ? $this->getPermissionSet($groupId, 'system_permissions')
@@ -184,24 +310,31 @@ class PermissionManager
             $checkedCount = 0;
             $totalCount   = count($def['children']);
 
+            $areaGrantable = false;
             foreach ($def['children'] as $perm => $title) {
                 $isChecked = in_array($perm, $activePerms, true);
+                $grantable = ($ceiling === null) || in_array($perm, $ceiling['system'], true);
                 $children[$perm] = [
-                    'title'   => $title,
-                    'checked' => $isChecked,
+                    'title'     => $title,
+                    'checked'   => $isChecked,
+                    'grantable' => $grantable,
                 ];
                 if ($isChecked) {
                     $checkedCount++;
                 }
+                $areaGrantable = $areaGrantable || $grantable;
             }
 
             // For addon-linked areas, also count addon permissions in the state
             // (same logic as getAreaStates — tools live in module_permissions, not children).
-            if (isset(self::ADDON_LINKED_AREAS[$area]) && $groupId > 0) {
+            if (isset(self::ADDON_LINKED_AREAS[$area])) {
                 foreach (self::ADDON_LINKED_AREAS[$area]['functions'] as $function) {
-                    foreach ($this->getAddonList($function, $groupId) as $addon) {
-                        $totalCount++;
-                        if ($addon['checked']) $checkedCount++;
+                    foreach ($this->getAddonList($function, $groupId, $ceiling) as $addon) {
+                        if ($groupId > 0) {
+                            $totalCount++;
+                            if ($addon['checked']) $checkedCount++;
+                        }
+                        $areaGrantable = $areaGrantable || $addon['grantable'];
                     }
                 }
             }
@@ -216,10 +349,11 @@ class PermissionManager
             }
 
             $structure[$area] = [
-                'title'    => $def['title'],
-                'checked'  => in_array($area, $activePerms, true),
-                'state'    => $state,
-                'children' => $children,
+                'title'     => $def['title'],
+                'checked'   => in_array($area, $activePerms, true),
+                'state'     => $state,
+                'grantable' => $areaGrantable,
+                'children'  => $children,
             ];
         }
 
@@ -405,11 +539,16 @@ class PermissionManager
      * Replaces get_addon_list(). Used in the Groups UI to show which 
      * page modules, tools, templates, etc. a group may use.
      *
-     * @param  string $function  'page', 'tool', 'setting', 'template', 'theme'
-     * @param  int    $groupId   0 = new group, no pre-checked items
-     * @return array  [addon_id => [addon_id, name, directory, checked => bool]]
+     * 'grantable' tells whether the editor may hand the addon out (within
+     * his ceiling): a tool he may use himself, a page module or template he
+     * is not denied. Backend themes are always grantable.
+     *
+     * @param  string     $function  'page', 'tool', 'setting', 'template', 'theme'
+     * @param  int        $groupId   0 = new group, no pre-checked items
+     * @param  array|null $ceiling   ceilingOf() the editor; null = everything grantable
+     * @return array  [addon_id => [addon_id, name, directory, checked => bool, grantable => bool]]
      */
-    public function getAddonList(string $function, int $groupId = 0): array
+    public function getAddonList(string $function, int $groupId = 0, ?array $ceiling = null): array
     {
         // Determine addon type: modules table uses 'module', templates table uses 'template'
         $type = in_array($function, ['template', 'theme'], true) ? 'template' : 'module';
@@ -453,6 +592,14 @@ class PermissionManager
             } else {
                 $rec['checked'] = ($groupId > 0) && !in_array($identifier, $assignedAddons, true);
             }
+
+            if ($ceiling === null || $function === 'theme') {
+                $rec['grantable'] = true;
+            } elseif ($function === 'tool') {
+                $rec['grantable'] = in_array($identifier, $ceiling['module'], true);
+            } else {
+                $rec['grantable'] = !in_array($identifier, $ceiling[$type], true);
+            }
             $result[$rec['addon_id']] = $rec;
         }
 
@@ -485,6 +632,23 @@ class PermissionManager
     }
 
     // === INTERNAL HELPERS ====================================================
+
+    /**
+     * One group row (permission columns), all groups loaded on first use.
+     */
+    private function groupRow(int $groupId): ?array
+    {
+        if ($this->groupRows === null) {
+            $this->groupRows = [];
+            foreach ($this->db->fetchAll(
+                "SELECT `group_id`, `system_permissions`, `module_permissions`, `template_permissions`
+                   FROM `{TP}groups`"
+            ) as $row) {
+                $this->groupRows[(int) $row['group_id']] = $row;
+            }
+        }
+        return $this->groupRows[$groupId] ?? null;
+    }
 
     /**
      * Read a permission column from the groups table and return as array.

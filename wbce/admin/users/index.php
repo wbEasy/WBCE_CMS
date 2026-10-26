@@ -83,6 +83,13 @@ $admin->print_header();
 // Auto-cleanup unconfirmed signups
 $users->autoCleanup();
 
+// Actions only where the rights ceiling allows them (the endpoints check again)
+$userList = $users->getAllUsers(false, $isSuperAdmin);
+foreach ($userList as &$rec) {
+    $rec['manageable'] = $users->mayManageUser($admin, (int) $rec['user_id']);
+}
+unset($rec);
+
 // --- Render ---
 $toTwig = [
     'MESSAGE_BOX'        => $alerts->render(),
@@ -90,7 +97,7 @@ $toTwig = [
     'do_modify_user'     => $isModifyView,
     'ACTION_URL'         => ADMIN_URL . '/users/form.php',
     'use_home_folders'   => HOME_FOLDERS,
-    'USERLIST'           => $users->getAllUsers(false, $isSuperAdmin),
+    'USERLIST'           => $userList,
     'TIME_ZONES'         => getTimeZonesArray($TIMEZONES ?? [], true),
     'LANGUAGES'          => getLanguagesArray(),
 ];
@@ -101,7 +108,8 @@ if ($isModifyView && $modifyUserId > 0) {
     $toTwig['groups'] = $users->getGroupsForForm(
         $modifyUserId,
         [],
-        in_array(1, $admin->get_groups_id())
+        in_array(1, $admin->get_groups_id()),
+        (new PermissionManager())->ceilingOf($admin)
     );
     $toTwig['home_folders'] = $users->getHomeFolders($modifyUserId);
     $toTwig['change_pswd']  = isset($_GET['duplicated']);

@@ -29,7 +29,7 @@
                  src="{{ WB_URL }}/languages/{{ rec.language }}.svg"
                  style="width:16px; vertical-align:middle"/>
         </span>
-        {% if has_permission('users_modify') and rec.user_id > 1 and (IS_ADMIN or 1 not in rec.groups|keys) %}
+        {% if has_permission('users_modify') and rec.manageable|default(false) %}
             <a href="{{ ADMIN_URL }}/users/index.php?user_id={{ IDKEY }}&modify=1"
                hx-get="{{ ADMIN_URL }}/users/form.php?user_id={{ IDKEY }}"
                hx-target="#user-form-panel"
@@ -83,8 +83,8 @@
 
     {# Actions — always visible #}
     <td>
-        {# admin accounts: actions for administrators only (the endpoints refuse them anyway) #}
-        {% if rec.user_id > 1 and (IS_ADMIN or 1 not in rec.groups|keys) %}
+        {# only accounts within the editor's rights ceiling (the endpoints refuse the others anyway) #}
+        {% if rec.manageable|default(false) %}
             <a href="{{ ADMIN_URL }}/users/index.php?user_id={{ IDKEY }}&activation={% if rec.active %}0{% else %}1{% endif %}"
                hx-get="{{ ADMIN_URL }}/users/action.php?do=toggle&user_id={{ IDKEY }}"
                hx-target="#uid_{{ rec.user_id }}"

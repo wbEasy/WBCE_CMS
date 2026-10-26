@@ -162,6 +162,37 @@ class GroupManager
     }
 
     /**
+     * Whether $admin may change the group at all — edit, duplicate, delete.
+     * A non-admin only manages groups whose rights lie within his own
+     * (rights ceiling, see PermissionManager::ceilingOf()): he must not
+     * copy a group that may do more than he may, nor strip its rights.
+     * The administrators group is never a non-admin's; whether it can be
+     * edited or deleted at all is decided by the caller.
+     */
+    public function mayManageGroup(Admin $admin, int $groupId): bool
+    {
+        if ($admin->isAdmin()) {
+            return true;
+        }
+        if ($groupId === self::ADMIN_GROUP_ID || $this->getGroup($groupId) === null) {
+            return false;
+        }
+        $perms = new PermissionManager();
+        return $perms->isWithin($perms->rightsOfGroups([$groupId]), $perms->ceilingOf($admin));
+    }
+
+    /**
+     * Whether $admin may store these permissions for a group (the columns
+     * from PermissionManager::parseFromPost()): a non-admin only grants
+     * what he has himself.
+     */
+    public function mayStoreRights(Admin $admin, array $data): bool
+    {
+        $perms = new PermissionManager();
+        return $perms->isWithin(PermissionManager::mergeRights([$data]), $perms->ceilingOf($admin));
+    }
+
+    /**
      * Whether $value may be used as the frontend signup group: 'false'
      * (signup off) or an existing group other than the administrators
      * group. Every account created through the signup form lands in this

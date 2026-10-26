@@ -343,7 +343,7 @@ class Login extends Admin
         $_SESSION['GROUP_NAME']           = [];
         $_SESSION['DEFAULT_MODULE']       = '';
 
-        $firstGroup = true;
+        $groupRows = [];
 
         foreach (explode(',', $this->get_session('GROUPS_ID')) as $groupId) {
             $group = $this->db->fetchRow(
@@ -356,36 +356,20 @@ class Login extends Admin
             $_SESSION['GROUP_NAME'][$groupId] = $group['name'];
 
             // Default page module — taken from the primary group only
-            if ($firstGroup) {
+            if (!$groupRows) {
                 $_SESSION['DEFAULT_MODULE'] = $group['default_module'] ?? '';
             }
 
-            // System permissions — union of all groups
-            if (!empty($group['system_permissions'])) {
-                $_SESSION['SYSTEM_PERMISSIONS'] = array_merge(
-                    $_SESSION['SYSTEM_PERMISSIONS'],
-                    explode(',', $group['system_permissions'])
-                );
-            }
-
-            // Module permissions — intersection (most restrictive)
-            if (!empty($group['module_permissions'])) {
-                $modulePerms = explode(',', $group['module_permissions']);
-                $_SESSION['MODULE_PERMISSIONS'] = $firstGroup
-                    ? $modulePerms
-                    : array_intersect($_SESSION['MODULE_PERMISSIONS'], $modulePerms);
-            }
-
-            // Template permissions — intersection
-            if (!empty($group['template_permissions'])) {
-                $templatePerms = explode(',', $group['template_permissions']);
-                $_SESSION['TEMPLATE_PERMISSIONS'] = $firstGroup
-                    ? $templatePerms
-                    : array_intersect($_SESSION['TEMPLATE_PERMISSIONS'], $templatePerms);
-            }
-
-            $firstGroup = false;
+            $groupRows[] = $group;
         }
+
+        // System permissions united, module/template lists intersected — the
+        // same merge the rights ceiling uses (PermissionManager::mergeRights()),
+        // so what a user may hand out and what he gets at login never differ.
+        $rights = PermissionManager::mergeRights($groupRows);
+        $_SESSION['SYSTEM_PERMISSIONS']   = $rights['system'];
+        $_SESSION['MODULE_PERMISSIONS']   = $rights['module'];
+        $_SESSION['TEMPLATE_PERMISSIONS'] = $rights['template'];
     }
 
 
