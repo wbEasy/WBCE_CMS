@@ -253,17 +253,17 @@ $oAccounts->useTwigTemplate('form_signup.twig', $aToTwig);
 // patch the database and include the following columns if not already existing:
 // ##########################################################################################
 
-if($database->field_exists('{TP}users', 'signup_confirmcode') == false)
-    $database->field_add('{TP}users', 'signup_confirmcode', "VARCHAR(64) DEFAULT ''");
+if (!$database->fieldExists('{TP}users', 'signup_confirmcode'))
+    $database->addField('{TP}users', 'signup_confirmcode', "VARCHAR(64) DEFAULT ''");
 
-if($database->field_exists('{TP}users', 'signup_checksum') == false)
-    $database->field_add('{TP}users', 'signup_checksum', "VARCHAR(64) DEFAULT ''");
+if (!$database->fieldExists('{TP}users', 'signup_checksum'))
+    $database->addField('{TP}users', 'signup_checksum', "VARCHAR(64) DEFAULT ''");
 
-if($database->field_exists('{TP}users', 'signup_timeout') == false)
-    $database->field_add('{TP}users', 'signup_timeout', "INT(11) NOT NULL DEFAULT '0'");
+if (!$database->fieldExists('{TP}users', 'signup_timeout'))
+    $database->addField('{TP}users', 'signup_timeout', "INT(11) NOT NULL DEFAULT '0'");
 
-if($database->field_exists('{TP}users', 'signup_timestamp') == false)
-    $database->field_add('{TP}users', 'signup_timestamp', "INT(11) NOT NULL DEFAULT '0'");
+if (!$database->fieldExists('{TP}users', 'signup_timestamp'))
+    $database->addField('{TP}users', 'signup_timestamp', "INT(11) NOT NULL DEFAULT '0'");
 
-if($database->field_exists('{TP}users', 'gdpr_check') == false)
-    $database->field_add('{TP}users', 'gdpr_check', "INT(1) NOT NULL DEFAULT '0'");
+if (!$database->fieldExists('{TP}users', 'gdpr_check'))
+    $database->addField('{TP}users', 'gdpr_check', "INT(1) NOT NULL DEFAULT '0'");
