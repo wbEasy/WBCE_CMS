@@ -687,7 +687,20 @@ class AddonService
 
     // ── DB registration ───────────────────────────────────────────────────────
 
-    public function dbRegister(string $path, string $type): array
+    /**
+     * Write the addon's info.php data to {TP}addons (insert or update).
+     *
+     * An addon not yet in {TP}addons counts as newly installed and is blocked
+     * for all non-admin groups (see denyAddonForNonAdminGroups()).
+     *
+     * @param array|null $knownBefore  install/update.php empties {TP}addons
+     *                                 before re-registering everything; it
+     *                                 passes the 'type/directory' keys registered
+     *                                 before, so only addons the update really
+     *                                 adds count as new. Matched against the
+     *                                 directory from info.php, not the folder.
+     */
+    public function dbRegister(string $path, string $type, ?array $knownBefore = null): array
     {
         $info = $this->readInfo($path, $type);
         if ($info === null) {
@@ -747,7 +760,8 @@ class AddonService
         // Admins (group 1) always retain full access.
         // This prevents newly installed modules/templates from being silently
         // accessible to all groups — access must be explicitly granted per group.
-        if (!$exists && in_array($type, ['module', 'template'], true)) {
+        $isNew = !$exists && !isset($knownBefore[$type . '/' . $dir]);
+        if ($isNew && in_array($type, ['module', 'template'], true)) {
             $this->denyAddonForNonAdminGroups($dir, $type, $info['function'] ?? '');
         }
 

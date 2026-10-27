@@ -681,6 +681,15 @@ log_sep('Reloading add-ons');
 
 require_once WB_PATH . '/framework/AddonService.php';
 
+// Addons registered before this update: re-registering them must not count as
+// a new install, or every page module and template ends up on every group's
+// deny-list. Only addons the update really adds are blocked for non-admins.
+$knownAddons = [];
+foreach ($database->fetchAll("SELECT `type`, `directory` FROM `{TP}addons`") as $row) {
+    // disabled addons ('module_off', 'template_off') are re-registered as enabled
+    $knownAddons[preg_replace('/_off$/', '', $row['type']) . '/' . $row['directory']] = true;
+}
+
 $database->query("TRUNCATE `{TP}addons`"); // get rid of the entire table content
 
 $addonService = new AddonService();
@@ -689,7 +698,7 @@ $modOk = $tplOk = $langOk = 0;
 // ── Modules ──────────────────────────────────────────────────────────────────
 foreach (glob(WB_PATH . '/modules/*/') ?: [] as $dir) {
     if (!file_exists($dir . 'info.php')) continue;
-    foreach ($addonService->dbRegister($dir, 'module') as $r) {
+    foreach ($addonService->dbRegister($dir, 'module', $knownAddons) as $r) {
         $msg = isset($SIGNAL[$r['signal']])
             ? sprintf($SIGNAL[$r['signal']], 'module', $r['label'])
             : $r['label'];
@@ -706,7 +715,7 @@ log_ok($MENU['MODULES'] . ": $modOk reloaded");
 // ── Templates ─────────────────────────────────────────────────────────────────
 foreach (glob(WB_PATH . '/templates/*/') ?: [] as $dir) {
     if (!file_exists($dir . 'info.php')) continue;
-    foreach ($addonService->dbRegister($dir, 'template') as $r) {
+    foreach ($addonService->dbRegister($dir, 'template', $knownAddons) as $r) {
         $msg = isset($SIGNAL[$r['signal']])
             ? sprintf($SIGNAL[$r['signal']], 'template', $r['label'])
             : $r['label'];
