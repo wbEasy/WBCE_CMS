@@ -29,6 +29,7 @@
   var barLabel     = document.getElementById('progress-label');
   var phaseLabel   = document.getElementById('phase-label');
   var actionsEl    = document.getElementById('update-actions');
+  var noticesEl    = document.getElementById('update-notices');
 
   if (!logEl || !updateForm) return;
 
@@ -206,6 +207,14 @@
     var inner = document.createElement('div');
     inner.innerHTML = item;
     var el = inner.firstElementChild;
+
+    // advisories (update_functions.php) stand between the log and the buttons
+    if (el && noticesEl && el.classList.contains('update-notice')) {
+      noticesEl.appendChild(el);
+      noticesEl.style.display = 'block';
+      setTimeout(drainQueue, ITEM_DELAY);
+      return;
+    }
 
     if (el) {
       el.style.cssText = 'opacity:0;transform:translateY(4px);transition:opacity .18s ease,transform .18s ease';

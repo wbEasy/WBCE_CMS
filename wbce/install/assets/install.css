@@ -609,6 +609,16 @@ input.wrong:focus, select.wrong:focus {
 .install-log .log-err   { color:#fc8181; font-weight: 600; }
 .install-log .log-sep   { color:#f5b47c; font-size: 110%; }
 .install-actions    { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+/* advisories (admin/interface/update_functions.php), between log and buttons */
+.update-notices     { margin-bottom:20px; }
+.update-notice      { border-left:4px solid #3182ce; background:#ebf8ff; color:#1a202c;
+                      border-radius:6px; padding:12px 16px; margin-bottom:12px;
+                      font-size:14px; line-height:1.55; }
+.update-notice ul   { margin:6px 0 0 20px; padding:0; }
+.update-notice code { font-size:12.5px; }
+.update-notice a    { color:#2b6cb0; }
+.update-notice-warn     { border-left-color:#dd6b20; background:#fffaf0; }
+.update-notice-critical { border-left-color:#c53030; background:#fff5f5; }
 .inst-done          { text-align: center;}
 .inst-btn           { display:inline-block; padding:11px 22px; 
                       border-radius:8px; font-size:14px; font-weight:600; 

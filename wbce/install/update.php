@@ -199,6 +199,7 @@ if (!$confirmed) {
         <span class="progress-pct" id="progress-label">0%</span>
       </div>
       <div class="install-log" id="update-log"></div>
+      <div class="update-notices" id="update-notices" style="display:none"></div>
       <div class="install-actions" id="update-actions" style="display:none"></div>
     </div>
   </div>
@@ -759,6 +760,20 @@ Settings::set('app_name', 'phpsessid-' . rand(1000, 9999));
 $database->query("TRUNCATE `{TP}dbsessions`"); // will be instantiated anew all by itself
 Settings::exportSnapshot(true);
 log_ok('Settings snapshot written');
+
+// ── Advisories about installed addons (admin/interface/update_functions.php)
+// upgrade.js moves .update-notice out of the log, above the buttons; the log
+// line keeps the advisory in the downloaded log too
+foreach (wbceAdvisories(true) as $aAdvisory) {
+    $sTitle = strtr(
+        wbceAdvisoryText($aAdvisory['addon'], 'title_' . $aAdvisory['level'], $langCode),
+        ['{name}' => $aAdvisory['name'], '{installed}' => $aAdvisory['installed']]
+    );
+    $aAdvisory['level'] === 'info' ? log_info($sTitle) : log_warn($sTitle);
+    echo '<div class="update-notice update-notice-' . $aAdvisory['level'] . '">'
+       . wbceAdvisoryHtml($aAdvisory, $langCode) . "</div>\n";
+    flush();
+}
 
 echo '<div class="ok" style="font-weight:700;margin-top:8px">✓ ── Update complete ──</div>' . "\n";
 flush();

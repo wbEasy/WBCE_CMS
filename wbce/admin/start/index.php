@@ -114,6 +114,11 @@ if ($admin->get_group_id() == 1) {
     if (varDirectoryExposure() === true) {
         $sWarning .= ($sWarning !== '' ? '<hr>' : '') . varExposureHint();
     }
+    // ... and installed addons in a version with a known problem
+    // (admin/interface/update_functions.php)
+    foreach (wbceAdvisories() as $aAdvisory) {
+        $sWarning .= ($sWarning !== '' ? '<hr>' : '') . wbceAdvisoryHtml($aAdvisory);
+    }
     $template->set_var('DISPLAY_WARNING', $sWarning !== '' ? 'display:block;' : 'display:none;');
     $template->set_var('WARNING', $sWarning);
 } else {

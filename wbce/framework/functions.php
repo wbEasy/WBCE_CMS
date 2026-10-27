@@ -17,6 +17,9 @@ defined('WB_PATH') or die('No direct access allowed');
 // stand alone `wbce_installer`
 require_once __DIR__ . '/functions.load_addons.php';
 
+// advisories about installed addons (end of install/update.php, start page)
+require_once ADMIN_PATH . '/interface/update_functions.php';
+
 // Define that this file has been loaded
 define('FUNCTIONS_FILE_LOADED', true);
 
