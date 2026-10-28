@@ -219,6 +219,15 @@ class WysiwygEditor
             if ($tok === '') { continue; }
             $add($tok === 'default' ? $default : self::sanitizeDir($tok));
         }
+
+        // WYSIWYG editor "none" (Settings > Advanced): the default editor is a
+        // plain textarea. Only an editor the chain names explicitly is used —
+        // no other installed editor steps in for "default" (render() falls
+        // through to textarea()).
+        if ($default === 'none') {
+            return $out;
+        }
+
         $add($default);
         foreach ($installed as $dir) { $add($dir); }
 
