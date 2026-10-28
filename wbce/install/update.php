@@ -533,8 +533,10 @@ foreach ($coreModules as $mod => $cfg) {
 
     $scriptFile = WB_PATH . "/modules/$mod/$script.php";
     if (is_readable($scriptFile)) {
+        // built before the require: an upgrade script may overwrite $mod
+        $doneMsg = "{$TXT['module']}: `$mod` — $script {$TXT['log_done']}";
         require_once $scriptFile;
-        log_ok("{$TXT['module']}: `$mod` — $script {$TXT['log_done']}");
+        log_ok($doneMsg);
     } else {
         log_warn("{$TXT['module']}: `$mod` — $script.php {$TXT['log_not_found']}");
     }
@@ -550,7 +552,7 @@ $settingGatedModules = [
 foreach ($settingGatedModules as $mod => $settingKey) {
     if (!file_exists(WB_PATH . "/modules/$mod/info.php")) continue;
 
-    if (Settings::get($settingKey) !== null) {
+    if (Settings::get($settingKey, null) !== null) {   // default is false, not null
         log_info(sprintf($TXT['module_already_configured'] ?? 'Module `%s` already configured — skipped', $mod));
         continue;
     }

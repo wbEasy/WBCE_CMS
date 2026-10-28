@@ -65,6 +65,9 @@
 [FRAMEWORK]/class.frontend.php
 [FRAMEWORK]/wsession.php         // replaced by WbceSession
 [FRAMEWORK]/dbsession.php        // replaced by [FRAMEWORK]/WbceDbSession
+[FRAMEWORK]/class.wb.php         // 1.6.x; class Wb is an alias of Wbce now (a stale copy is a fatal error)
+[FRAMEWORK]/class.login.php      // 1.6.x; replaced by [FRAMEWORK]/Login.php
+[FRAMEWORK]/class.settings.php   // 1.6.x; replaced by [FRAMEWORK]/Settings.php
 
 # Include / Sensio
 [INCLUDE]/Sensio/Twig/TwigConnect.php
@@ -169,6 +172,8 @@
 [INCLUDE]/idna_convert/                   // obsolete since 1.7.0 
 [INCLUDE]/FlashMessages/                  // obsolete since 1.7.0. MessageBox is a standalone class now 
 [INCLUDE]/jscalendar/                     // obsolete since 1.7.0. Replaced with date_time_picker/flatpickr
+[INCLUDE]/editarea/                       // obsolete since 1.7.0. Replaced with CodeMirror
+[INCLUDE]/yui/                            // obsolete since 1.7.0. No longer used
 [MODULES]/ckeditor/                       // CKEditor 4 (end of life) no longer shipped, replaced by tinymce_wbce
 [MODULES]/logrotate/                      // 1.6.x snippet rotating php_error.log; the errorlogger handles the logs now
 [MODULES]/ckeditordev/ckeditor/filemanager/
