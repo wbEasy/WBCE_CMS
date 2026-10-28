@@ -528,18 +528,19 @@ class UserManager
 
     /**
      * Whether $admin may store $folder as a user's home folder. $current is
-     * the value stored now ('' for a new account); keeping it is always
-     * allowed. '' means no home folder (the whole media directory); anything
-     * else must be an existing directory inside the media directory.
+     * the value stored now, null for a new account; keeping a stored value
+     * is always allowed — a new account has none to keep. '' means no home
+     * folder (the whole media directory); anything else must be an existing
+     * directory inside the media directory.
      *
      * A non-admin who has a home folder himself only hands out that folder
      * or one below it — not '' and not a folder beside it (rights ceiling,
      * applied to the media area). Interim rule — the rights system is
      * rebuilt from scratch in WBCE 2.x.
      */
-    public function mayStoreHomeFolder(Admin $admin, string $folder, string $current = ''): bool
+    public function mayStoreHomeFolder(Admin $admin, string $folder, ?string $current = null): bool
     {
-        if ($folder === $current) {
+        if ($current !== null && $folder === $current) {
             return true;
         }
         if ($folder !== '' && self::homeFolderPath($folder) === null) {

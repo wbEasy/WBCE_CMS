@@ -75,10 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Home folder: becomes the root of the media manager for this account.
     // Only '' or an existing folder inside the media directory; a non-admin
-    // with a home folder hands out only that one or one below it. Not in the
-    // form (home folders switched off): the stored value stays.
-    $currentHome = $isAdd ? '' : (string) ($users->getUser($userId)['home_folder'] ?? '');
-    $homeFolder  = isset($_POST['home_folder']) ? trim((string) $admin->get_post('home_folder')) : $currentHome;
+    // with a home folder hands out only that one or one below it. A new
+    // account has no stored value to keep (null). Not in the form (home
+    // folders switched off): an existing account keeps its value, a new one
+    // gets the creator's own home folder.
+    $currentHome = $isAdd ? null : (string) ($users->getUser($userId)['home_folder'] ?? '');
+    $homeFolder  = isset($_POST['home_folder'])
+        ? trim((string) $admin->get_post('home_folder'))
+        : ($currentHome ?? ($admin->isAdmin() ? '' : (string) $admin->get_home_folder()));
     if (!$users->mayStoreHomeFolder($admin, $homeFolder, $currentHome)) {
         http_response_code(422);
         $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
@@ -246,7 +250,10 @@ if ($ownHome !== '/') {
         $f['selected'] || $f['dir'] === $ownHome || str_starts_with($f['dir'], $ownHome . '/')
     ));
 }
-$homeFolderNone = ($ownHome === '' || $ownHome === '/' || (string) ($userData['home_folder'] ?? '') === '');
+// "None" (= the whole media directory): for a non-admin with a home folder
+// only to keep it on an existing account that has none
+$homeFolderNone = ($ownHome === '' || $ownHome === '/'
+    || (!$isAdd && (string) ($userData['home_folder'] ?? '') === ''));
 
 $toTwig = [
     'MESSAGE_BOX'        => $alerts->renderFragment(),
