@@ -213,6 +213,9 @@ final class AssetQueue
     /** Dedup map — 'type|/abs/path' → true; catches same file under different URL forms
      *  (token syntax vs full URL, root vs assets/ path, etc.) */
     private array  $seenPaths  = [];
+
+    /** @var array<string,string> Asset files not found in this request (file => where), for the admin console */
+    private array  $missing    = [];
     /** {TOKEN} → URL map, populated in __construct, extensible via addUrlToken() */
     private array  $urlTokens  = [];
 
@@ -1034,6 +1037,9 @@ final class AssetQueue
             $content = preg_replace('/[ \t]*<!--\(PH\)\s[^-]*-->(\r?\n)?/', '', $content) ?? $content;
             $inst->scan($content);
             $inst->inject($content);
+            if ($inst->debug && $inst->missing && $inst->isAdmin()) {
+                $inst->injectMissingScript($content);
+            }
             $inst->reset();
             return true;
         } catch (Throwable $e) {
@@ -1073,11 +1079,26 @@ final class AssetQueue
 
     // ── Internal: admin check & debug output ──────────────────────────────────
 
+    /**
+     * A logged-in member of the administrators group (group 1), as
+     * Wbce::isAdmin() — not just anyone logged in. Gates the console
+     * diagnostics, ASSETS_MINIFY_DEBUG and the CTRL+F5 font refresh.
+     */
     private function isAdmin(): bool
     {
-        return isset($_SESSION['USER_ID'])
-            && is_numeric($_SESSION['USER_ID'])
-            && (int)$_SESSION['USER_ID'] > 0;
+        if (!isset($_SESSION['USER_ID']) || !is_numeric($_SESSION['USER_ID']) || (int) $_SESSION['USER_ID'] < 1) {
+            return false;
+        }
+        $groups = array_map('trim', explode(',', (string) ($_SESSION['GROUPS_ID'] ?? $_SESSION['GROUP_ID'] ?? '')));
+        return in_array('1', $groups, true);
+    }
+
+    /** Remember a missing asset file for the admin console (ASSET_QUEUE_DEBUG). */
+    private function noteMissing(string $file, string $where): void
+    {
+        if ($this->debug) {
+            $this->missing[strtok($file, '?#') ?: $file] = $where;
+        }
     }
 
     /**
@@ -1127,16 +1148,32 @@ final class AssetQueue
 
     private function injectDebugScript(string &$content, Throwable $e): void
     {
-        $msg   = addslashes($e->getMessage());
-        $file  = addslashes(basename($e->getFile()));
-        $line  = $e->getLine();
-        $trace = addslashes(str_replace(["\r\n", "\n", "\r"], '\n', $e->getTraceAsString()));
+        $text = '[I] ' . $e->getMessage() . "\n"
+              . 'File: ' . basename($e->getFile()) . '  Line: ' . $e->getLine() . "\n"
+              . "Stack:\n" . $e->getTraceAsString();
+        $this->injectConsole($content, 'error', $text);
+    }
 
+    /** console.warn() listing the asset files that were not found on this page. */
+    private function injectMissingScript(string &$content): void
+    {
+        $text = '[I] AssetQueue: ' . count($this->missing) . " asset file(s) not found on this page:";
+        foreach ($this->missing as $file => $where) {
+            $text .= "\n  " . $file . '  (' . $where . ')';
+        }
+        $this->injectConsole($content, 'warn', $text);
+    }
+
+    /** Append a console.<level>() call before </body> — admins only, ASSET_QUEUE_DEBUG=true. */
+    private function injectConsole(string &$content, string $level, string $text): void
+    {
+        // json_encode: a quote, line break or "</script>" in a path or message
+        // must not break out of the script
+        $js = json_encode($text, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                               | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         $script = "\n<script>\n"
                 . "/* I/AssetQueue debug — admin only, ASSET_QUEUE_DEBUG=true */\n"
-                . "console.error('[I] ' + '$msg\\n'"
-                . " + 'File: $file  Line: $line\\n'"
-                . " + 'Stack:\\n$trace');\n"
+                . "console." . $level . "(" . $js . ");\n"
                 . "</script>\n";
 
         $pos = strripos($content, '</body>');
@@ -1415,7 +1452,7 @@ final class AssetQueue
                     foreach ($sources as $file) {
                         $path = $this->resolveLocalPath($file);
                         if ($path) { $minifier->add($path); $hasSource = true; }
-                        elseif ($this->debug) error_log("I (combine): source not found: $file");
+                        else { $this->noteMissing($file, 'bundle source not found'); if ($this->debug) error_log("I (combine): source not found: $file"); }
                     }
                     if ($hasSource) {
                         $minifier->minify($cacheFile); // writes file + rewrites url() paths
@@ -1427,7 +1464,7 @@ final class AssetQueue
                     foreach ($sources as $file) {
                         $path = $this->resolveLocalPath($file);
                         if ($path) { $minifier->add($path); $hasSource = true; }
-                        elseif ($this->debug) error_log("I (combine): source not found: $file");
+                        else { $this->noteMissing($file, 'bundle source not found'); if ($this->debug) error_log("I (combine): source not found: $file"); }
                     }
                     if ($hasSource) {
                         $minifier->minify($cacheFile);
@@ -1455,8 +1492,9 @@ final class AssetQueue
                     if ($trimmed !== '') {
                         $combined .= ($type === 'js' ? rtrim($trimmed, ';') . ";\n" : $trimmed . "\n");
                     }
-                } elseif ($this->debug) {
-                    error_log("I (combine): source not found: $file");
+                } else {
+                    $this->noteMissing($file, 'bundle source not found');
+                    if ($this->debug) error_log("I (combine): source not found: $file");
                 }
             }
             if ($combined === '') return null;
@@ -2615,12 +2653,18 @@ final class AssetQueue
         // relative, root-relative and WB_URL-subdir — so a single lookup covers
         // both the "external same-origin" and the "local path/token" cases.
         if ($this->isExternal($url) && $this->urlToLocalPath($url) === null) {
+            // A URL of this very site whose file is missing still goes out as
+            // it is (the browser shows the 404) — but the admin console names it.
+            if ($this->isOwnUrl($url)) {
+                $this->noteMissing($file, 'not found');
+            }
             return $url;
         }
 
         $path = $this->urlToLocalPath($url);
         if ($path === null) {
             if ($this->debug) error_log("I: file not found: $file");
+            $this->noteMissing($file, 'not found');
             return null;
         }
 
@@ -2757,6 +2801,18 @@ final class AssetQueue
 
         $path = $wbPath . '/' . ltrim($rel, '/');
         return is_file($path) ? $path : null;
+    }
+
+    /** Whether an absolute or protocol-relative URL points into this WBCE install (host + WB_URL path). */
+    private function isOwnUrl(string $url): bool
+    {
+        $wb = defined('WB_URL') ? parse_url(WB_URL) : false;
+        $u  = parse_url(str_starts_with($url, '//') ? 'https:' . $url : $url);
+        if (!$wb || !$u || strcasecmp($u['host'] ?? '', $wb['host'] ?? '') !== 0) {
+            return false;
+        }
+        $base = rtrim($wb['path'] ?? '', '/');
+        return $base === '' || str_starts_with($u['path'] ?? '', $base . '/');
     }
 
     /** Returns true for http://, https://, and protocol-relative // URLs. */
@@ -3056,6 +3112,7 @@ final class AssetQueue
         $this->queue      = [];
         $this->seen       = [];
         $this->seenPaths  = [];
+        $this->missing    = [];
     }
 }
 
