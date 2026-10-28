@@ -395,14 +395,6 @@ $mergedUploadBlocklist   = array_unique(array_merge($currentUploadBlocklist, $re
 Settings::set('rename_files_on_upload', implode(',', $mergedUploadBlocklist));
 Settings::set('sec_anchor',                  'wbce_', false);
 Settings::set('redirect_timer',              '1500', false);
-// The editor must exist: 1.7.0 ships tinymce_wbce only (no ckeditor). Keep a
-// configured editor that is installed, and 'none'; otherwise fall back.
-$wysiwygEditor = (string) Settings::get('wysiwyg_editor', '');
-if ($wysiwygEditor !== 'none'
-    && !is_file(WB_PATH . '/modules/' . basename($wysiwygEditor) . '/info.php')) {
-    Settings::set('wysiwyg_editor', 'tinymce_wbce');
-    log_ok('wysiwyg_editor = tinymce_wbce');
-}
 Settings::set('mediasettings',               '', false);
 Settings::set('wb_secform_secret',           bin2hex(random_bytes(12)), false);
 Settings::set('wb_secform_timeout',          '7200', false);
@@ -643,6 +635,17 @@ if ($failedRemove > 0) {
     $summary .= sprintf($TXT['failed_to_remove'] ?? ' — %d could not be removed', $failedRemove);
 }
 log_ok($summary);
+
+// The editor must exist: 1.7.0 ships tinymce_wbce only, and the removal above
+// deletes modules/ckeditor/. Keep a configured editor that is installed, and
+// 'none'; otherwise fall back. Runs after the removal on purpose: before it,
+// ckeditor would still be found and stay configured.
+$wysiwygEditor = (string) Settings::get('wysiwyg_editor', '');
+if ($wysiwygEditor !== 'none'
+    && !is_file(WB_PATH . '/modules/' . basename($wysiwygEditor) . '/info.php')) {
+    Settings::set('wysiwyg_editor', 'tinymce_wbce');
+    log_warn("WYSIWYG editor '$wysiwygEditor' is not installed (any more): switched to tinymce_wbce");
+}
 
 // =============================================================================
 // PHASE 4 — Reload all addons + set version

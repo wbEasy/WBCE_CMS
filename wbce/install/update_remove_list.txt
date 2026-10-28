@@ -169,10 +169,8 @@
 [INCLUDE]/idna_convert/                   // obsolete since 1.7.0 
 [INCLUDE]/FlashMessages/                  // obsolete since 1.7.0. MessageBox is a standalone class now 
 [INCLUDE]/jscalendar/                     // obsolete since 1.7.0. Replaced with date_time_picker/flatpickr
-[MODULES]/ckeditor/ckeditor/filemanager/
-[MODULES]/ckeditor/ckeditor/plugins/wsc/
-[MODULES]/ckeditor/ckeditor/plugins/flash/
-[MODULES]/ckeditor/ckeditor/plugins/oembed/
+[MODULES]/ckeditor/                       // CKEditor 4 (end of life) no longer shipped, replaced by tinymce_wbce
+[MODULES]/logrotate/                      // 1.6.x snippet rotating php_error.log; the errorlogger handles the logs now
 [MODULES]/ckeditordev/ckeditor/filemanager/
 [MODULES]/ckeditordev/ckeditor/plugins/wsc/
 [MODULES]/ckeditordev/ckeditor/plugins/flash/
