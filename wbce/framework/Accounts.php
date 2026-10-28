@@ -117,6 +117,20 @@ class Accounts extends Frontend
     }
 
     /**
+     * @deprecated since 1.7.0, removed in WBCE 2.x — use loadLanguages().
+     *
+     * Kept so modules that still do
+     *   foreach ($oAccounts->getLanguageFiles() as $f) require_once $f;
+     * do not end in a fatal error: it loads the strings through Lang itself and
+     * returns no files, so the require_once loop does nothing.
+     */
+    public function getLanguageFiles(): array
+    {
+        $this->loadLanguages();
+        return [];
+    }
+
+    /**
      * Load the language strings of the accounts module into the Lang registry:
      * EN first, then the active locale, then the theme-level override
      * (templates/<DEFAULT_TEMPLATE>/overrides/account/languages/<LANG>.php).

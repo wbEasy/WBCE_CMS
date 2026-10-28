@@ -15,7 +15,7 @@ $core = true;
 $module_directory   = 'captcha_control';
 $module_name        = 'Captcha and Advanced-Spam-Protection (ASP) Control';
 $module_function    = 'tool,initialize';
-$module_version     = '3.0.4';
+$module_version     = '3.0.5';
 $module_platform    = '1.7.0';
 $module_author      = 'Thorn, Luise Hahne, Norbert Heimsath, Christian M. Stefan';
 $module_license     = 'GNU GPL2';
@@ -24,6 +24,13 @@ $module_icon        = 'fa fa-shield';
 
 /**
  * Version history
+ * 
+ * 3.0.5 - checkPostedSolutions() built the session key from the posted field
+ *         name, so altcha__hp_time_<sec> or altcha__altcha_legacy reached
+ *         other session entries (honeypot minimum time skipped, own session
+ *         broken). Only sec_ids a widget was rendered for in this session are
+ *         accepted now; the honeypot timestamp must be an integer. Reported
+ *         by Rik van Loenhout (Christian M. Stefan)
  * 
  * 3.0.4 - ALTCHA could be bypassed: the value the legacy check compared
  *         against was published in the page (data-token), and verify() fell

@@ -46,6 +46,9 @@ class Captcha
     /** Session key: legacy sync slots opened by checkPostedSolutions() for one request */
     private const LEGACY_SLOTS = 'captcha_altcha_legacy';
 
+    /** Session key: sec_ids an ALTCHA widget was rendered for in this session */
+    private const RENDERED_KEY = 'altcha_rendered';
+
     /** @var array<string,bool> ALTCHA result per sec_id for this request */
     private static array $requestResults = [];
 
@@ -286,8 +289,11 @@ class Captcha
         }
 
         // A slot opened by an earlier request was valid for that request only.
-        foreach (array_keys($_SESSION[self::LEGACY_SLOTS] ?? []) as $slot) {
-            $_SESSION[$slot] = bin2hex(random_bytes(16));
+        $legacySlots = $_SESSION[self::LEGACY_SLOTS] ?? [];
+        foreach (is_array($legacySlots) ? array_keys($legacySlots) : [] as $slot) {
+            if (is_string($slot) && str_starts_with($slot, 'captcha')) {
+                $_SESSION[$slot] = bin2hex(random_bytes(16));
+            }
         }
         unset($_SESSION[self::LEGACY_SLOTS]);
 
@@ -295,12 +301,21 @@ class Captcha
             return;
         }
 
+        // Only sec_ids a widget was rendered for in this session: the session
+        // key is built from the field name, so any other name could reach a
+        // different session entry (captcha_hp_time_…, captcha_altcha_legacy).
+        $rendered = $_SESSION[self::RENDERED_KEY] ?? [];
+        $rendered = is_array($rendered) ? $rendered : [];
+
         foreach ($_POST as $field => $payload) {
             if (!is_string($field) || !is_string($payload)
-                || !preg_match('/^altcha(?:_([A-Za-z0-9_]{1,64}))?$/', $field, $m)) {
+                || !preg_match('/^altcha(?:_([A-Za-z0-9][A-Za-z0-9_]{0,63}))?$/', $field, $m)) {
                 continue;
             }
             $secId = $m[1] ?? '';
+            if (!isset($rendered[$secId])) {
+                continue;
+            }
             $ok    = self::verifyAltcha($payload);
             self::$requestResults[$secId] = $ok;
 
@@ -585,6 +600,12 @@ class Captcha
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = bin2hex(random_bytes(16));
         }
+        // remember the sec_id: checkPostedSolutions() only accepts solutions
+        // for widgets this session was shown (the 50 most recent)
+        $rendered = is_array($_SESSION[self::RENDERED_KEY] ?? null) ? $_SESSION[self::RENDERED_KEY] : [];
+        unset($rendered[$sec_id]);
+        $rendered[$sec_id] = true;
+        $_SESSION[self::RENDERED_KEY] = array_slice($rendered, -50, null, true);
         $syncInputId = 'captcha_sync_' . ($sec_id !== '' ? $sec_id : 'default');
         echo '<input type="hidden" name="captcha" id="' . h($syncInputId) . '" value="" />' . "\n";
     }
@@ -671,9 +692,13 @@ class Captcha
         // Minimum time check — legitimate users take at least 2 seconds
         $timeKey = 'captcha_hp_time_' . $sec_id;
         if (isset($_SESSION[$timeKey])) {
-            $elapsed = time() - $_SESSION[$timeKey];
+            $stamp = $_SESSION[$timeKey];
             unset($_SESSION[$timeKey]);
-            if ($elapsed < 2) {
+            // only a timestamp written by renderHoneypot() counts
+            if (!is_int($stamp) && !ctype_digit((string) $stamp)) {
+                return false;
+            }
+            if (time() - (int) $stamp < 2) {
                 return false;
             }
         }
