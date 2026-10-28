@@ -1,5 +1,21 @@
 # CHANGELOG — Droplets
 
+## v2.4.9 — 2026-10-28 (Christian M. Stefan)
+Security release. Reported by Fernando via Rik van Loenhout.
+- A droplet tag that was sent in the current request (GET, POST, cookie)
+  is never run, only shown. Modules that write visitor input back into the
+  page (form refill, error message) could otherwise be used by anyone,
+  logged in or not, to run any droplet with any arguments. Visitor input
+  that is written into a page should still go through
+  `Wbce::escapeDropletSyntax()` (stored input, input kept in the session).
+- RandomImage: `dir` must point to a folder inside the media folder
+  (`?dir=../..` listed folders outside it); fixed the undefined
+  `$width`/`$height` and the error on an empty folder.
+- ShowRandomWysiwyg: renders through `get_section_content()`, so only
+  sections of pages the visitor may see; only WYSIWYG sections.
+- `upgrade.php` replaces the stored code of both droplets, but only where it
+  is still a shipped version; changed droplets stay as they are.
+
 ## v2.4.8 — 2026-10-21 (Rik van Loenhout, Christian M. Stefan)
 Security release, based on Rik van Loenhout's review and fixes of 2026-10-08.
 - CSRF: every state-changing action now needs a token. Action links

@@ -23,6 +23,37 @@ $database->addField($table_name, 'show_wysiwyg', $description.'AFTER `active`', 
 $database->addField($table_name, 'admin_view',   $description.'AFTER `active`', false);
 $database->addField($table_name, 'admin_edit',   $description.'AFTER `active`', false);
 
+// 2.4.9: RandomImage read folders outside /media (?dir=../..), and
+// ShowRandomWysiwyg showed sections of pages the visitor may not see.
+// Replace the stored code with the fixed example, but only where it is still
+// one of the shipped versions -- a droplet the site owner changed stays as is.
+$shippedDroplets = [
+    'RandomImage'       => ['13e123ee3e711149d405c61d891b65b6', 'c1696eabde00fe585ddbedde5c80998d'],
+    'ShowRandomWysiwyg' => ['58191cbf5c8a641952d01f074b5a94c2', '4b8c2d252669d54cd1e85f9cf86cd6a2'],
+];
+foreach ($shippedDroplets as $dropletName => $shippedHashes) {
+    $stored = $database->fetchValue(
+        "SELECT `code` FROM `{TP}mod_droplets` WHERE `name` = ?", [$dropletName]
+    );
+    $file = __DIR__ . '/example/' . $dropletName . '.php';
+    if ($stored === '' || !is_readable($file)
+        || !in_array(md5(trim(str_replace("\r", '', $stored))), $shippedHashes, true)) {
+        continue;
+    }
+    // same format as install.php: without the two //: description lines
+    $lines = explode("\n", str_replace("\r", '', file_get_contents($file)));
+    while (isset($lines[0]) && substr($lines[0], 0, 3) == '//:') {
+        array_shift($lines);
+    }
+    $database->query(
+        "UPDATE `{TP}mod_droplets` SET `code` = ?, `modified_when` = ? WHERE `name` = ?",
+        [implode("\n", $lines), time(), $dropletName]
+    );
+    if ($database->hasError()) {
+        echo $database->getError() . '<br>';
+    }
+}
+
 // since WBCE 1.6.0 (OpF Filter was moved to modules/droplets/opff_droplets.php
 // install OpF Filter 
 // check whether outputfilter-module is installed

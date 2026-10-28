@@ -2474,6 +2474,28 @@ function mod_nwi_get_news_items($options=array())
 		}
 	}
 
+    // ---------- page visibility ----------------------------------------------
+    // only news of pages the visitor may see (private/registered pages and
+    // their viewing groups); the droplet can be called with any group_id
+    $sql_visible = '1';
+    if (isset($wb) && $wb instanceof frontend) {
+        $visible_ids = array();
+        $news_sections = $database->fetchAll(
+            "SELECT s.`section_id`, p.`visibility`, p.`viewing_groups`, p.`viewing_users`
+               FROM `{TP}sections` s
+               JOIN `{TP}pages` p ON p.`page_id` = s.`page_id`
+              WHERE s.`module` = 'news_img'"
+        );
+        foreach ($news_sections as $sec) {
+            if ($wb->page_is_visible($sec)) {
+                $visible_ids[] = (int) $sec['section_id'];
+            }
+        }
+        $sql_visible = count($visible_ids)
+            ? 't1.`section_id` IN (' . implode(',', $visible_ids) . ')'
+            : '0';
+    }
+
     // ---------- tag filter ---------------------------------------------------
     $filter_posts = array();
     $sql_filter_posts = null;
@@ -2531,6 +2553,7 @@ function mod_nwi_get_news_items($options=array())
 		WHERE t1.`active`='1'
 		AND $sql_group_id
 		AND $sql_lang_filter
+		AND $sql_visible
 		AND (t1.`published_when` = '0' or t1.`published_when` <= '$server_time')
 		AND (t1.`published_until` = '0' OR t1.`published_until` >= '$server_time')
 		AND $sql_not_older_than

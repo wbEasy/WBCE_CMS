@@ -117,11 +117,11 @@ class mform {
 						$this->attachements[$_FILES[$postfield]['tmp_name']] = $_FILES[$postfield]['name']; 
 						$val = strval($z).$_FILES[$postfield]['name'];
 					} else {
-						$this->error = $_FILES[$postfield]['name'].' - '.$MF['INVALID'];
+						$this->error = $this->inert($_FILES[$postfield]['name']).' - '.$MF['INVALID'];
 					}
 				}
 			} else {
-				$this->error = $_FILES[$postfield]['name'].' - '.$MF['INVALID'];
+				$this->error = $this->inert($_FILES[$postfield]['name']).' - '.$MF['INVALID'];
 			}
 		}elseif(isset($_POST[$postfield])) {
 			$val =  $_POST[$postfield];
@@ -138,12 +138,21 @@ class mform {
 			$this->isArray = true;
 		}
 		if (isset($val)) {
-			$val = htmlspecialchars($val);
+			$val = $this->inert($val);
 			$val = preg_replace("/(\n)/","",$val);
 			return $val;
 		} else {
 			return '';
 		}
+	}
+
+	/**
+	 * Visitor input as it may appear in a page: HTML-escaped, and with the
+	 * droplet brackets encoded so the Droplets filter cannot run [[...]]
+	 * sent by a visitor (form refill, {PREVIOUS}, stored message).
+	 */
+	function inert($val) {
+		return Wbce::escapeDropletSyntax(htmlspecialchars((string) $val));
 	}
 
 	function stripslashes_deep($value) {

@@ -41,7 +41,7 @@ if(!empty($_POST["message_id"])){
 			$msg_id = $msg['message_id'];
 			$aToJson['message'] = $msg_id ;
 			$aToJson['data'][$msg_id]['message_id'] = $msg_id;
-			$aToJson['data'][$msg_id]['data'] = $msg['data'];
+			$aToJson['data'][$msg_id]['data'] = Wbce::escapeDropletSyntax((string) $msg['data']);
 			$aToJson['data'][$msg_id]['submitted_when'] = date(DATE_FORMAT.' - '.TIME_FORMAT,$msg['submitted_when']+TIMEZONE);
 		}
 		rsort($aToJson['data']);

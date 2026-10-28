@@ -41,7 +41,7 @@ foreach ($sub as $msg) {
 		'{{SHOW_DATE}}'      => date(DATE_FORMAT.' - '.TIME_FORMAT,$msg['submitted_when']+TIMEZONE),
 		'{{TEXT_MESSAGE}}'   => $TEXT['MESSAGE'],
 		'{{TEXT_SUBMITTED}}' => $TEXT['SUBMITTED'],
-		'{{MSG_DATA}}'       => $msg['data'],
+		'{{MSG_DATA}}'       => Wbce::escapeDropletSyntax((string) $msg['data']),
 	);
 	echo strtr($tpl_msg_row, $arr_row_replace);
 }

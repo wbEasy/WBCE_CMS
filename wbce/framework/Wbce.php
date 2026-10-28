@@ -37,6 +37,23 @@ class Wbce extends SecureForm
     }
 
     /**
+     * Make visitor input inert for the Droplets output filter.
+     *
+     * The filter expands [[Name?args]] (frontend) and [[[Name?args]]]
+     * (backend) anywhere in the finished page, and HTML escaping leaves the
+     * brackets alone. Use this on every visitor-supplied value that is
+     * written into a page, reflected or stored. The brackets become
+     * &#91; / &#93;, so the browser still shows them, but no droplet runs.
+     *
+     * @param  string $value already HTML-escaped (or plain) text
+     * @return string
+     */
+    public static function escapeDropletSyntax(string $value): string
+    {
+        return strtr($value, ['[' => '&#91;', ']' => '&#93;']);
+    }
+
+    /**
      * Check if the Password matches the required pattern and length,
      * and encode it correctly if valid. Returns an error message array on failure.
      *

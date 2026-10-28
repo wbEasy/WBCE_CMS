@@ -33,7 +33,46 @@ function do_eval($_x_codedata, $_x_varlist, &$wb_page_data)
     return false;
 	}
 
+/**
+    @brief request values (GET, POST, cookies) that contain droplet syntax
+    @return array decoded strings, collected once per request
 
+    A droplet tag that a visitor sent in this request must never run, wherever
+    a module reflects it into the page (form refill, error message, search
+    term). See processDroplets().
+*/
+function droplets_request_strings() {
+    static $strings = null;
+    if ($strings !== null) {
+        return $strings;
+    }
+    $strings = array();
+    $collect = function ($value) use (&$collect, &$strings) {
+        if (is_array($value)) {
+            array_walk($value, function ($v) use ($collect) { $collect($v); });
+        } elseif (is_string($value) && strpos($value, '[[') !== false) {
+            $strings[] = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+    };
+    $collect($_GET);
+    $collect($_POST);
+    $collect($_COOKIE);
+    return $strings;
+}
+
+/**
+    @brief true if the droplet tag was sent in the current request
+    @param string $tag the complete tag as found in the page
+*/
+function droplets_tag_from_request($tag) {
+    $plain = html_entity_decode($tag, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    foreach (droplets_request_strings() as $input) {
+        if (strpos($input, $plain) !== false || strpos($input, $tag) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
     @brief process all droplets
@@ -59,6 +98,13 @@ function processDroplets( &$wb_page_data, $position = 'frontend' ) {
                 // go in if same droplet with same arguments is not processed already
                 $seen[$tag] = true;
                 $varlist = array();
+
+                // visitor input reflected into the page: show it, never run it
+                if (droplets_tag_from_request($tag)) {
+                    $droplet_tags[]         = $tag;
+                    $droplet_replacements[] = Wbce::escapeDropletSyntax($tag);
+                    continue;
+                }
                 
                 // split each droplet command into droplet_name and request_string
                 $tmp = preg_split('/\?/', $droplet, 2);

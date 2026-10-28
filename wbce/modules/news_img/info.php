@@ -16,7 +16,7 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.35';
+$module_version     = '5.0.36';
 $module_platform    = '1.4';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';
@@ -25,6 +25,12 @@ $module_description = 'This page module is designed for making a news page with 
 /**
  * CHANGE LOG
  * 
+ * v5.0.36 - 2026/10/28
+ *         - Fernando via Rik van Loenhout (report), Christian M. Stefan
+ *         * fetchNewsItems / mod_nwi_get_news_items() returned news of every
+ *           page, also private/registered ones the visitor may not see;
+ *           only news of visible pages now
+ *
  * v5.0.35 - 2026/10/25
  *         - Rik van Loenhout (review), Christian M. Stefan
  *         * "delete group" did nothing since 5.0.33: the link carried no

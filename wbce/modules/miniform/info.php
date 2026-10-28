@@ -8,9 +8,13 @@
  * @license         http://www.gnu.org/licenses/gpl.html
  * @platform        WebsiteBaker 2.8.x / WBCE CMS 1.x
  * @requirements    PHP 8.0 and higher
- * @version         0.24.5
+ * @version         0.24.6
  * @lastmodified    October 28, 2026
  *
+ * v0.24.6 - visitor input is written into the page with its droplet brackets
+ *           encoded (form refill, {PREVIOUS}, file name in errors, stored
+ *           messages in the backend), so [[...]] sent by a visitor never runs
+ *           a droplet; reported by Fernando via Rik van Loenhout   (Stefanek)
  * v0.24.5 - captcha checked with Captcha::verify() (ALTCHA proof-of-work)
  *           instead of comparing the session token, which the page published;
  *           reported by Rik van Loenhout                              (Stefanek)
@@ -58,7 +62,7 @@
 $module_directory   = 'miniform';
 $module_name        = 'MiniForm WBCE CMS Edition';
 $module_function    = 'page';
-$module_version     = '0.24.5';
+$module_version     = '0.24.6';
 $module_platform    = '1.7.0';
 $module_author      = 'Ruud / Dev4me';
 $module_license     = 'GNU General Public License';

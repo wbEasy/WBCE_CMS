@@ -223,6 +223,44 @@ function register_module_modfiles(string $moduleDir): void
 }
 
 /**
+ * May the current frontend visitor see this section?
+ *
+ * Sections of the page being viewed were checked by Frontend/TemplateBlocks
+ * already. A section of another page (SectionPicker, ShowRandomWysiwyg,
+ * default block content) needs the same checks: page visibility and viewing
+ * groups/users, and the section's publication period. Outside the frontend
+ * (backend, CLI) there is no visitor to check, so it is always true.
+ *
+ * @param array $section row from {TP}sections
+ * @return bool
+ */
+function section_is_viewable(array $section): bool
+{
+    global $wb, $database;
+
+    if (!($wb instanceof frontend)) {
+        return true;
+    }
+
+    // the page being viewed passed these checks in Frontend already
+    $pageId = (int)($section['page_id'] ?? 0);
+    if ($pageId !== (int)($wb->page_id ?? 0) || empty($wb->page) || !empty($wb->page_access_denied)) {
+        $page = $database->fetchRow(
+            'SELECT `visibility`, `viewing_groups`, `viewing_users` FROM `{TP}pages` WHERE `page_id` = ?',
+            [$pageId]
+        );
+        if (empty($page) || !$wb->page_is_visible($page)) {
+            return false;
+        }
+    }
+
+    $now   = time();
+    $start = (int)($section['publ_start'] ?? 0);
+    $end   = (int)($section['publ_end'] ?? 0);
+    return ($start === 0 || $now >= $start) && ($end === 0 || $now <= $end);
+}
+
+/**
  * Renders the content of a specific section by including its module's view.php.
  *
  * Handles output buffering, OPF filters, section anchor and automatic modfile registration.
@@ -236,6 +274,10 @@ function get_section_content(int $sectionId, bool $useSecAnchor = false, string 
 {
     $section = get_section_array($sectionId);
     if (empty($section) || empty($section['module'])) {
+        return '';
+    }
+
+    if (!section_is_viewable($section)) {
         return '';
     }
 
