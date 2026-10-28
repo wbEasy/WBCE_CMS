@@ -136,5 +136,9 @@ if (!(isset($admin) && is_object($admin) && (get_class($admin) == 'admin'))) {
     require_once WB_PATH . '/framework/class.admin.php';
     $admin = new admin('Preferences');
 }
+// accounts without the right "Preferences → Modify" are managed by the administrator
+if (!$admin->mayEditOwnData()) {
+    $admin->print_error($MESSAGE['PREFERENCES_LOCKED'], ADMIN_URL . '/start/index.php');
+}
 echo build_page($admin, $database);
 $admin->print_footer();

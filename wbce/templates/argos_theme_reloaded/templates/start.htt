@@ -44,7 +44,7 @@
 		</div>
 	</li>
 
-	<li class="fg6 section">
+	<li class="fg6 section" style="{DISPLAY_PREFERENCES}">
 		<div class="fg2 graphic">
 			<a href="{ADMIN_URL}/preferences/index.php">
 				<i class="fa fa-3x fa-sliders"></i>

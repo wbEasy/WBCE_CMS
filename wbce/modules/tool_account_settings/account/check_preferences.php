@@ -16,6 +16,10 @@ defined('WB_PATH') or die("Cannot access this file directly");
 
 
 $oAccounts = new Accounts();
+// accounts without the right "Preferences → Modify" are managed by the administrator
+if (!$oAccounts->mayEditOwnData()) {
+    $oAccounts->print_error('MESSAGE:PREFERENCES_LOCKED', WB_URL);
+}
 // Check FTAN
 if (!$oAccounts->checkFTAN()) {
     $oAccounts->print_error('MESSAGE:GENERIC_SECURITY_ACCESS', WB_URL);

@@ -103,7 +103,9 @@
         $return_value .= '<label>'.$TEXT['WELCOME_BACK'].', '.$wb->get_display_name().'</label>'."\n";
         $return_value .= '<p><input type="submit" name="submit" value="'.$MENU['LOGOUT'].'" class="dbutton" /></p>'."\n";
         $return_value .= '<ul class="logout-advance">'."\n";
-        $return_value .= '<li class="preference"><a href="'.PREFERENCES_URL.'" title="'.$MENU['PREFERENCES'].'">'.$MENU['PREFERENCES'].'</a></li>'."\n";
+        if (!method_exists($wb, 'mayEditOwnData') || $wb->mayEditOwnData()) {
+            $return_value .= '<li class="preference"><a href="'.PREFERENCES_URL.'" title="'.$MENU['PREFERENCES'].'">'.$MENU['PREFERENCES'].'</a></li>'."\n";
+        }
 
         if ($wb->isInGroup('1')) {  //change ot the group that should get special links
             $return_admin .= '<li class="admin"><a target="_blank" href="'.ADMIN_URL.'/index.php" title="'.$TEXT['ADMINISTRATION'].'" class="blank_target">'.$TEXT["ADMINISTRATION"].'</a></li>'."\n";

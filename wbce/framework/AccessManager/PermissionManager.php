@@ -39,7 +39,7 @@ class PermissionManager
      * 'title'    → i18n key for the area label
      * 'children' → individual permission checkboxes within that area
      *
-     * Meta-parents ('addons', 'access', 'preferences') are NOT displayed as 
+     * Meta-parents ('addons', 'access') are NOT displayed as 
      * areas — they are auto-derived from their children in parseFromPost().
      */
     private const PERMISSION_TREE = [
@@ -120,7 +120,22 @@ class PermissionManager
                 'groups_delete' => 'TEXT:DELETE',
             ],
         ],
+        // Own account data (name, e-mail, password, language …) in the backend
+        // and the front end — see mayEditOwnData(). Without it, an account is
+        // managed by the administrator only (shared or demo accounts).
+        'preferences' => [
+            'title'    => 'MENU:PREFERENCES',
+            'children' => [
+                self::OWN_DATA => 'TEXT:MODIFY',
+            ],
+        ],
     ];
+
+    /** The right to change one's own account data, see mayEditOwnData(). */
+    public const OWN_DATA = 'preferences_settings';
+
+    /** System permissions a new group starts with when no defaults file exists. */
+    private const NEW_GROUP_DEFAULTS = ['preferences', self::OWN_DATA];
 
     /**
      * Meta-parents are permission names that get auto-enabled when any 
@@ -131,14 +146,6 @@ class PermissionManager
     private const META_PARENTS = [
         'addons' => ['modules', 'templates', 'languages'],
         'access' => ['users', 'groups'],
-    ];
-
-    /**
-     * Standalone meta-parents: enabled when their single child is set.
-     * These are read from POST directly but not shown as areas.
-     */
-    private const STANDALONE_PERMISSIONS = [
-        'preferences' => 'preferences_settings',
     ];
 
     /**
@@ -228,6 +235,30 @@ class PermissionManager
             [$userId]
         );
         return $this->rightsOfGroups(array_filter(explode(',', $groupsId), 'strlen'));
+    }
+
+    /**
+     * Whether an account may change its own data — name, e-mail, password,
+     * language, time zone, formats — in the backend ("Preferences") and the
+     * front end (account/preferences.php), and reset its password through
+     * "Forgot password". Administrators always may; everyone else needs the
+     * right in one of his groups. Read from the groups as stored now, so
+     * taking the right away counts at once, not at the next login.
+     */
+    public function mayEditOwnData(int $userId): bool
+    {
+        if ($userId < 1) {
+            return false;
+        }
+        $groupsId = (string) $this->db->fetchValue(
+            "SELECT `groups_id` FROM `{TP}users` WHERE `user_id` = ?",
+            [$userId]
+        );
+        $groupIds = array_filter(array_map('trim', explode(',', $groupsId)), 'strlen');
+        if (in_array((string) GroupManager::ADMIN_GROUP_ID, $groupIds, true)) {
+            return true;
+        }
+        return in_array(self::OWN_DATA, $this->rightsOfGroups($groupIds)['system'], true);
     }
 
     /**
@@ -436,11 +467,6 @@ class PermissionManager
             }
         }
 
-        // Preferences: single permission, always full or none
-        $states['preferences'] = in_array('preferences_settings', $activePerms, true)
-            ? 'full'
-            : 'none';
-
         return $states;
     }
 
@@ -507,14 +533,6 @@ class PermissionManager
                     $active[] = $meta;
                     break;
                 }
-            }
-        }
-
-        // --- Standalone permissions ---
-        foreach (self::STANDALONE_PERMISSIONS as $parent => $child) {
-            if ($admin->get_post($child) == 1) {
-                $active[] = $child;
-                $active[] = $parent;
             }
         }
 
@@ -620,7 +638,7 @@ class PermissionManager
         $iniFile = WB_PATH . '/admin/groups/add_new_group_defaults.ini.php';
 
         if (!is_readable($iniFile)) {
-            return [];
+            return $type === 'system_permissions' ? self::NEW_GROUP_DEFAULTS : [];
         }
 
         $data = parse_ini_file($iniFile);

@@ -285,6 +285,7 @@ class Admin extends Wbce
 
         foreach ($this->buildMenu() as $item) {
             if ($item['required'] && !$this->get_link_permission($item['permission'])) continue;
+            if ($item['permission'] === 'preferences' && !$this->mayEditOwnData()) continue;
 
             $header_template->set_var([
                 'LINK'   => $item['link'],
@@ -404,7 +405,8 @@ class Admin extends Wbce
      *
      * Each entry is derived from a key that doubles as the URL segment,
      * the $MENU array key (uppercased), and the permission identifier.
-     * 'preferences' has no permission requirement and is always shown.
+     * 'preferences' is shown when the user may change his own data
+     * (mayEditOwnData()), the others need their area permission.
      *
      * @return array<int, array{link: string, title: string, permission: string, required: bool}>
      */

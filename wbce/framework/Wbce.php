@@ -536,6 +536,18 @@ class Wbce extends SecureForm
      *
      * @return bool
      */
+    /**
+     * Whether the logged-in user may change his own account data (backend
+     * Preferences, front-end account/preferences.php). Group right "Preferences
+     * → Modify", see PermissionManager::mayEditOwnData().
+     */
+    public function mayEditOwnData(): bool
+    {
+        static $cache = [];
+        $userId = (int) $this->get_user_id();
+        return $cache[$userId] ??= ($userId > 0 && (new PermissionManager())->mayEditOwnData($userId));
+    }
+
     public function isAdmin(): bool
     {
         if ($this->get_session('GROUP_ID') == 1) {

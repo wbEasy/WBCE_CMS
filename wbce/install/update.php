@@ -410,6 +410,27 @@ if (!(new GroupManager())->isValidSignupGroup((string) Settings::get('frontend_s
     Settings::set('frontend_signup', 'false');
     log_warn('frontend_signup pointed to the administrators group or a missing group: signup switched off');
 }
+// 1.7.0: new group right "Preferences → Modify" (change own account data).
+// Until now every account could; every existing group gets the right once,
+// so nothing changes until an administrator takes it away. The marker keeps
+// a later update from handing it back.
+if (Settings::get('preferences_right_granted', null) === null) {
+    foreach ($database->fetchAll("SELECT `group_id`, `system_permissions` FROM `{TP}groups`") as $_g) {
+        $_perms = array_values(array_filter(explode(',', (string) $_g['system_permissions']), 'strlen'));
+        $_add   = array_diff(['preferences', PermissionManager::OWN_DATA], $_perms);
+        if ($_add) {
+            $database->query(
+                "UPDATE `{TP}groups` SET `system_permissions` = ? WHERE `group_id` = ?",
+                [implode(',', array_merge($_perms, $_add)), (int) $_g['group_id']]
+            );
+            if ($database->hasError()) {
+                log_warn('Group ' . (int) $_g['group_id'] . ': right "Preferences → Modify" not set: ' . $database->getError());
+            }
+        }
+    }
+    Settings::set('preferences_right_granted', '1');
+    log_info('New group right "Preferences → Modify" granted to all existing groups');
+}
 log_ok('Settings updated');
 
 // DB field additions

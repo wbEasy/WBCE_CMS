@@ -494,6 +494,9 @@ $settings = [
     'wb_secform_timeout'    => '7200',
     'wb_secform_tokenname'  => 'formtoken',
     'er_level'              => 'E3',
+    // the administrators group carries "Preferences → Modify" already
+    // (install_data.sql) — install/update.php must not grant it again
+    'preferences_right_granted' => '1',
 ];
 
 $sOk = $sFail = 0;

@@ -58,6 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['email'])) {
             // Unconfirmed signup — redirect
             header('Location: ' . WB_URL . '/account/signup_continue_page.php?switch=wrong_inputs');
             exit;
+        } elseif (!(new PermissionManager())->mayEditOwnData((int) $user['user_id'])) {
+            // account managed by the administrator (no "Preferences → Modify")
+            $alerts->error('MESSAGE:FORGOT_PASS_LOCKED');
+            $email = '';
         } elseif ((time() - intval($user['last_reset'])) < 7200) {
             // Rate limit: max one reset per 2 hours
             $alerts->error('MESSAGE:FORGOT_PASS_ALREADY_RESET');

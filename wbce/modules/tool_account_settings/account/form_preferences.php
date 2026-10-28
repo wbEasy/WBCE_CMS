@@ -15,6 +15,13 @@ defined('WB_PATH') or exit("Cannot access this file directly");
 
 $oAccounts = new Accounts();
 
+// Accounts without the right "Preferences → Modify" are managed by the
+// administrator: no form, nothing saved
+if (!$oAccounts->mayEditOwnData()) {
+    echo (new Alerts())->info('MESSAGE:PREFERENCES_LOCKED')->render();
+    return;
+}
+
 // Check preferences data input, include external file
 if(isset($_POST['action']) && $oAccounts->get_post('action') == 'profile'){
     require_once ACCOUNT_TOOL_PATH . '/account/check_preferences.php';

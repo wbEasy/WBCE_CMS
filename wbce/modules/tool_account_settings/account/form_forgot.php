@@ -44,8 +44,12 @@ if(isset($_POST['email']) && $_POST['email'] != "" ) {
                     $iUserID = (int) $aUser['user_id'];
                     // Get the id, username, email, and last_reset from the above db query
 
+                    if (!(new PermissionManager())->mayEditOwnData($iUserID)) {
+                        // account managed by the administrator (no "Preferences → Modify")
+                        $oMsgBox->error($MESSAGE['FORGOT_PASS_LOCKED']);
+                        $sEmail = '';
                     // Check if the password has been reset in the last 2 hours
-                    if( ( time() - intval($aUser['last_reset']) ) < (2 * 3600) ) {
+                    } elseif( ( time() - intval($aUser['last_reset']) ) < (2 * 3600) ) {
                         // Tell the user that their password cannot be reset more than once per hour
                         $oMsgBox->error($MESSAGE['FORGOT_PASS_ALREADY_RESET']);
                     } else {

@@ -66,6 +66,9 @@ $template->set_var(
 );
 
 // Insert permission values into the template object
+if (!$admin->mayEditOwnData()) {
+    $template->set_var('DISPLAY_PREFERENCES', 'display:none;');
+}
 if ($admin->get_permission('pages') != true) {
     $template->set_var('DISPLAY_PAGES', 'display:none;');
 }
