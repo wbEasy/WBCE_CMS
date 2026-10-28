@@ -135,6 +135,12 @@
 [TEMPLATE]/argos_theme_reloaded/templates/groups_form.htt
 [TEMPLATE]/argos_theme_reloaded/templates/users.htt
 [TEMPLATE]/argos_theme_reloaded/templates/users_form.htt
+[TEMPLATE]/argos_theme_reloaded/templates/error.htt
+[TEMPLATE]/argos_theme_reloaded/templates/success.htt
+[TEMPLATE]/argos_theme_reloaded/templates/media.htt              // old media manager, replaced by elFinder
+[TEMPLATE]/argos_theme_reloaded/templates/media_browse.htt
+[TEMPLATE]/argos_theme_reloaded/templates/media_rename.htt
+[TEMPLATE]/argos_theme_reloaded/templates/setparameter.htt
 
 [TEMPLATE]/wbce_flat_theme/templates/admintools.htt             // replaced by Twig
 [TEMPLATE]/wbce_flat_theme/templates/login.htt
@@ -147,6 +153,10 @@
 [TEMPLATE]/wbce_flat_theme/templates/groups_form.htt
 [TEMPLATE]/wbce_flat_theme/templates/users.htt
 [TEMPLATE]/wbce_flat_theme/templates/users_form.htt
+[TEMPLATE]/wbce_flat_theme/templates/media.htt                   // old media manager, replaced by elFinder
+[TEMPLATE]/wbce_flat_theme/templates/media_browse.htt
+[TEMPLATE]/wbce_flat_theme/templates/media_rename.htt
+[TEMPLATE]/wbce_flat_theme/templates/setparameter.htt
 
 [TEMPLATE]/wbce_flat_theme/css/themeextended.css
 [TEMPLATE]/wbce_flat_theme/images/preloader_blue.gif
