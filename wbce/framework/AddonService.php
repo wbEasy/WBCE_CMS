@@ -174,7 +174,6 @@ class AddonService
         $data     = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error    = curl_error($ch);
-        curl_close($ch);
 
         if ($data === false || $httpCode !== 200) {
             @unlink($tempZip);

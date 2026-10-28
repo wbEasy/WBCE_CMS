@@ -790,14 +790,21 @@ function varDirectoryExposure(bool $bForce = false): ?bool
         ]);
         $sBody   = (string) curl_exec($ch);
         $iStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
     } else {
         $ctx = stream_context_create([
             'http' => ['timeout' => 3, 'ignore_errors' => true, 'follow_location' => 0],
             'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
         ]);
-        $sBody = (string) @file_get_contents($sUrl, false, $ctx);
-        if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0] . ' ', $m)) {
+        // headers from the stream itself: the magic $http_response_header
+        // variable is deprecated in PHP 8.5
+        $aHeaders = [];
+        $rStream  = @fopen($sUrl, 'r', false, $ctx);
+        if ($rStream !== false) {
+            $sBody    = (string) stream_get_contents($rStream);
+            $aHeaders = stream_get_meta_data($rStream)['wrapper_data'] ?? [];
+            fclose($rStream);
+        }
+        if (isset($aHeaders[0]) && preg_match('#\s(\d{3})\s#', $aHeaders[0] . ' ', $m)) {
             $iStatus = (int) $m[1];
         }
     }
@@ -1071,9 +1078,7 @@ if (!function_exists('mime_content_type')) {
             return $aMimeTypes[$ext];
         } elseif (function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME);
-            $mimetype = finfo_file($finfo, $sFilename);
-            finfo_close($finfo);
-            return $mimetype;
+            return finfo_file($finfo, $sFilename);
         } else {
             return 'application/octet-stream';
         }
@@ -1111,9 +1116,6 @@ function make_thumb($source, $destination, $size)
         $dst_img = ImageCreateTrueColor($thumb_w, $thumb_h);
         imagecopyresampled($dst_img, $source, 0, 0, 0, 0, $thumb_w, $thumb_h, $original_x, $original_y);
         imagejpeg($dst_img, $destination);
-        // Clear memory
-        imagedestroy($dst_img);
-        imagedestroy($source);
         // Return true
         return true;
     } else {
