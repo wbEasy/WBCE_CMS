@@ -197,8 +197,15 @@ class GroupManager
      * (signup off) or an existing group other than the administrators
      * group. Every account created through the signup form lands in this
      * group, so group 1 here would let anyone register an administrator.
+     *
+     * With $admin (a settings form saving it): a non-admin may only choose a
+     * group within his own rights (mayManageGroup()), or the anonymous signup
+     * would hand out rights he does not have himself. Keeping the group that
+     * is set now is always allowed, so a non-admin can still save the other
+     * settings when an administrator chose a stronger group.
+     * Interim rule — the rights system is rebuilt from scratch in WBCE 2.x.
      */
-    public function isValidSignupGroup(string $value): bool
+    public function isValidSignupGroup(string $value, ?Admin $admin = null): bool
     {
         if ($value === 'false') {
             return true;
@@ -206,10 +213,14 @@ class GroupManager
         if (!ctype_digit($value) || (int) $value === self::ADMIN_GROUP_ID) {
             return false;
         }
-        return (int) $this->db->fetchValue(
+        $exists = (int) $this->db->fetchValue(
             "SELECT COUNT(*) FROM `{TP}groups` WHERE `group_id` = ?",
             [(int) $value]
         ) === 1;
+        if (!$exists || $admin === null || $value === (string) Settings::get('frontend_signup')) {
+            return $exists;
+        }
+        return $this->mayManageGroup($admin, (int) $value);
     }
 
 

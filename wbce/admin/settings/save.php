@@ -74,9 +74,9 @@ if (isset($_POST['wbmailer_routine']) && ($_POST['wbmailer_routine'] == 'smtp'))
 
 // The signup group decides which group every self-registered account gets:
 // never the administrators group (the form leaves it out, the request must not
-// add it).
+// add it), for a non-admin only a group within his own rights.
 if (isset($_POST['frontend_signup'])
-    && !(new GroupManager())->isValidSignupGroup((string) $_POST['frontend_signup'])) {
+    && !(new GroupManager())->isValidSignupGroup((string) $_POST['frontend_signup'], $admin)) {
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
 }
 

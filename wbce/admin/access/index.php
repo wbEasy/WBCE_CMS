@@ -30,8 +30,9 @@ if (isset($_POST['save_settings'])) {
     }
 
     // the dropdown leaves out the administrators group; the request must not add it
+    // (and a non-admin must not choose a group with more rights than his own)
     $signupGroup = (string) ($admin->get_post('frontend_signup') ?? 'false');
-    if (!$groups->isValidSignupGroup($signupGroup)) {
+    if (!$groups->isValidSignupGroup($signupGroup, $admin)) {
         $alerts->error(L_('MESSAGE:GENERIC_SECURITY_ACCESS'));
         if (Alerts::isHtmx()) {
             echo $alerts->renderFragment();
