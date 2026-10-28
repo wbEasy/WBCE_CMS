@@ -368,7 +368,7 @@ a#frontendtitel:hover {
 }
 
 #mainmenu ul li.preferences a:before {
-    content: "\f007";
+    content: "\f2bb"; /* fa-address-card, as in the group permissions */
 }
 
 #mainmenu ul li.settings a:before {
@@ -1225,7 +1225,7 @@ div.themebox#module_addons .tb_header a:before {
 }
 
 div.themebox#module_preferences .tb_header a:before {
-    content: "\f007";
+    content: "\f2bb"; /* fa-address-card */
 }
 
 div.themebox#module_settings .tb_header a:before {

@@ -18,7 +18,7 @@
 {% set is_admin_group = (rec.group_id == 1) %}
 {# within the editor's rights ceiling — the endpoints refuse the others anyway #}
 {% set manageable = rec.manageable|default(false) %}
-{% set perm_areas = ['pages','media','modules','templates','languages','settings','admintools','groups','users','preferences'] %}
+{% set perm_areas = ['pages','media','modules','templates','languages','preferences','settings','admintools','groups','users'] %}
 
 {# Wir nutzen jetzt die WBCE-Funktion getIDKEY direkt #}
 {% set IDKEY = getIDKEY(rec.group_id, 'group') %}
