@@ -13,6 +13,12 @@
  *   call_captcha('widget');           // same, no table wrapper
  *   Captcha::verify($_POST['captcha'], $sec_id);   // verifies both layers
  *
+ * Only Captcha::verify() is a real check: it accepts nothing but a solved,
+ * single-use ALTCHA proof-of-work (or, without HTTPS, the math captcha).
+ * Modules that still compare $_POST['captcha'] with $_SESSION['captcha…']
+ * themselves keep working through checkPostedSolutions() — deprecated since
+ * 1.7.0, removed in WBCE 2.x.
+ *
  * Settings table
  * ──────────────
  *   enabled_captcha  → true/false  (flat row → constant ENABLED_CAPTCHA)
@@ -33,6 +39,15 @@ class Captcha
 
     /** @var array|null Cached ALTCHA provider settings — null until first getAltchaCfg() call */
     private static ?array $altchaCfg = null;
+
+    /** Session key: challenges issued to this session by altcha_challenge.php (single use) */
+    public const ISSUED_KEY = 'altcha_issued';
+
+    /** Session key: legacy sync slots opened by checkPostedSolutions() for one request */
+    private const LEGACY_SLOTS = 'captcha_altcha_legacy';
+
+    /** @var array<string,bool> ALTCHA result per sec_id for this request */
+    private static array $requestResults = [];
 
     /** ALTCHA provider defaults */
     private static array $altchaCfgDefaults = [
@@ -215,20 +230,17 @@ class Captcha
     /**
      * Verify the submitted captcha (and honeypot if ASP is enabled).
      *
-     * Handles two paths transparently:
+     * ALTCHA: only a solved proof-of-work counts — signed by this server,
+     * issued to this session, not expired, not used before. The posted
+     * 'captcha' field plays no part in it (it is the legacy sync field, see
+     * checkPostedSolutions()); without HTTPS it is the math captcha's answer.
      *
-     * A) Modules that call Captcha::verify() directly — full ALTCHA crypto check.
-     * B) Legacy modules that compare $_POST['captcha'] == $_SESSION['captcha']
-     *    themselves — the sync token satisfies that check; if they also call
-     *    verify() we do the full crypto check here too.
-     *
-     * @param  string|int $input  $_POST['captcha'] — the sync token for ALTCHA.
+     * @param  string|int $input  $_POST['captcha'] — only used by the math captcha.
      * @param  string     $sec_id Same $sec_id used when rendering.
      * @return bool
      */
     public static function verify($input, string $sec_id = ''): bool
     {
-        $key         = 'captcha' . $sec_id;
         $altchaField = 'altcha' . ($sec_id !== '' ? '_' . $sec_id : '');
 
         // ── Honeypot check (runs first — cheap, no crypto) ───────────────────
@@ -244,20 +256,59 @@ class Captcha
         }
 
         // ── ALTCHA verification ───────────────────────────────────────────────
-        if (!empty($_POST[$altchaField])) {
-            // Full SHA-256 PoW + HMAC check.
-            unset($_SESSION[$key]);
-            return self::verifyAltcha($_POST[$altchaField]);
+        // Normally already done by checkPostedSolutions() (initialize.php, before
+        // any module) — a solution is single use, so it is checked once per request.
+        if (!array_key_exists($sec_id, self::$requestResults) && !empty($_POST[$altchaField])) {
+            self::$requestResults[$sec_id] = self::verifyAltcha((string) $_POST[$altchaField]);
+        }
+        return self::$requestResults[$sec_id] ?? false;
+    }
+
+    /**
+     * Check every ALTCHA solution posted with this request once, server-side,
+     * before any module code runs (called from initialize.php). verify() uses
+     * the result.
+     *
+     * @deprecated since 1.7.0 for the legacy part, removed in WBCE 2.x:
+     * modules that still compare $_POST['captcha'] with
+     * $_SESSION['captcha' . $sec_id] themselves get a matching session value
+     * only after a valid proof-of-work in this very request (the value is the
+     * posted 'captcha' field, which the widget fills once solved). Without a
+     * solution, or with a wrong or reused one, the slot holds a random value
+     * that is never sent to the browser; it is reset again at the start of the
+     * next request. Nothing a page shows is ever accepted. New code calls
+     * Captcha::verify().
+     */
+    public static function checkPostedSolutions(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
         }
 
-        // ── Sync token path (legacy modules that check POST vs SESSION) ───────
-        if (isset($_SESSION[$key])) {
-            $expected = $_SESSION[$key];
-            unset($_SESSION[$key]);
-            return (string)trim($input) === (string)$expected;
+        // A slot opened by an earlier request was valid for that request only.
+        foreach (array_keys($_SESSION[self::LEGACY_SLOTS] ?? []) as $slot) {
+            $_SESSION[$slot] = bin2hex(random_bytes(16));
+        }
+        unset($_SESSION[self::LEGACY_SLOTS]);
+
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return;
         }
 
-        return false;
+        foreach ($_POST as $field => $payload) {
+            if (!is_string($field) || !is_string($payload)
+                || !preg_match('/^altcha(?:_([A-Za-z0-9_]{1,64}))?$/', $field, $m)) {
+                continue;
+            }
+            $secId = $m[1] ?? '';
+            $ok    = self::verifyAltcha($payload);
+            self::$requestResults[$secId] = $ok;
+
+            $slot   = 'captcha' . $secId;
+            $posted = trim((string) ($_POST['captcha'] ?? ''));
+            $_SESSION[$slot] = ($ok && $posted !== '') ? $posted : bin2hex(random_bytes(16));
+            $_SESSION[self::LEGACY_SLOTS][$slot] = true;
+        }
     }
 
 
@@ -387,21 +438,19 @@ class Captcha
             echo '<script type="module" src="' . h($setupJs) . '"></script>' . "\n";
         }
 
-        // Sync token — lets legacy modules' own $_POST['captcha'] check pass.
-        // The session key is initialised here (not in renderSyncInput) so we can
-        // also embed it as a data-token attribute on the widget element below.
-        $syncKey = 'captcha' . $sec_id;
-        if (!isset($_SESSION[$syncKey])) {
-            $_SESSION[$syncKey] = bin2hex(random_bytes(16));
-        }
+        // Sync input for legacy modules (see checkPostedSolutions()): the widget
+        // fills it with a fixed marker once solved. The session slot gets a fresh
+        // random value that is never sent to the browser — only a proof-of-work
+        // checked on the server opens it.
+        $_SESSION['captcha' . $sec_id] = bin2hex(random_bytes(16));
         self::renderSyncInput($sec_id);
 
         // Widget — apply saved customization settings
         $cfg      = self::getAltchaCfg();
         $autoAttr = in_array($cfg['auto'] ?? '', ['onload', 'onsubmit']) ? $cfg['auto'] : 'off';
 
-        // data-syncid / data-token: read by widget_setup.js to fill the hidden
-        //   sync input when the challenge is solved (no inline JS required).
+        // data-syncid: read by widget_setup.js to fill the hidden sync input
+        //   when the challenge is solved (no inline JS required).
         // data-hidefooter / data-hidelogo: plain "1"/"" attributes, no {…} chars,
         //   so they survive the WBCE template processor and ob_start() capture alike.
         $syncInputId = 'captcha_sync_' . ($sec_id !== '' ? $sec_id : 'default');
@@ -412,7 +461,6 @@ class Captcha
                  . ' auto="' . $autoAttr . '"'
                  . ' language="' . h($i18nCode) . '"'
                  . ' data-syncid="' . h($syncInputId) . '"'
-                 . ' data-token="'  . h($_SESSION[$syncKey]) . '"'
                  . (!empty($cfg['hidefooter']) ? ' data-hidefooter="1"' : '')
                  . (!empty($cfg['hidelogo'])   ? ' data-hidelogo="1"'   : '');
 
@@ -549,6 +597,15 @@ class Captcha
         if (empty($token)) {
             return false;
         }
+
+        // Single use: the challenge must have been issued to this session by
+        // altcha_challenge.php; it is struck off now, whatever the outcome.
+        $data      = json_decode((string) base64_decode($token, true), true);
+        $challenge = is_array($data) ? (string) ($data['challenge'] ?? '') : '';
+        if ($challenge === '' || !isset($_SESSION[self::ISSUED_KEY][$challenge])) {
+            return false;
+        }
+        unset($_SESSION[self::ISSUED_KEY][$challenge]);
 
         $hmacKey = self::getAltchaCfg()['hmac_key'] ?? '';
         if (empty($hmacKey)) {

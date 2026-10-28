@@ -211,6 +211,27 @@ a string and sets the session timestamp used by the timing check in `verify()`.
 
 ---
 
+## Legacy: comparing `$_POST['captcha']` yourself
+
+Older modules check the captcha like this:
+
+```php
+if ($_POST['captcha'] != $_SESSION['captcha' . $sec_id]) { /* wrong */ }
+```
+
+This still works in 1.7.x, but **only** because `captcha_control` checks the
+ALTCHA proof-of-work on the server first (`Captcha::checkPostedSolutions()`,
+run before any module) and fills that session value only after a valid,
+single-use solution. Nothing shown in the page is ever accepted.
+
+**Deprecated since 1.7.0, removed in WBCE 2.x.** Use `Captcha::verify()`:
+
+```php
+if (!Captcha::verify($_POST['captcha'] ?? '', $sec_id)) { /* wrong */ }
+```
+
+---
+
 ## Legacy: `require_once` the old shim
 
 Older modules may have this line:

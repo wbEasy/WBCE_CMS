@@ -31,28 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['email'])) {
         $email = '';
     }
 
-    // --- Captcha validation (FIXED: no timestamp fallback) ---
-    if ($email !== '' && !$nocookie) {
-        $captchaInput = $_POST['captcha'] ?? '';
-
-        if ($captchaInput === '') {
-            $alerts->error('MESSAGE:MOD_FORM_INCORRECT_CAPTCHA');
-            $email = '';
-        } else {
-            // Only compare against actual session captcha values.
-            // NEVER fall back to time() — that's the vulnerability.
-            $validCaptcha1 = $_SESSION['captcha']            ?? null;
-            $validCaptcha2 = $_SESSION['captchaloginforgot'] ?? null;
-
-            if ($validCaptcha1 === null && $validCaptcha2 === null) {
-                // No captcha in session = session expired or tampered
-                $alerts->error('MESSAGE:MOD_FORM_INCORRECT_CAPTCHA');
-                $email = '';
-            } elseif ($captchaInput != $validCaptcha1 && $captchaInput != $validCaptcha2) {
-                $alerts->error('MESSAGE:MOD_FORM_INCORRECT_CAPTCHA');
-                $email = '';
-            }
-        }
+    // --- Captcha: ALTCHA proof-of-work (math captcha without HTTPS) + ASP honeypot ---
+    if ($email !== '' && !$nocookie && !Captcha::verify($_POST['captcha'] ?? '')) {
+        $alerts->error('MESSAGE:MOD_FORM_INCORRECT_CAPTCHA');
+        $email = '';
     }
 
     // --- Validate email format ---

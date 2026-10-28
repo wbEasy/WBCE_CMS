@@ -21,15 +21,8 @@ $sEmail    = '';
 if(isset($_POST['email']) && $_POST['email'] != "" ) {
     $sEmail = strip_tags($oAccounts->get_post('email'));
     
-    if(isset($_POST['captcha']) AND $_POST['captcha'] != ''){
-        $ccheck = time(); $ccheck1 = time();
-        if(isset($_SESSION['captchaaccountforgot'])) $ccheck1 = $_SESSION['captchaaccountforgot'];
-        if(isset($_SESSION['captcha'])) $ccheck = $_SESSION['captcha'];
-        if($_POST['captcha'] != $ccheck && $_POST['captcha'] != $ccheck1) {
-            $oMsgBox->error($MESSAGE['MOD_FORM_INCORRECT_CAPTCHA']);
-            $sEmail = '';
-        }
-    } else {
+    // ALTCHA proof-of-work (math captcha without HTTPS) + ASP honeypot
+    if (!Captcha::verify($_POST['captcha'] ?? '', 'accountforgot')) {
         $oMsgBox->error($MESSAGE['MOD_FORM_INCORRECT_CAPTCHA']);
         $sEmail = '';
     }

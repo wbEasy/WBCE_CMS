@@ -10,8 +10,9 @@
  *
  * Per-widget data is carried on the <altcha-widget> element's data-* attributes
  * (plain strings, no curly braces):
- *   data-syncid   — id of the hidden <input> that receives the verified token
- *   data-token    — session token written into that input upon verification
+ *   data-syncid   — id of the hidden <input> that gets a marker once solved
+ *                   (legacy modules; the server only accepts it after checking
+ *                   the proof-of-work itself — see Captcha::checkPostedSolutions())
  *   data-hidefooter — "1" to hide the "Powered by ALTCHA" footer line
  *   data-hidelogo   — "1" to hide the ALTCHA logo
  */
@@ -22,7 +23,6 @@
         var hideFooter = w.getAttribute('data-hidefooter') === '1';
         var hideLogo   = w.getAttribute('data-hidelogo')   === '1';
         var syncId     = w.getAttribute('data-syncid')     || '';
-        var token      = w.getAttribute('data-token')      || '';
 
         // Apply hideFooter / hideLogo via the public configure() API.
         // This replaces the configuration="{...}" HTML attribute approach
@@ -40,7 +40,7 @@
             w.addEventListener('statechange', function (e) {
                 if (e.detail && e.detail.state === 'verified') {
                     var f = document.getElementById(syncId);
-                    if (f) { f.value = token; }
+                    if (f) { f.value = 'altcha-verified'; }
                 }
             });
         }

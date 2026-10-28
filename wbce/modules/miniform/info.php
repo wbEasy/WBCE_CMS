@@ -8,9 +8,12 @@
  * @license         http://www.gnu.org/licenses/gpl.html
  * @platform        WebsiteBaker 2.8.x / WBCE CMS 1.x
  * @requirements    PHP 8.0 and higher
- * @version         0.24.4
+ * @version         0.24.5
  * @lastmodified    October 28, 2026
  *
+ * v0.24.5 - captcha checked with Captcha::verify() (ALTCHA proof-of-work)
+ *           instead of comparing the session token, which the page published;
+ *           reported by Rik van Loenhout                              (Stefanek)
  * v0.24.4 - messages of anonymous visitors are stored again (user_id NULL
  *           was refused by the NOT NULL column; reported by Rik van
  *           Loenhout); no curl_close() any more (no effect since PHP 8.0,
@@ -55,7 +58,7 @@
 $module_directory   = 'miniform';
 $module_name        = 'MiniForm WBCE CMS Edition';
 $module_function    = 'page';
-$module_version     = '0.24.4';
+$module_version     = '0.24.5';
 $module_platform    = '1.7.0';
 $module_author      = 'Ruud / Dev4me';
 $module_license     = 'GNU General Public License';

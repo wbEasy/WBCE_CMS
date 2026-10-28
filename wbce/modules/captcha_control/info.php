@@ -15,7 +15,7 @@ $core = true;
 $module_directory   = 'captcha_control';
 $module_name        = 'Captcha and Advanced-Spam-Protection (ASP) Control';
 $module_function    = 'tool,initialize';
-$module_version     = '3.0.3';
+$module_version     = '3.0.4';
 $module_platform    = '1.7.0';
 $module_author      = 'Thorn, Luise Hahne, Norbert Heimsath, Christian M. Stefan';
 $module_license     = 'GNU GPL2';
@@ -25,6 +25,14 @@ $module_icon        = 'fa fa-shield';
 /**
  * Version history
  * 
+ * 3.0.4 - ALTCHA could be bypassed: the value the legacy check compared
+ *         against was published in the page (data-token), and verify() fell
+ *         back to it. verify() now accepts only a solved proof-of-work, each
+ *         challenge once and only in the session it was issued to. Modules
+ *         that compare $_POST['captcha'] themselves keep working, but only
+ *         after a proof-of-work checked on the server (deprecated, removed in
+ *         WBCE 2.x). Reported by Rik van Loenhout (Christian M. Stefan)
+ *
  * 3.0.3 - Captcha::verifyHoneypotField() public, for forms with ASP but
  *         without captcha (Christian M. Stefan)
  * 

@@ -103,6 +103,14 @@ header('Pragma: no-cache');
 // CORS: allow the widget (same origin usually, but explicit is safer)
 header('Access-Control-Allow-Origin: ' . WB_URL);
 
-$lib = new AltchaLib($hmacKey, $maxNumber, $ttl);
-echo json_encode($lib->createChallenge());
+$lib       = new AltchaLib($hmacKey, $maxNumber, $ttl);
+$challenge = $lib->createChallenge();
+
+// Single use (Captcha::verifyAltcha()): a solution only counts for a challenge
+// issued to this session, and only once. Keep the 20 newest unexpired ones.
+$_issued = array_filter($_SESSION['altcha_issued'] ?? [], static fn ($exp) => $exp >= time());
+$_issued[$challenge['challenge']] = time() + $ttl;
+$_SESSION['altcha_issued'] = array_slice($_issued, -20, null, true);
+
+echo json_encode($challenge);
 exit;

@@ -110,15 +110,8 @@ if ($use_captcha && $mf->dataPosted && $mf->myPost) {
 			$var[] = "{CAPTCHA_ERROR}"; $value[] = " missing";
 			$all_required = false;
 		}
-	} elseif(isset($_POST['captcha']) AND $_POST['captcha'] != ''){
-		$ccheck = time(); $ccheck1 = time();
-		if(isset($_SESSION['captcha'.$section_id])) $ccheck1 = $_SESSION['captcha'.$section_id];
-		if(isset($_SESSION['captcha'])) $ccheck = $_SESSION['captcha'];
-		if($_POST['captcha'] != $ccheck && $_POST['captcha'] != $ccheck1) {
-			$var[] = "{CAPTCHA_ERROR}"; $value[] = " missing";
-			$all_required = false;
-		}
-	} else {
+	} elseif (!Captcha::verify($_POST['captcha'] ?? '', (string) $section_id)) {
+		// ALTCHA proof-of-work (math captcha without HTTPS) + ASP honeypot
 		$var[] = "{CAPTCHA_ERROR}"; $value[] = " missing";
 		$all_required = false;
 	}

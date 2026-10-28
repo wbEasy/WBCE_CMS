@@ -45,3 +45,11 @@ if (!function_exists('call_captcha')) {
         Captcha::render($action, $style, $sec_id, $type_override);
     }
 }
+
+// ── 3. Check posted ALTCHA solutions before any module runs ──────────────────
+//
+// Single-use proof-of-work, checked once per request; Captcha::verify() uses
+// the result. Also opens the legacy $_SESSION['captcha…'] slot for modules that
+// still compare it themselves — only after a valid solution (deprecated).
+
+Captcha::checkPostedSolutions();
