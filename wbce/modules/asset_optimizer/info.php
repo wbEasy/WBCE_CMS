@@ -20,7 +20,7 @@ if (!defined('WB_PATH')) {
 $module_directory   = 'asset_optimizer';
 $module_name        = 'AssetQueue Optimizer';
 $module_function    = 'tool';
-$module_version     = '1.0.0';
+$module_version     = '1.0.1';
 $module_platform    = '1.7.0';
 $module_author      = 'Christian M. Stefan';
 $module_license     = 'GNU General Public License';
@@ -30,6 +30,15 @@ $module_level       = 'core';
 
 /**
  * DEVELOPMENT HISTORY (Change Log):
+ *
+ * v.1.0.1 2026-10-28 Christian M. Stefan
+ *         [!] Cache busting off had no effect: the "Assets Cache Busting"
+ *             output filter kept busting while its dashboard row was active.
+ *             Saving now also sets that row (on while front end or backend
+ *             busts); the filter itself honours the switch (plugin 1.1.1).
+ *         [*] Texts: "Admin console errors" also lists asset files not found
+ *             on the page; console output and the developer source view are
+ *             for administrators only. Reported by Florian Meerwinck.
  *
  * v.1.0.0 2026-09-09 Christian M. Stefan
  *         [+] Initial release. Three tabs on the cp_chrome / cp_theme design

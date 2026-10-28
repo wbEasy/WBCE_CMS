@@ -39,7 +39,7 @@ return [
 
             // ── Settings: intro + config.php notice ────────────────────────
             'SETTINGS_INTRO' => 'These switches control framework/Assets/AssetQueue.php — the queue that collects every stylesheet, script, font and meta tag on a page and injects it at the right place in the HTML. All values become PHP constants at boot; a change takes effect on the next page load.',
-            'STORAGE_NOTE'   => 'The minification switches are written to var/config_constants.ini.php (nothing else touches them). The cache-busting pair is written to the settings table — the same rows the "Assets Cache Busting" filter in Outputfilter Dashboard uses, so there is one value, not two.',
+            'STORAGE_NOTE'   => 'The minification switches are written to var/config_constants.ini.php (nothing else touches them). The cache-busting pair is written to the settings table — the same rows the "Assets Cache Busting" filter in Outputfilter Dashboard uses; saving here also switches that filter on or off there.',
 
             'PINNED_TITLE' => '%d constant(s) defined in config.php',
             'PINNED_BODY'  => 'A value in config.php always wins — over the ini file and the settings table — so it cannot be changed here, and it is easy to lose during an update. Move these to var/config_constants.ini.php and this tool will manage them: %s',
@@ -65,7 +65,7 @@ return [
             'MINIFY_USE_SUFFIX_DESC'  => 'Whether cached files carry a .min marker in their name (wbcetik-css-main.min.css vs wbcetik-css-main.css). Purely cosmetic. Changing this setting rewrites the cache.',
 
             'ASSETS_MINIFY_DEBUG_LABEL' => 'Developer source view',
-            'ASSETS_MINIFY_DEBUG_DESC'  => 'While you are logged in, turns off both minification and bundling so browser DevTools shows the original, individually-named source files. Every other visitor keeps receiving the optimised output, so this is safe to leave on — it never changes what the public sees.',
+            'ASSETS_MINIFY_DEBUG_DESC'  => 'While you are logged in as an administrator, turns off both minification and bundling so browser DevTools shows the original, individually-named source files. Every other visitor keeps receiving the optimised output, so this is safe to leave on — it never changes what the public sees.',
 
             // ── Cache-busting switches ───────────────────────────────────
             'OPF_ASSETS_CACHE_BUSTING_LABEL' => 'Front end',
@@ -83,7 +83,7 @@ return [
             'DIR_OVERRIDE'           => 'Set a custom directory',
 
             'ASSET_QUEUE_DEBUG_LABEL' => 'Admin console errors',
-            'ASSET_QUEUE_DEBUG_DESC'  => 'When on, AssetQueue prints a console.error() block for logged-in administrators if it hits a problem while assembling a page. Its own switch — independent of the global WBCE_DEBUG (which, when on, enables it too). Keep it off on a live site.',
+            'ASSET_QUEUE_DEBUG_DESC'  => 'When on, logged-in administrators see in the browser console which asset files (CSS/JS, bundle sources) were not found on the page — console.warn() — and a console.error() if AssetQueue fails while assembling the page. Other visitors see nothing. Its own switch — independent of the global WBCE_DEBUG (which, when on, enables it too).',
 
             // ── Cache & status ─────────────────────────────────────────
             'CACHE_INTRO' => 'The queue writes combined bundles and minified copies into the asset cache, and self-hosted web fonts into cache/fonts/. Clearing either is always safe — the next page load regenerates whatever it needs.',
@@ -164,7 +164,7 @@ return [
             'DOC_SOURCE'       => 'Quelle:',
 
             'SETTINGS_INTRO' => 'Diese Schalter steuern framework/Assets/AssetQueue.php — die Queue, die alle Stylesheets, Skripte, Fonts und Meta-Tags einer Seite sammelt und an der richtigen Stelle im HTML einfügt. Alle Werte werden beim Start zu PHP-Konstanten; eine Änderung wirkt beim nächsten Seitenaufruf.',
-            'STORAGE_NOTE'   => 'Die Minifizierungs-Schalter werden in var/config_constants.ini.php geschrieben (nichts anderes fasst sie an). Das Cache-Busting-Paar landet in der settings-Tabelle — dieselben Zeilen, die der Filter „Assets Cache Busting" im Outputfilter Dashboard nutzt, also gibt es einen Wert, nicht zwei.',
+            'STORAGE_NOTE'   => 'Die Minifizierungs-Schalter werden in var/config_constants.ini.php geschrieben (nichts anderes fasst sie an). Das Cache-Busting-Paar landet in der settings-Tabelle — dieselben Zeilen, die der Filter „Assets Cache Busting" im Outputfilter Dashboard nutzt; das Speichern hier schaltet diesen Filter dort mit ein bzw. aus.',
 
             'PINNED_TITLE' => '%d Konstante(n) in config.php definiert',
             'PINNED_BODY'  => 'Ein Wert in config.php gewinnt immer — gegenüber der ini-Datei und der settings-Tabelle — und lässt sich hier nicht ändern; außerdem geht er bei einem Update leicht verloren. Verschiebe diese nach var/config_constants.ini.php, dann verwaltet dieses Tool sie: %s',
@@ -188,7 +188,7 @@ return [
             'MINIFY_USE_SUFFIX_DESC'  => 'Ob Cache-Dateien eine .min-Kennung im Namen tragen (wbcetik-css-main.min.css statt wbcetik-css-main.css). Rein kosmetisch. Bei Änderung dieser Einstellung wird der Cache neu geschrieben.',
 
             'ASSETS_MINIFY_DEBUG_LABEL' => 'Entwickler-Quellansicht',
-            'ASSETS_MINIFY_DEBUG_DESC'  => 'Solange du angemeldet bist, schaltet dies Minifizierung und Bündelung aus, damit die Browser-DevTools die ursprünglichen, einzeln benannten Quelldateien zeigen. Alle anderen Besucher erhalten weiter die optimierte Ausgabe — es ist also unbedenklich, das aktiviert zu lassen; für die Öffentlichkeit ändert sich nichts.',
+            'ASSETS_MINIFY_DEBUG_DESC'  => 'Solange du als Administrator angemeldet bist, schaltet dies Minifizierung und Bündelung aus, damit die Browser-DevTools die ursprünglichen, einzeln benannten Quelldateien zeigen. Alle anderen Besucher erhalten weiter die optimierte Ausgabe — es ist also unbedenklich, das aktiviert zu lassen; für die Öffentlichkeit ändert sich nichts.',
 
             'OPF_ASSETS_CACHE_BUSTING_LABEL' => 'Frontend',
             'OPF_ASSETS_CACHE_BUSTING_DESC'  => 'Cache-Busting für die öffentliche Website.',
@@ -204,7 +204,7 @@ return [
             'DIR_OVERRIDE'           => 'Abweichenden Ordner festlegen',
 
             'ASSET_QUEUE_DEBUG_LABEL' => 'Admin-Konsolenfehler',
-            'ASSET_QUEUE_DEBUG_DESC'  => 'Wenn an, gibt die AssetQueue für angemeldete Administratoren einen console.error()-Block aus, falls beim Zusammenbauen einer Seite ein Problem auftritt. Ein eigener Schalter — unabhängig vom globalen WBCE_DEBUG (das ihn, wenn an, ebenfalls aktiviert). Auf einer Live-Seite ausgeschaltet lassen.',
+            'ASSET_QUEUE_DEBUG_DESC'  => 'Wenn an, sehen angemeldete Administratoren in der Browser-Konsole, welche Asset-Dateien (CSS/JS, Bundle-Quellen) auf der Seite nicht gefunden wurden — console.warn() — und ein console.error(), falls die AssetQueue beim Zusammenbauen der Seite scheitert. Andere Besucher sehen nichts. Ein eigener Schalter — unabhängig vom globalen WBCE_DEBUG (das ihn, wenn an, ebenfalls aktiviert).',
 
             'CACHE_INTRO' => 'Die Queue schreibt kombinierte Bundles und minifizierte Kopien in den Asset-Cache und selbst gehostete Web-Fonts nach cache/fonts/. Beides zu leeren ist jederzeit gefahrlos — der nächste Seitenaufruf erzeugt neu, was gebraucht wird.',
 

@@ -28,6 +28,12 @@ if (!defined('WB_PATH')) {
 
 /*
 Header: Version-History
+1.1.1 %(Christian M. Stefan; 28 Oct, 2026)%
+        - The filter honours OPF_ASSETS_CACHE_BUSTING / _BE (front end / backend),
+          the same switch AssetQueue uses. Turning cache busting off in the
+          AssetQueue Optimizer had no effect while this filter's dashboard row was
+          active: it kept appending ?<mtime> everywhere. Reported by Florian Meerwinck.
+
 1.1.0 %(Christian M. Stefan; 17 Aug, 2026)%
         - Renamed from "Cache Control" to "Assets Cache Busting" (directory: cachecontrol ->
           opf_assets_cache_busting). Existing installations are migrated automatically on
@@ -82,7 +88,7 @@ Header: Version-History
 
 $plugin_directory   = 'opf_assets_cache_busting';
 $plugin_name        = 'Assets Cache Busting';
-$plugin_version     = '1.1.0';
+$plugin_version     = '1.1.1';
 $plugin_status      = 'beta';
 $plugin_platform    = '1.7.x';
 $plugin_author      = 'thorn, mrbaseman, Christian M. Stefan';

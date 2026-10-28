@@ -30,6 +30,19 @@ function opff_assets_cache_busting(&$content, $page_id, $section_id, $module, $w
 {
     global $opf_HEADER, $opf_BODY; // PRIVATE - do not do this
 
+    // Same switch as AssetQueue::cacheBustingEnabled() — the settings rows the
+    // AssetQueue Optimizer writes (and the dashboard toggle of this filter):
+    // front end OPF_ASSETS_CACHE_BUSTING; backend that one or
+    // OPF_ASSETS_CACHE_BUSTING_BE. Without this check the filter kept busting
+    // whenever its dashboard row was active, whatever the Optimizer said.
+    $fe = defined('OPF_ASSETS_CACHE_BUSTING') && OPF_ASSETS_CACHE_BUSTING;
+    $on = ($page_id === 'backend')
+        ? ($fe || (defined('OPF_ASSETS_CACHE_BUSTING_BE') && OPF_ASSETS_CACHE_BUSTING_BE))
+        : $fe;
+    if (!$on) {
+        return true;
+    }
+
     $head = $body = '';
     foreach ($opf_HEADER as $str) {
         $head .= $str;

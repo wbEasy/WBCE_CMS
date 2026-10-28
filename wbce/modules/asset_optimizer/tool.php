@@ -122,6 +122,20 @@ if (!empty($_POST['ao_save'])) {
         (new Alerts())->sessionToast(sprintf($TXT['MIGRATED_TO_DB'], implode(', ', $migrated)), 'info');
     }
 
+    // The "Assets Cache Busting" output filter has its own on/off column, the
+    // one the Outputfilter Dashboard shows: keep it in step — on while either
+    // side busts (the filter itself checks front end / backend per request).
+    $beBust = $isPinned('OPF_ASSETS_CACHE_BUSTING_BE')
+        ? (bool) AssetInsight::constantValue('OPF_ASSETS_CACHE_BUSTING_BE')
+        : $bustValue['OPF_ASSETS_CACHE_BUSTING_BE'];
+    $GLOBALS['database']->query(
+        "UPDATE `{TP}mod_outputfilter_dashboard` SET `active` = ? WHERE `funcname` = ?",
+        [($feBust || $beBust) ? 1 : 0, 'opff_assets_cache_busting']
+    );
+    if ($GLOBALS['database']->hasError()) {
+        error_log('asset_optimizer: could not sync the Assets Cache Busting filter: ' . $GLOBALS['database']->getError());
+    }
+
     // A minify/suffix switch changed → drop the asset cache so it is rebuilt
     // cleanly (correct filenames, minified or not) on the next page load.
     $cacheDirty = false;
