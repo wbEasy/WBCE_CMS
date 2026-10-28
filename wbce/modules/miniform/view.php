@@ -241,7 +241,7 @@ if($mf->myPost) {
 				$data['message_id'] = 0;
 				$data['section_id'] = $section_id;
 				$data['session_data'] = $mf->serialize($_SESSION['form']);
-				$data['user_id'] = $wb->get_user_id();
+				$data['user_id'] = (int) $wb->get_user_id(); // anonymous: 0 (column is NOT NULL)
 				$data['guid'] = $mf->guid();
 				$emailmessage = $mf->add_template($emailmessage, '{GUID}', $data['guid']);
 				$emailmessage = $mf->add_template($emailmessage, '{MAILMESSAGE}', $email_field_data);
