@@ -237,7 +237,8 @@ $aToTwig = array(
     'EMAIL'            => $email, 
     'GDPR_VALUE'       => $gdpr_check, 
     'SHOW_CAPTCHA'     => $show_captcha, 
-    'ASP_HONEYPOTS'    => Captcha::isAspEnabled() ? Captcha::renderHoneypot() : '',
+    // call_captcha() renders the honeypot itself; only without captcha it comes from here
+    'ASP_HONEYPOTS'    => (Captcha::isAspEnabled() && !Captcha::isEnabled()) ? Captcha::renderHoneypot() : '',
     'MESSAGE_BOX'      => $oMsgBox->fetchDisplay(), 
     
     'USER_NAME_ERR'    => $username_error, 
