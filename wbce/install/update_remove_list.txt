@@ -185,6 +185,7 @@
 [INCLUDE]/idna_convert/                   // obsolete since 1.7.0 
 [INCLUDE]/FlashMessages/                  // obsolete since 1.7.0. MessageBox is a standalone class now 
 [INCLUDE]/jscalendar/                     // obsolete since 1.7.0. Replaced with date_time_picker/flatpickr
+[INCLUDE]/MarkdownReader/                 // 1.6.x; replaced by modules/MarkdownWbce (old reader.php read any file)
 [INCLUDE]/editarea/                       // obsolete since 1.7.0. Replaced with CodeMirror
 [INCLUDE]/yui/                            // obsolete since 1.7.0. No longer used
 [MODULES]/ckeditor/                       // CKEditor 4 (end of life) no longer shipped, replaced by tinymce_wbce
