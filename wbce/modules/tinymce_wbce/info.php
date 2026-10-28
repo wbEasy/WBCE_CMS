@@ -9,7 +9,7 @@
 $module_directory   = 'tinymce_wbce';
 $module_name        = 'TinyMCE Editor';
 $module_function    = 'wysiwyg, tool';
-$module_version     = '0.3.5';
+$module_version     = '0.4.0';
 $module_platform    = '1.7.0';
 $module_author      = 'Slugger & Claude KI, Christian M. Stefan';
 $module_license     = 'GNU GPL2';

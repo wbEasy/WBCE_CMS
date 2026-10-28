@@ -530,6 +530,8 @@ function mceConfig(id, content, isMin) {
     statusbar: isMin ? false : s.statusbar, skin: s.skin,
     content_css: [s.content_css, TKFG_CONFIG.faCssUrl, TKFG_CONFIG.contentExtrasUrl].filter(Boolean),
     promotion: false, branding: false, license_key: 'gpl',
+    // core plugins/skins/icons: re-fetched after a TinyMCE update, not mixed from cache
+    cache_suffix: '?v=' + tinymce.majorVersion + '.' + tinymce.minorVersion,
     base_url: TKFG_CONFIG.modUrl + '/tinymce', suffix: '.min',
     plugins: 'lists link image table code fullscreen charmap media emoticons visualchars'
              + (s.wordcount === '1' && !isMin ? ' wordcount' : ''),

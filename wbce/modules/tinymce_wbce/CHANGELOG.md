@@ -2,6 +2,16 @@
 
 *Changelog entries from v0.2.53 onward are written in English.*
 
+## v0.4.0 — 2026-10-28
+
+### Changed
+- **TinyMCE 8.5.1 → 8.10.0** (npm `tinymce@8.10.0`, GPLv2+). The core in `tinymce/` is replaced file for file in the same trimmed layout as before (minified files, plugin language packs; no `plugin.js`/`index.js`/unminified CSS, no skin `*.ts` declarations); `tinymce/index.php` and `tinymce/langs/` are ours and unchanged. Upstream changes since 8.5.1 are fixes only — among them a stored XSS in the media plugin (8.9.3, TINYMCE-14932) and the alt-text bug below.
+
+### Fixed
+- **Alt text of an already saved image was not stored** (forum, Rik van Loenhout / Florian, 2026-10-01). An image saved with `alt=""` counts as decorative for the image plugin; without `a11y_advanced_options` the dialog has no checkbox to undo that, so on save the typed text was replaced by `alt=""` again. Fixed upstream in 8.9.0 (TINYMCE-13738), included with the update above.
+- **Link dialog: a CSS class (or rel) typed but not confirmed with Enter/comma was lost** (Florian, e.g. `colorbox`). wbeSelect only turns typed text into a selected `<option>` on Enter/comma; clicking "Insert" right after typing read an empty field. The dialog now calls the new `WbeSelect#commitTyped()` (`include/wbeSelect/wbeSelect.js`) for both fields before reading them.
+- **After a TinyMCE update, browsers could combine the new core with cached plugins of the old one.** TinyMCE loads its own plugins, theme, skins and icons without a version query. `cache_suffix` is now set in `include.php` (mtime of `tinymce.min.js`) and in the preset configurator (TinyMCE version).
+
 ## v0.3.5 — 2026-10-24
 
 ### Security

@@ -240,6 +240,10 @@ if (!function_exists('tinymce_wbce_render_editor')) {
         // hard across edits — this makes a changed file always re-fetch, while an
         // unchanged file still caches normally.
         $linkVer   = @filemtime(TINYMCE_MOD_PATH . '/plugins/link/plugin.min.js') ?: 1;
+        // The core's own plugins, theme, skins and icons get the same treatment
+        // through TinyMCE's cache_suffix: after a TinyMCE update the browser
+        // must not combine the new core with cached plugins of the old one.
+        $coreVer   = @filemtime(TINYMCE_MOD_PATH . '/tinymce/tinymce.min.js') ?: 1;
         $faVer     = @filemtime(TINYMCE_MOD_PATH . '/plugins/fa_picker/plugin.min.js') ?: 1;
         $ccVer     = @filemtime(TINYMCE_MOD_PATH . '/plugins/wbce_casechange/plugin.js') ?: 1;
         $shyVer    = @filemtime(TINYMCE_MOD_PATH . '/plugins/wbce_shy/plugin.js') ?: 1;
@@ -605,6 +609,7 @@ HTML;
         license_key:     'gpl',
         base_url:        '{$baseUrl}',
         suffix:          '.min',
+        cache_suffix:    '?v={$coreVer}',
         skin:            skin,
         // Order matters: the named content theme (skin) loads FIRST, then the
         // template's editor.css — so editor.css ALWAYS wins over the skin's body

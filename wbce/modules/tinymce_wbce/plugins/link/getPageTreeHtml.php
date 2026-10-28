@@ -34,7 +34,6 @@ if (!defined('WB_PATH')) {
     require_once $configPath;
 }
 
-require_once WB_PATH . '/framework/class.admin.php';
 $admin = new Admin('Pages', 'pages_modify', false, false);
 if (!$admin->is_authenticated()) {
     http_response_code(403);

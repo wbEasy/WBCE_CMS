@@ -1314,6 +1314,19 @@
         }
 
         /**
+         * allowNew: commit text typed into the search field but not yet
+         * confirmed with Enter/comma, exactly as Enter would. Call it before
+         * reading the <select> on submit — otherwise a value the user typed
+         * and then clicked away from is silently lost.
+         */
+        commitTyped() {
+            const typed = this.inputElement ? this.inputElement.value : '';
+            if (this.options.allowNew && typed.trim() !== '') {
+                this.#createOrSelectNew(typed);
+            }
+        }
+
+        /**
          * Remove a specific selected item.
          * Pass the .ws-tag element, or omit to remove the first (single select).
          */
