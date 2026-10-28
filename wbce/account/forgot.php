@@ -24,9 +24,7 @@ if ($oAccounts->is_authenticated() == true) {
     exit();
 }
 
-foreach ($oAccounts->getLanguageFiles() as $sLangFile) {
-    require_once $sLangFile;
-}
+$oAccounts->loadLanguages();
 
 // Required page details
 $page_id = (isset($_SESSION['PAGE_ID']) && is_numeric($_SESSION['PAGE_ID']) ? $_SESSION['PAGE_ID'] : 0);

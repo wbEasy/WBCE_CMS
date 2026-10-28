@@ -15,7 +15,7 @@ defined('WB_PATH') or die("Cannot access this file directly");
 $oAccounts = new Accounts();
 
 // Load Language Files 
-foreach ($oAccounts->getLanguageFiles() as $sLangFile) require_once $sLangFile;
+$oAccounts->loadLanguages();
 
 // Init vars used in the form template
 $username     = ''; 

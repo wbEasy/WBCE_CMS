@@ -19,7 +19,7 @@ if(!$admin->get_permission('admintools')) exit("insuficient privileges");
 $oAccounts = new Accounts();
 
 // Load Language Files 
-foreach ($oAccounts->getLanguageFiles() as $sLangFile) require_once $sLangFile;
+$oAccounts->loadLanguages();
 
 // load CSS Files if Backend Theme not ACPI Ready
 $sAcpiCheckfile = WB_PATH.'/templates/'.DEFAULT_THEME.'/ACPI_READY';

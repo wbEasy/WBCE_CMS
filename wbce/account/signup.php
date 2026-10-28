@@ -19,9 +19,7 @@ if (!FRONTEND_LOGIN) {
 
 $oAccounts = new Accounts();
 
-foreach ($oAccounts->getLanguageFiles() as $sLangFile) {
-    require_once $sLangFile;
-}
+$oAccounts->loadLanguages();
 
 // Check if FRONTEND_SIGNUP group constant is defined or USER_ID is in Session
 $iSignupGroupID = defined('FRONTEND_SIGNUP') ? (int)FRONTEND_SIGNUP : 0;

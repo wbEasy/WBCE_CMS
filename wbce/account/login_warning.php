@@ -20,9 +20,7 @@ if (!FRONTEND_LOGIN) {
 
 $oAccounts = new Accounts();
 
-foreach ($oAccounts->getLanguageFiles() as $sLangFile) {
-    require_once $sLangFile;
-}
+$oAccounts->loadLanguages();
 
 $page_id = (isset($_SESSION['PAGE_ID']) && is_numeric($_SESSION['PAGE_ID'])) ? $_SESSION['PAGE_ID'] : 0;
 define('TEMPLATE',     $oAccounts->cfg['login_template']);

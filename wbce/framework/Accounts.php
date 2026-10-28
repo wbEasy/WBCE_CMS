@@ -117,29 +117,22 @@ class Accounts extends Frontend
     }
 
     /**
-     * Return an ordered list of language file paths for the accounts module:
-     * EN first, then the active locale, with theme-level overrides appended last.
+     * Load the language strings of the accounts module into the Lang registry:
+     * EN first, then the active locale, then the theme-level override
+     * (templates/<DEFAULT_TEMPLATE>/overrides/account/languages/<LANG>.php).
+     *
+     * Through Lang, not require_once: L_() in the Twig templates reads only
+     * the registry, and Lang keeps $TEXT, $TOOL_TXT … in $GLOBALS in sync, so
+     * PHP code reading them directly works as well.
      */
-    public function getLanguageFiles(): array
+    public function loadLanguages(): void
     {
-        $langDir = ACCOUNT_TOOL_PATH . '/languages';
-        $files   = [$langDir . '/EN.php'];
+        Lang::loadLanguage(ACCOUNT_TOOL_PATH);
 
-        if (LANGUAGE !== 'EN') {
-            $langFile = $langDir . '/' . LANGUAGE . '.php';
-            if (is_readable($langFile)) {
-                $files[] = $langFile;
-            }
+        $override = WB_PATH . '/templates/' . DEFAULT_TEMPLATE . '/overrides/account/languages/' . LANGUAGE . '.php';
+        if (is_readable($override)) {
+            Lang::includeFile($override);
         }
-
-        // Theme-level override: EN when active language is EN, active language otherwise.
-        $overrideBase = WB_PATH . '/templates/' . DEFAULT_TEMPLATE . '/overrides/account/languages/';
-        $file = $overrideBase . (LANGUAGE === 'EN' ? 'EN' : LANGUAGE) . '.php';
-        if (is_readable($file)) {
-            $files[] = $file;
-        }
-
-        return $files;
     }
 
     /**
