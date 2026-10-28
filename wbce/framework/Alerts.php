@@ -103,7 +103,9 @@ class Alerts
         $type = strtolower($type[0] ?? 'i');
         if (!isset(self::TYPE_MAP[$type])) $type = self::INFO;
 
-        if (in_array($type, [self::ERROR, self::INFO], true)) $sticky = true;
+        // Errors always stay on screen; everything else fades unless sticky
+        // was asked for (same rule as the toasts and as in 1.6.x).
+        if ($type === self::ERROR) $sticky = true;
 
         $msgData = ['message' => $message, 'sticky' => $sticky];
 
@@ -129,19 +131,33 @@ class Alerts
     //  Output Methods
     // =====================================================================
 
+    /**
+     * Render the messages of this request plus those carried over from the
+     * previous one (flash messages stored before a redirect). The carried-over
+     * ones are shown by every instance, with or without $useSession — as the
+     * 1.6.x MessageBox did; an instance with $useSession has its own messages
+     * in the session already, so they are not rendered twice.
+     */
     public function render(): string
     {
         $output = '';
-        if ($this->useSession && session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['flash_messages'])) {
+        if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['flash_messages'])) {
             foreach (array_keys(self::TYPE_MAP) as $typeKey) {
                 if (empty($_SESSION['flash_messages'][$typeKey])) continue;
                 $messages = [];
+                $sticky   = false;
                 foreach ($_SESSION['flash_messages'][$typeKey] as $msgData) {
                     $messages[] = $this->processTranslation($msgData['message']);
+                    $sticky     = $sticky || !empty($msgData['sticky']);
                 }
-                $output .= $this->renderMessages($messages, self::TYPE_MAP[$typeKey]);
+                $output .= $this->renderMessages($messages, self::TYPE_MAP[$typeKey], $sticky);
                 unset($_SESSION['flash_messages'][$typeKey]);
             }
+        }
+
+        if ($this->useSession) {
+            $this->directMessages = [];
+            return $output;
         }
 
         $grouped  = [];
@@ -304,13 +320,19 @@ class Alerts
             return '';
         }
 
+        // json_encode, not addslashes: a line break in the message must not
+        // break the script, and '</script>' must not end it
+        $js    = static fn ($v): string => json_encode(
+            (string) $v,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+        );
         $calls = '';
         foreach ($_SESSION['pending_toasts'] as $toast) {
-            $msg      = addslashes($toast['message']);
-            $type     = addslashes($toast['type']);
+            $msg      = $js($toast['message']);
+            $type     = $js($toast['type']);
             $duration = (int) $toast['duration'];
-            $icon     = addslashes(self::ICON_MAP[$toast['type']] ?? '');
-            $calls   .= "  _showToast('{$msg}', '{$type}', {$duration}, '{$icon}');\n";
+            $icon     = $js(self::ICON_MAP[$toast['type']] ?? '');
+            $calls   .= "  _showToast({$msg}, {$type}, {$duration}, {$icon});\n";
         }
 
         unset($_SESSION['pending_toasts']);
@@ -487,6 +509,22 @@ HTML;
     private function doRedirect(): void
     {
         if ($this->redirectUrl === null) return;
+
+        // Messages of an instance without $useSession are carried over to the
+        // next page as flash messages — otherwise ->success(…) followed by
+        // ->redirect(…) would drop them silently (the 1.6.x MessageBox kept
+        // them). With $useSession, add() stored them already.
+        if (!$this->useSession && session_status() === PHP_SESSION_ACTIVE) {
+            $keyOf = array_flip(self::TYPE_MAP);
+            foreach ($this->directMessages as $msg) {
+                $_SESSION['flash_messages'][$keyOf[$msg['type']]][] = [
+                    'message' => $msg['message'],
+                    'sticky'  => $msg['sticky'],
+                ];
+            }
+            $this->directMessages = [];
+        }
+
         if (!headers_sent()) { header('Location: ' . $this->redirectUrl); exit; }
         echo '<script>window.location="' . addslashes($this->redirectUrl) . '";</script>';
         exit;

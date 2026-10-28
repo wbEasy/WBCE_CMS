@@ -99,16 +99,8 @@
     }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Inline message auto-dismiss (non-sticky success/info/warning)      */
-/* ------------------------------------------------------------------ */
-.dismissable:not(.sticky) {
-    animation: msg-auto-fade 6s ease-out forwards;
-}
-@keyframes msg-auto-fade {
-    0%, 75%  { opacity: 1; }
-    100%     { opacity: 0; pointer-events: none; }
-}
+/* Inline alerts fade out via cp_alerts.css (success/warning/info only,
+   never errors) — no second fade rule here. */
 .msg-close {
     float: right;
     background: none;

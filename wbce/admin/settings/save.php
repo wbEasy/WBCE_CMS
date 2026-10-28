@@ -80,6 +80,11 @@ if (isset($_POST['frontend_signup'])
     $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
 }
 
+// redirect_timer ends up in a <script> (messageBox): -1 or 0 … 10000 ms only
+if (isset($_POST['redirect_timer'])) {
+    $_POST['redirect_timer'] = (string) max(-1, min(10000, (int) $_POST['redirect_timer']));
+}
+
 if (isset($_POST['app_name'])) {
 	$pattern = '/^[a-z0-9_-]*$/';
 	if (false == preg_match($pattern, $_POST['app_name']) || $_POST['app_name'] == '') {

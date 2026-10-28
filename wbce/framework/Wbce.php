@@ -815,8 +815,9 @@ class Wbce extends SecureForm
             $uMsg = array($uMsg);
         }
 
-        $iRedirectTime = (defined('REDIRECT_TIMER')) ? REDIRECT_TIMER : 0;
-        $iRedirectTime = ($iRedirectTime > 10000) ? 10000 : $iRedirectTime;
+        // -1 = no auto-redirect (back button only), else 0 … 10000 ms
+        $iRedirectTime = defined('REDIRECT_TIMER') ? (int) REDIRECT_TIMER : 0;
+        $iRedirectTime = max(-1, min(10000, $iRedirectTime));
 
         $aToTwig = array(
             'MESSAGE_TYPE'  => $sType,

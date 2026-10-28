@@ -5,22 +5,38 @@
       MESSAGE_TYPE   — 'success', 'error', 'warning', 'info'
       MESSAGES       — array of message strings (already translated)
       UNICODE_ICON   — Unicode icon character from Alerts::ICON_MAP
+      STICKY         — (optional) bool: keep the alert on screen
       USE_REDIRECT   — (optional) bool: enable auto-redirect + back-button behaviour
       REDIRECT_URL   — (optional) string: target URL
-      REDIRECT_TIME  — (optional) int ms | '-1' for back-button-only (no auto-redirect)
+      REDIRECT_TIME  — (optional) int ms | -1 for back-button-only (no auto-redirect)
 
     Rendering paths:
-      • Alerts::renderTwig()       — passes MESSAGE_TYPE / MESSAGES / UNICODE_ICON only
-      • class.wb.php::messageBox() — additionally passes USE_REDIRECT / REDIRECT_URL / REDIRECT_TIME
+      • Alerts::renderTwig()  — passes MESSAGE_TYPE / MESSAGES / UNICODE_ICON / STICKY
+      • Wbce::messageBox()    — print_success() / print_error(); passes USE_REDIRECT /
+                                REDIRECT_URL / REDIRECT_TIME instead of STICKY
+
+    Sticky (stays on screen, gets a close button):
+      • every error
+      • STICKY = true (Alerts::sticky(), or ->success(…, sticky: true) etc.)
+      • every alert that shows a back button — it must not fade away with the
+        button the user is meant to click
+      • messageBox() without redirect (USE_REDIRECT = false)
 
     CSS contract (cp_alerts.css):
       • .dismissable            — present on every alert
-      • .sticky                 — added for errors; suppresses the CSS fade animation
-      • .msg-close              — close button; rendered only for errors (sticky alerts)
+      • .sticky                 — suppresses the CSS fade animation
+      • .msg-close              — close button; rendered only for sticky alerts
       • animationend listener   — removes faded-out elements from DOM (registered once via flag)
 #}
 {{ insertCssFile(WB_URL ~ '/templates/theme_fallbacks/css/cp_alerts.css') }}
-{% set isSticky = STICKY is defined ? STICKY : (MESSAGE_TYPE == 'error' or (USE_REDIRECT is defined and not USE_REDIRECT)) %}
+{% set isError     = MESSAGE_TYPE == 'error' %}
+{% set useRedirect = not isError and USE_REDIRECT is defined and USE_REDIRECT %}
+{% set showBack    = useRedirect
+        ? (REDIRECT_TIME > 1500 or REDIRECT_TIME == -1)
+        : (REDIRECT_URL is defined and REDIRECT_URL) %}
+{% set isSticky    = isError or showBack
+        or (STICKY is defined and STICKY)
+        or (USE_REDIRECT is defined and not USE_REDIRECT) %}
 <div class="top alertbox_{{ MESSAGE_TYPE }} fg12 dismissable{% if isSticky %} sticky{% endif %}">
 
     {% if isSticky %}
@@ -33,14 +49,10 @@
         <p>{{ msg|raw }}</p>
     {% endfor %}
 
-    {% if not isError and USE_REDIRECT is defined and USE_REDIRECT %}
-        {% if REDIRECT_TIME != '-1' %}
-            <script>setTimeout(function(){ location.href='{{ REDIRECT_URL }}'; }, {{ REDIRECT_TIME }});</script>
-        {% endif %}
-        {% if REDIRECT_TIME > 1500 or REDIRECT_TIME == '-1' %}
-            <p><a href="{{ REDIRECT_URL }}" class="button">{{ L_('TEXT:BACK') }}</a></p>
-        {% endif %}
-    {% elseif REDIRECT_URL is defined and REDIRECT_URL %}
+    {% if useRedirect and REDIRECT_TIME != -1 %}
+        <script>setTimeout(function(){ location.href={{ REDIRECT_URL|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT') b-or constant('JSON_HEX_AMP'))|raw }}; }, {{ REDIRECT_TIME|number_format(0, '', '') }});</script>
+    {% endif %}
+    {% if showBack %}
         <p><a href="{{ REDIRECT_URL }}" class="button">{{ L_('TEXT:BACK') }}</a></p>
     {% endif %}
 
