@@ -334,7 +334,6 @@ class mform {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 		$result = curl_exec($ch);
-		curl_close($ch);
 		return $result;
 	}
 

@@ -8,9 +8,13 @@
  * @license         http://www.gnu.org/licenses/gpl.html
  * @platform        WebsiteBaker 2.8.x / WBCE CMS 1.x
  * @requirements    PHP 8.0 and higher
- * @version         0.24.2
- * @lastmodified    October 24, 2026
+ * @version         0.24.4
+ * @lastmodified    October 28, 2026
  *
+ * v0.24.4 - messages of anonymous visitors are stored again (user_id NULL
+ *           was refused by the NOT NULL column; reported by Rik van
+ *           Loenhout); no curl_close() any more (no effect since PHP 8.0,
+ *           deprecated in 8.5; reported by Florian Meerwinck)         (Stefanek)
  * v0.24.3 - "Manage template": the IDKEY moved to its own parameter
  *           section_key (purpose 'section'); in section_id it was turned into
  *           a section number by modules/admin.php whenever it began with a
@@ -51,7 +55,7 @@
 $module_directory   = 'miniform';
 $module_name        = 'MiniForm WBCE CMS Edition';
 $module_function    = 'page';
-$module_version     = '0.24.3';
+$module_version     = '0.24.4';
 $module_platform    = '1.7.0';
 $module_author      = 'Ruud / Dev4me';
 $module_license     = 'GNU General Public License';
