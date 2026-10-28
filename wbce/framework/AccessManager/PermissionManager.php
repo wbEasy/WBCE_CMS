@@ -89,6 +89,15 @@ class PermissionManager
                 'languages_uninstall' => 'TEXT:UNINSTALL',
             ],
         ],
+        // Own account data (name, e-mail, password, language …) in the backend
+        // and the front end — see mayEditOwnData(). Without it, an account is
+        // managed by the administrator only (shared or demo accounts).
+        'preferences' => [
+            'title'    => 'MENU:PREFERENCES',
+            'children' => [
+                self::OWN_DATA => 'TEXT:MODIFY',
+            ],
+        ],
         'settings' => [
             'title'    => 'MENU:SETTINGS',
             'children' => [
@@ -118,15 +127,6 @@ class PermissionManager
                 'groups_add'    => 'TEXT:ADD',
                 'groups_modify' => 'TEXT:MODIFY',
                 'groups_delete' => 'TEXT:DELETE',
-            ],
-        ],
-        // Own account data (name, e-mail, password, language …) in the backend
-        // and the front end — see mayEditOwnData(). Without it, an account is
-        // managed by the administrator only (shared or demo accounts).
-        'preferences' => [
-            'title'    => 'MENU:PREFERENCES',
-            'children' => [
-                self::OWN_DATA => 'TEXT:MODIFY',
             ],
         ],
     ];
