@@ -713,10 +713,20 @@ final class AssetQueue
      *          'add'     — always insert at $position even if a matching tag exists
      */
     public static function insertMeta(
-        string $nameOrTag,
-        string $contentOrAction = 'replace',
-        string $position        = 'head_middle'
+        string|array $nameOrTag,
+        string       $contentOrAction = 'replace',
+        string       $position        = 'head_middle'
     ): void {
+        // Array form:
+        //   I::insertMeta(['property' => 'og:title', 'content' => $title])
+        // Every value is escaped and any attribute is allowed - so this is the
+        // form to use for Open Graph, where the two-string shorthand cannot
+        // help (it can only write name=) and the raw-tag form escapes nothing.
+        if (is_array($nameOrTag)) {
+            self::insertMetaTag($nameOrTag, $contentOrAction, $position);
+            return;
+        }
+
         $nameOrTag = trim($nameOrTag);
         if ($nameOrTag === '') return;
 
@@ -762,39 +772,129 @@ final class AssetQueue
         $inst->enqueue('title', $text, $inst->normalizePos($position, 'title'), ['action' => $action], '');
     }
 
-    // ── WBCE compat — old array-based meta API ────────────────────────────────
+    // ── Attribute-array meta API ──────────────────────────────────────────────
 
     /**
-     * Legacy array-based meta insertion.  Kept for module compatibility.
-     * The array keys become HTML attributes; 'setname', 'overwrite', 'append',
-     * 'setsave', 'position' are silently ignored.
+     * Build and queue a <meta> tag from an attribute array.
      *
-     *   I::insertMetaTag(['name' => 'description', 'content' => 'Hello'])
-     *   I::insertMetaTag(['http-equiv' => 'refresh', 'content' => '0;url=…'])
-     *   I::insertMetaTag(['charset' => 'UTF-8'])
+     * This is the SAFE form, and the one to reach for whenever a value is not a
+     * literal you wrote yourself: every key and value is escaped, and any
+     * attribute may be used — including property=, which the two-string
+     * shorthand of insertMeta() cannot produce. Handing an editor-supplied
+     * value to the raw-tag form instead escapes nothing, and a single quote in
+     * that value is enough to tear the tag apart.
+     *
+     *   I::insertMetaTag(['name'       => 'description', 'content' => $text])
+     *   I::insertMetaTag(['property'   => 'og:title',    'content' => $title])
+     *   I::insertMetaTag(['http-equiv' => 'refresh',     'content' => '0;url=…'])
+     *   I::insertMetaTag(['charset'    => 'UTF-8'])
+     *
+     * WBCE's old call keys ('setname', 'overwrite', 'append', 'setsave',
+     * 'position') are accepted and ignored, so legacy call sites keep working.
      */
-    public static function insertMetaTag(array $data): void
-    {
+    public static function insertMetaTag(
+        array  $data,
+        string $action   = 'replace',
+        string $position = 'head_middle'
+    ): void {
         if (empty($data)) return;
 
         // Special case: charset only — <meta charset="…">
         if (isset($data['charset']) && $data['charset'] !== '') {
-            $tag = '<meta charset="' . htmlspecialchars($data['charset'], ENT_QUOTES, 'UTF-8') . '">';
-            self::insertMeta($tag, 'replace', 'head_middle');
+            $tag = '<meta charset="'
+                 . htmlspecialchars((string)$data['charset'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                 . '">';
+            self::insertMeta($tag, $action, $position);
             return;
         }
 
         $skip = ['setname', 'overwrite', 'append', 'setsave', 'position'];
         $tag  = '<meta';
+        $hasContent = false;
         foreach ($data as $k => $v) {
             if (in_array($k, $skip, true)) continue;
-            $tag .= ' ' . htmlspecialchars((string)$k, ENT_QUOTES, 'UTF-8')
-                 .  '="' . htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8') . '"';
+            if ($v === null || $v === '') continue;
+            if ($k === 'content') $hasContent = true;
+            $tag .= ' ' . htmlspecialchars((string)$k, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                 .  '="' . htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
         }
         $tag .= '>';
 
-        self::insertMeta($tag, 'replace', 'head_middle');
+        // An empty value means "nothing to say", not "say it emptily". Emitting
+        // <meta property="og:image"> with no content would be worse than
+        // omitting the tag, and a fallback chain that resolves to nothing is
+        // the normal case, not an error.
+        if (!$hasContent) return;
+
+        self::insertMeta($tag, $action, $position);
     }
+
+    /**
+     * Build and queue a <link> tag for the document head.
+     *
+     * Same escaping guarantee as insertMetaTag(). Identified by rel — and by
+     * rel+hreflang for alternates, so a page may carry one canonical and many
+     * language alternates without them colliding with each other.
+     *
+     *   I::insertLink(['rel' => 'canonical', 'href' => $url])
+     *   I::insertLink(['rel' => 'alternate', 'hreflang' => 'en', 'href' => $enUrl])
+     *
+     * This is for metadata links. Stylesheets go through insertCssFile(), which
+     * also handles minification, bundling and cache busting.
+     */
+    public static function insertLink(
+        array  $attrs,
+        string $action   = 'replace',
+        string $position = 'head_middle'
+    ): void {
+        // Same rule as insertMetaTag(): a link with no target says nothing.
+        if (empty($attrs['rel'])) return;
+        if (array_key_exists('href', $attrs) && ($attrs['href'] === null || $attrs['href'] === '')) return;
+
+        $tag = '<link';
+        foreach ($attrs as $k => $v) {
+            if ($v === null || $v === '') continue;
+            $tag .= ' ' . htmlspecialchars((string)$k, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                 .  '="' . htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+        }
+        $tag .= '>';
+
+        $inst = self::getInstance();
+        $inst->enqueue('meta', $tag, $inst->normalizePos($position, 'meta'), ['action' => $action], '');
+    }
+
+    /**
+     * Queue a JSON-LD block for the document head.
+     *
+     * Takes the data as an array, not a pre-built string: json_encode() with
+     * JSON_HEX_TAG is the only reliable way to stop a value that contains
+     * "</script>" from ending the block early. insertJsCode() is NOT an
+     * alternative — it strips the <script> wrapper and re-adds its own without
+     * the type, which makes the browser execute the JSON as JavaScript.
+     *
+     *   I::insertJsonLd(['@context' => 'https://schema.org', '@type' => 'BlogPosting', …])
+     *
+     * $id groups blocks: the same id replaces, different ids coexist — a page
+     * may legitimately carry several (e.g. an Article plus a BreadcrumbList).
+     */
+    public static function insertJsonLd(
+        array  $data,
+        string $id       = 'jsonld',
+        string $position = 'head_late'
+    ): void {
+        if (empty($data)) return;
+
+        $json = json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP
+        );
+        if ($json === false) return;
+
+        $tag  = '<script type="application/ld+json">' . $json . '</script>';
+        $inst = self::getInstance();
+        $inst->enqueue('meta', $tag, $inst->normalizePos($position, 'meta'), ['action' => 'replace'], $id);
+    }
+
 
     // ── WBCE compat — URL tokens ──────────────────────────────────────────────
 
@@ -1717,11 +1817,19 @@ final class AssetQueue
 
     private function enqueuePluginFile(string $type, string $file, string $baseUrl, string $pos): void
     {
-        $url      = $baseUrl . '/' . ltrim($file, '/');
-        $resolved = $this->resolveUrl($url);
-        if ($resolved !== null) {
-            $this->enqueue($type, $resolved, $this->normalizePos($pos, $type), [], '');
-        }
+        // Queue the CLEAN url — same convention insertCssFile()/insertJsFile()
+        // and cacheFileUrl() already document: resolveUrl() runs exactly once,
+        // in buildHtml() at output time. Pre-resolving here too (as this used
+        // to) queued an ALREADY-busted URL, so buildHtml()'s own resolveUrl()
+        // call busted it a second time whenever OPF_ASSETS_CACHE_BUSTING is
+        // on — harmless (still a valid, uniquely-changing URL) but doubled
+        // query params on every template/plugin asset. Found in WBCE_SQLITE
+        // while turning that flag on for a template asset (site.css); same
+        // function, byte-identical bug here. A missing file is still caught,
+        // just later: buildHtml()'s 'css'/'js' cases already skip emitting a
+        // tag when resolveUrl() returns null there.
+        $url = $baseUrl . '/' . ltrim($file, '/');
+        $this->enqueue($type, $url, $this->normalizePos($pos, $type), [], '');
     }
 
     /** Lazy getter — FontCache is only instantiated when fonts are actually used. */
@@ -2224,12 +2332,8 @@ final class AssetQueue
 
                 } elseif ($entry['type'] === 'meta') {
                     if (($entry['attrs']['action'] ?? 'replace') === 'replace') {
-                        $id = $this->metaIdentifier($entry['item']);
-                        if ($id !== null) {
-                            [$attr, $val] = $id;
-                            $pattern = '/<meta\b[^>]*\b'
-                                     . preg_quote($attr, '/') . '\s*=\s*["\']'
-                                     . preg_quote($val,  '/') . '["\'][^>]*>/i';
+                        $pattern = $this->headTagPattern($entry['item']);
+                        if ($pattern !== null) {
                             $head = (string)preg_replace($pattern, $entry['item'], $head, 1, $count);
                             if ($count > 0) continue; // replaced — drop from queue
                         }
@@ -2248,19 +2352,87 @@ final class AssetQueue
     }
 
     /**
-     * Extract the identifying attribute from a <meta> tag so we can locate an
-     * existing matching tag to replace.
-     * Returns e.g. ['name', 'description'] for <meta name="description" …>.
-     * Returns null if no known identifier is present.
+     * Extract the identifying attribute from a queued head tag, so an existing
+     * matching tag can be located and replaced — in the template's own <head>,
+     * and in the queue itself (see enqueue()).
+     *
+     *   <meta name="description" …>            → ['name', 'description']
+     *   <meta property="og:title" …>           → ['property', 'og:title']
+     *   <link rel="canonical" …>               → ['rel', 'canonical']
+     *   <link rel="alternate" hreflang="en" …> → ['rel', 'alternate|en']
+     *   <script type="application/ld+json">    → ['type', 'application/ld+json']
+     *
+     * The hreflang case matters: a page has ONE canonical but many alternates,
+     * so alternates must only collide with the same language, never with each
+     * other. Returns null when no known identifier is present — such a tag is
+     * always appended, never replaced.
      */
     private function metaIdentifier(string $metaTag): ?array
     {
-        foreach (['name', 'property', 'http-equiv'] as $attr) {
-            if (preg_match('/\b' . $attr . '\s*=\s*["\']([^"\']+)["\']/i', $metaTag, $m)) {
-                return [$attr, $m[1]];
-            }
+        $attr = function (string $name) use ($metaTag): ?string {
+            return preg_match('/\b' . preg_quote($name, '/') . '\s*=\s*["\']([^"\']+)["\']/i', $metaTag, $m)
+                ? $m[1]
+                : null;
+        };
+
+        // <link rel="…"> — canonical, alternate/hreflang, amphtml, …
+        if (preg_match('/^\s*<link\b/i', $metaTag)) {
+            $rel = $attr('rel');
+            if ($rel === null) return null;
+            $hreflang = $attr('hreflang');
+            return ['rel', $hreflang !== null ? $rel . '|' . $hreflang : $rel];
+        }
+
+        // <script type="…"> — JSON-LD and friends
+        if (preg_match('/^\s*<script\b/i', $metaTag)) {
+            $type = $attr('type');
+            return $type !== null ? ['type', $type] : null;
+        }
+
+        foreach (['name', 'property', 'http-equiv'] as $a) {
+            $v = $attr($a);
+            if ($v !== null) return [$a, $v];
         }
         return null;
+    }
+
+    /**
+     * Regex that finds an existing head tag equivalent to $tag — same tag name
+     * AND same identifier. Used to replace in the template's own <head>.
+     *
+     * Built from the tag name of $tag itself rather than a hardcoded <meta>, so
+     * a queued <link rel="canonical"> replaces the template's canonical instead
+     * of matching some unrelated <meta>. Returns null when $tag carries no
+     * identifier — then it can only be appended, never replace anything.
+     */
+    private function headTagPattern(string $tag): ?string
+    {
+        $id = $this->metaIdentifier($tag);
+        if ($id === null) return null;
+        [$attr, $val] = $id;
+
+        if (!preg_match('/^\s*<\s*([a-z0-9-]+)/i', $tag, $m)) return null;
+        $tagName = strtolower($m[1]);
+
+        // A composite identifier (rel="alternate" + hreflang="en" → "alternate|en")
+        // has to match as two separate attributes, not as one literal value.
+        if (str_contains($val, '|')) {
+            [$relVal, $hreflang] = explode('|', $val, 2);
+            return '/<' . preg_quote($tagName, '/') . '\b(?=[^>]*\b'
+                 . preg_quote($attr, '/') . '\s*=\s*["\']' . preg_quote($relVal, '/') . '["\'])'
+                 . '(?=[^>]*\bhreflang\s*=\s*["\']' . preg_quote($hreflang, '/') . '["\'])'
+                 . '[^>]*>/i';
+        }
+
+        // <script> is not self-closing — its pattern must span to </script>.
+        if ($tagName === 'script') {
+            return '/<script\b[^>]*\b' . preg_quote($attr, '/') . '\s*=\s*["\']'
+                 . preg_quote($val, '/') . '["\'][^>]*>.*?<\/script>/is';
+        }
+
+        return '/<' . preg_quote($tagName, '/') . '\b[^>]*\b'
+             . preg_quote($attr, '/') . '\s*=\s*["\']'
+             . preg_quote($val,  '/') . '["\'][^>]*>/i';
     }
 
     /**
@@ -2710,6 +2882,50 @@ final class AssetQueue
             }
 
             $this->seen[$rawKey] = true;
+        }
+
+        // ── Head-tag dedup ────────────────────────────────────────────────────
+        // 'replace' in injectMetaTitle() only compares against what is already
+        // in the template's <head>. Two queued entries for the same tag never
+        // met, so a config default plus an item override produced TWO
+        // <meta property="og:title"> — and two <link rel="canonical"> make
+        // search engines ignore both. Later call wins, in the earlier call's
+        // position, so ordering stays predictable.
+        if (($type === 'meta' || $type === 'title')
+            && ($attrs['action'] ?? 'replace') === 'replace'
+        ) {
+            $key = ($type === 'title')
+                ? 'title'
+                : ($id !== '' ? 'id:' . $id : null);
+
+            if ($key === null) {
+                $ident = $this->metaIdentifier($item);
+                // No identifier → nothing to collide with; append as-is.
+                if ($ident !== null) $key = $ident[0] . '=' . $ident[1];
+            }
+
+            if ($key !== null) {
+                foreach ($this->queue as $pos => $entries) {
+                    foreach ($entries as $i => $e) {
+                        if ($e['type'] !== $type) continue;
+                        if (($e['attrs']['action'] ?? 'replace') !== 'replace') continue;
+
+                        $eKey = ($type === 'title')
+                            ? 'title'
+                            : (($e['id'] ?? '') !== '' ? 'id:' . $e['id'] : null);
+                        if ($eKey === null) {
+                            $eIdent = $this->metaIdentifier($e['item']);
+                            if ($eIdent === null) continue;
+                            $eKey = $eIdent[0] . '=' . $eIdent[1];
+                        }
+
+                        if ($eKey === $key) {
+                            $this->queue[$pos][$i] = compact('type', 'item', 'attrs', 'id');
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         $this->queue[$position][] = compact('type', 'item', 'attrs', 'id');
