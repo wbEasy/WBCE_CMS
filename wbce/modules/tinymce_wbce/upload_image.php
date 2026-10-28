@@ -85,6 +85,11 @@ $ext = $allowed[$mime];
 
 // Target folder: MEDIA[/home_folder]/paste_folder
 $home   = trim((string) $admin->get_home_folder(), '/');   // '' when no home folder
+if ($home !== '' && UserManager::homeFolderPath($home) === null) {
+    // a home folder that leads out of the media directory: no upload at all
+    http_response_code(403);
+    exit(json_encode(['error' => 'home_folder']));
+}
 $folder = $settings['folder'];                             // already sanitized
 $relDir = '/' . ($home !== '' ? $home . '/' : '') . $folder;
 $absDir = WB_PATH . MEDIA_DIRECTORY . $relDir;

@@ -73,6 +73,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email     = trim($admin->get_post('email') ?? '');
     $errorMsgs = array_merge($errorMsgs, $users->validateEmail($admin, $email, $userId));
 
+    // Home folder: becomes the root of the media manager for this account.
+    // Only '' or an existing folder inside the media directory; a non-admin
+    // with a home folder hands out only that one or one below it. Not in the
+    // form (home folders switched off): the stored value stays.
+    $currentHome = $isAdd ? '' : (string) ($users->getUser($userId)['home_folder'] ?? '');
+    $homeFolder  = isset($_POST['home_folder']) ? trim((string) $admin->get_post('home_folder')) : $currentHome;
+    if (!$users->mayStoreHomeFolder($admin, $homeFolder, $currentHome)) {
+        http_response_code(422);
+        $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
+        echo $alerts->renderFragment();
+        exit;
+    }
+
     $groupsId = '';
     if (empty($_POST['groups'])) {
         $errorMsgs[] = $MESSAGE['USERS_NO_GROUP'] ?? 'Please select at least one group';
@@ -97,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'username'           => ($username !== 'admin') ? $username : '',
         'display_name'       => $displayName,
         'email'              => $email,
-        'home_folder'        => trim($admin->get_post('home_folder') ?? ''),
+        'home_folder'        => $homeFolder,
         'timezone'           => (int) ($admin->get_post('timezone') ?? 0) * 3600,
         'language'           => $admin->get_post('language') ?? DEFAULT_LANGUAGE,
         'signup_timestamp'   => time(),
@@ -225,6 +238,15 @@ $homeFolders = $users->getHomeFolders(
     $userId,
     $saveData['home_folder'] ?? ''
 );
+// a non-admin with a home folder is offered only that one and the folders
+// below it (plus the one the account has now), see mayStoreHomeFolder()
+$ownHome = $admin->isAdmin() ? '' : '/' . trim((string) $admin->get_home_folder(), '/');
+if ($ownHome !== '/') {
+    $homeFolders = array_values(array_filter($homeFolders, static fn (array $f): bool =>
+        $f['selected'] || $f['dir'] === $ownHome || str_starts_with($f['dir'], $ownHome . '/')
+    ));
+}
+$homeFolderNone = ($ownHome === '' || $ownHome === '/' || (string) ($userData['home_folder'] ?? '') === '');
 
 $toTwig = [
     'MESSAGE_BOX'        => $alerts->renderFragment(),
@@ -236,6 +258,7 @@ $toTwig = [
     'LANGUAGES'          => getLanguagesArray(),
     'groups'             => $groupsForForm,
     'home_folders'       => $homeFolders,
+    'home_folder_none'   => $homeFolderNone,
     'change_pswd'        => $changePswd,
     'USER_KEY'           => $isAdd ? '' : $admin->getIDKEY($userId, 'user'),
     'INPUT_NEW_PASSWORD' => $admin->passwordField('password', '', 0, ($saveData !== null && !empty($errorMsgs)) ? ($_POST['password'] ?? '') : ''),

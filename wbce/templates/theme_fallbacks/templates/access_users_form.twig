@@ -180,7 +180,9 @@
                             <label class="cp-setting-name">{{ L_('TEXT:HOME_FOLDER') }}</label>
                             <div class="cp-setting-value">
                                 <select name="home_folder" id="home_folder">
+                                    {% if home_folder_none %}
                                     <option value="">{{ L_('TEXT:NONE') }}</option>
+                                    {% endif %}
                                     <option value="" disabled data-prefix="/">{{ constant('MEDIA_DIRECTORY') }}{% if home_folders is empty %} (The 📁 /media directory is empty){% endif %}</option>
                                    {% for folder in home_folders %}
                                         <option value="{{ folder.dir }}"

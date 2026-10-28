@@ -502,6 +502,62 @@ class UserManager
     }
 
     /**
+     * The absolute path of a home folder as stored in {TP}users.home_folder
+     * (e.g. '/team/anna'), or null if it is not an existing directory inside
+     * the media directory. '' (no home folder = the whole media directory)
+     * is not a home folder path; callers handle it themselves.
+     *
+     * Everything that builds a path from the stored value (elFinder root,
+     * TinyMCE paste upload) goes through this, so a value like '/../' never
+     * leads out of the media directory — not even one stored earlier.
+     */
+    public static function homeFolderPath(string $folder): ?string
+    {
+        $media = realpath(WB_PATH . MEDIA_DIRECTORY);
+        if (trim($folder, '/\\') === '' || $media === false) {
+            return null;
+        }
+        $path = realpath($media . '/' . ltrim($folder, '/\\'));
+        if ($path === false || !is_dir($path)) {
+            return null;
+        }
+        $media = rtrim(str_replace('\\', '/', $media), '/');
+        $path  = str_replace('\\', '/', $path);
+        return str_starts_with($path, $media . '/') ? $path : null;
+    }
+
+    /**
+     * Whether $admin may store $folder as a user's home folder. $current is
+     * the value stored now ('' for a new account); keeping it is always
+     * allowed. '' means no home folder (the whole media directory); anything
+     * else must be an existing directory inside the media directory.
+     *
+     * A non-admin who has a home folder himself only hands out that folder
+     * or one below it — not '' and not a folder beside it (rights ceiling,
+     * applied to the media area). Interim rule — the rights system is
+     * rebuilt from scratch in WBCE 2.x.
+     */
+    public function mayStoreHomeFolder(Admin $admin, string $folder, string $current = ''): bool
+    {
+        if ($folder === $current) {
+            return true;
+        }
+        if ($folder !== '' && self::homeFolderPath($folder) === null) {
+            return false;
+        }
+        $own = $admin->isAdmin() ? '' : (string) $admin->get_home_folder();
+        if ($own === '') {
+            return true;
+        }
+        $ownPath = self::homeFolderPath($own);
+        if ($ownPath === null || $folder === '') {
+            return false;
+        }
+        $path = self::homeFolderPath($folder);
+        return $path === $ownPath || str_starts_with($path, $ownPath . '/');
+    }
+
+    /**
      * Get media folders as a visual tree for the home folder dropdown.
      *
      * Uses the framework functions directoriesList(), directoriesTree(),

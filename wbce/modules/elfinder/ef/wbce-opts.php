@@ -127,6 +127,10 @@ if (!function_exists('elfinder_wbce_build_opts')) {
         if (empty($_SESSION['HOME_FOLDER'])) {
             $root['path'] = WB_PATH . MEDIA_DIRECTORY . '/';
             $root['URL']  = WB_URL . MEDIA_DIRECTORY . '/';
+        } elseif (UserManager::homeFolderPath((string) $_SESSION['HOME_FOLDER']) === null) {
+            // a home folder that leads out of the media directory (or no
+            // longer exists): no volume at all, never a wider one
+            return array('debug' => false, 'roots' => array());
         } else {
             $root['alias'] = 'Home (' . $_SESSION['HOME_FOLDER'] . ')';
             $root['path']  = WB_PATH . MEDIA_DIRECTORY . '/' . $_SESSION['HOME_FOLDER'];
