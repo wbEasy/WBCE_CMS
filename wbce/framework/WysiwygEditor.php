@@ -134,7 +134,10 @@ class WysiwygEditor
      * Render the editor for a field and RETURN the HTML.
      *
      * @param string $id       DOM id / textarea id of the field.
-     * @param string $content  Initial HTML content.
+     * @param string $content  Initial HTML content, HTML-escaped by the caller
+     *                         (htmlspecialchars()), as for show_wysiwyg_editor():
+     *                         every editor and the textarea fallback put it into
+     *                         their <textarea> unchanged.
      * @param array  $opts     See the class doc block ("OPTIONS").
      * @return string          Editor HTML (or a <textarea> fallback).
      */
@@ -312,6 +315,10 @@ class WysiwygEditor
     /**
      * Plain <textarea> fallback — used when no editor is installed or a provider
      * failed to return markup. Mirrors the old "degrade to a textarea" behaviour.
+     *
+     * $content arrives HTML-escaped (see render()), exactly as the editors get
+     * it, so it goes into the textarea as is. Escaping it again showed the
+     * markup as entities (&lt;p&gt;), and the next save stored them.
      */
     private static function textarea(string $id, string $content, array $opts): string
     {
@@ -325,6 +332,6 @@ class WysiwygEditor
                . ($height !== '' ? 'height:' . htmlspecialchars($height, ENT_QUOTES) . ';' : '');
 
         return '<textarea name="' . $name . '" id="' . $idAtt . '" style="' . $style . '">'
-             . htmlspecialchars((string) $content) . '</textarea>';
+             . $content . '</textarea>';
     }
 }
