@@ -393,10 +393,11 @@ class WbAuto
     {
         // 1. Priority explicit files — must come BEFORE class_alias calls.
         //
-        //    The autoloader does strtolower() on filenames during directory scans,
-        //    so capitalized files (Login.php, Frontend.php, Alerts.php …) are NOT
-        //    found on case-sensitive Linux filesystems via AddDir() alone.
-        //    Explicit AddFile() entries bypass the dir scan entirely.
+        //    The dir scan in Loader() tries the original case first, so
+        //    capitalized files (TemplateBlocks.php, GroupManager.php …) are
+        //    found via AddDir() alone, on Linux too. Explicit AddFile() entries
+        //    are only needed for class_alias() targets below, and for files
+        //    whose name doesn't match the class (Template → template.inc).
         $explicitFiles = [
             'Database'      => '/framework/Database.php',
             'Wbce'          => '/framework/Wbce.php',

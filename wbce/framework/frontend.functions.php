@@ -44,12 +44,6 @@ foreach ($snippets as $rec) {
     }
 }
 
-// page_link() lived here too, but was buggy (referenced an undefined $link
-// instead of its own $uLinkId parameter) and never actually ran anyway —
-// framework/functions.php's own page_link() always loads first (via
-// framework/initialize.php, before this file), so its function_exists()
-// guard always skipped this one. Removed; framework/functions.php is now
-// the single definition, robust across backend/frontend/FEE contexts.
 
 if (!function_exists('get_page_link')) {
     /**
@@ -131,16 +125,7 @@ if (!function_exists('get_block_id')) {
      */
     function get_block_id($uBlock)
     {
-        if (is_int($uBlock) or preg_match("/^[0-9]+$/is", $uBlock)) {
-            return (int)$uBlock;
-        } else {
-            require(WB_PATH . "/templates/" . TEMPLATE . "/info.php");
-            if ($key = array_search($uBlock, $block)) {
-                return (int)$key;
-            } else {
-                return 1;
-            }
-        }
+        return TemplateBlocks::getBlockId($uBlock);
     }
 }
 
@@ -351,125 +336,7 @@ function get_section_content(int $sectionId, bool $useSecAnchor = false, string 
  */
 function block_contents($block = 1): ?array
 {
-    global $database, $wb, $TEXT, $MESSAGE, $HEADING, $MENU;
-    $admin = $wb;
-
-    $blockId = is_numeric($block) ? (int)$block : get_block_id($block);
-
-    $blockSections = [];
-
-    // Early exits for permission / visibility issues
-    if ($wb->page_access_denied ?? false) {
-        echo $MESSAGE['FRONTEND_SORRY_NO_VIEWING_PERMISSIONS'] ?? 'No viewing permissions';
-        return null;
-    }
-
-    if ($wb->page_no_active_sections ?? false) {
-        echo $MESSAGE['FRONTEND_SORRY_NO_ACTIVE_SECTIONS'] ?? 'No active sections';
-        return null;
-    }
-
-    // Special case: full page content via PAGE_CONTENT constant
-    if (defined('PAGE_CONTENT')) {
-        ob_start();
-        require PAGE_CONTENT;
-        $blockSections[]['content'] = ob_get_clean();
-        return $blockSections;
-    }
-
-    // Return null if current page is not visible
-    if (($wb instanceof frontend) && !$wb->page_is_visible($wb->page ?? [])) {
-        return null;
-    }
-
-    // Get sections for this block
-    $sql = 'SELECT `section_id` FROM `{TP}sections`
-            WHERE `page_id` = ? AND `block` = ?
-            ORDER BY `position`';
-
-    $pageId = $page_id = $wb->page_id ?? 0;
-
-    $sectionsResult = $database->query($sql, [$pageId, $blockId]);
-
-    if (!$sectionsResult || $sectionsResult->numRows() === 0) {
-        // Try default block content
-        if (($wb->default_block_content) === intval(0)) {
-            return null;
-        }
-
-        $pageId = is_numeric($wb->default_block_content ?? null)
-            ? (int)$wb->default_block_content
-            : ($wb->default_page_id ?? 0);
-
-        $sectionsResult = $database->query($sql, [$pageId, $blockId]);
-
-        if (!$sectionsResult || $sectionsResult->numRows() === 0) {
-            return null;
-        }
-    }
-
-    // Process each section
-    while ($row = $sectionsResult->fetchRow(MYSQLI_ASSOC)) {
-        $sectionId = (int)$row['section_id'];
-        $section   = get_section_array($sectionId);
-
-        if (empty($section)) continue;
-
-        // Skip section if outside publication period
-        $currentTime = time();
-        if (!(
-            ($currentTime <= ($section['publ_end']   ?? 0) || ($section['publ_end']   ?? 0) == 0) &&
-            ($currentTime >= ($section['publ_start'] ?? 0) || ($section['publ_start'] ?? 0) == 0)
-        )) {
-            continue;
-        }
-
-        // Render section content via get_section_content()
-        // (handles view.php, OPF 'section' filter, globals, modfile registration)
-        $content = get_section_content($sectionId);
-
-        if ($content === '') continue;
-
-        // Search result highlighting — mutually exclusive with OPF 'special' filter
-        if (isset($_GET['searchresult']) && is_numeric($_GET['searchresult'])
-            && !isset($_GET['nohighlight']) && !empty($_GET['sstring'])) {
-
-            $searchString = filter_input(INPUT_GET, 'sstring', FILTER_SANITIZE_ENCODED);
-            $searchString = str_replace('%', '', $searchString);
-            $searchTerms  = explode(' ', $searchString);
-
-            if ($_GET['searchresult'] == 2) {
-                $searchTerms[0] = str_replace('_', ' ', $searchTerms[0] ?? '');
-            }
-
-            $blockSections[]['content'] = search_highlight($content, $searchTerms);
-            continue;
-        }
-
-        // Apply OPF 'special' filter — only outside search-highlight path
-        if (function_exists('opf_apply_filters')) {
-            $content = opf_controller('special', $content);
-        }
-
-        // Build section anchor
-        $sectionAnchor = '';
-        if (defined('SEC_ANCHOR') && SEC_ANCHOR !== '') {
-            $sectionAnchor = '<a class="section_anchor" id="' . SEC_ANCHOR . $section['section_id'] . '"></a>';
-        }
-
-        $blockSections[$sectionId] = [
-            'position'     => $section['position']   ?? 0,
-            'section_id'   => $section['section_id'] ?? $sectionId,
-            'module'       => $section['module']      ?? '',
-            'section_name' => $section['namesection'] ?? '',
-            'evenodd'      => (($section['position'] ?? 0) % 2 === 1) ? 'even' : 'odd',
-            'content'      => $sectionAnchor !== ''
-                ? PHP_EOL . $sectionAnchor . PHP_EOL . $content
-                : $content,
-        ];
-    }
-
-    return $blockSections;
+    return TemplateBlocks::dbContent($block);
 }
 
 if (!function_exists('page_content')) {
@@ -494,42 +361,7 @@ if (!function_exists('page_content')) {
      */
     function page_content($uBlock = 1, $bPrint = 1)
     {
-        $iBlockID = get_block_id($uBlock);
-        $sRetVal = '';
-        if (!defined('PAGE_CONTENT')) {
-            $aSections = block_contents($iBlockID);
-            if (!empty($aSections)) {
-                foreach ($aSections as $section) {
-                    $sRetVal .= $section['content'];
-                }
-            }
-        } else {
-            // PAGE_CONTENT is defined
-            // it will go into the block with ID = 1
-            if ($iBlockID == 1) {
-                ob_start();
-                global $wb, $database, $globals, $TEXT, $MESSAGE, $HEADING, $MENU;
-                $admin = $wb;
-                if (isset($globals) and is_array($globals)) {
-                    foreach ($globals as $sGlobalName) {
-                        global $$sGlobalName;
-                    }
-                }
-                require PAGE_CONTENT;
-                $sRetVal .= ob_get_clean();
-            }
-        }
-        // FEE (FrontEnd Edit) hook
-        if (function_exists('fee_wrap_block')) {
-            $sRetVal = fee_wrap_block($sRetVal, $iBlockID);
-        }
-
-        // echo or return
-        if ($bPrint == 1) {
-            echo $sRetVal;
-        } else {
-            return $sRetVal;
-        }
+        return TemplateBlocks::pageContent($uBlock, $bPrint);
     }
 }
 
@@ -563,18 +395,7 @@ if (!function_exists('block_section_count')) {
      */
     function block_section_count($uBlock = 1, ?int $pageId = null): int
     {
-        global $database, $wb;
-
-        $blockId = get_block_id($uBlock);
-        $pageId ??= $wb->page_id ?? 0;
-        $now = time();
-
-        $sql = 'SELECT COUNT(*) FROM `{TP}sections`
-                WHERE `page_id` = ? AND `block` = ?
-                AND (`publ_start` = 0 OR `publ_start` <= ?)
-                AND (`publ_end` = 0 OR `publ_end` >= ?)';
-
-        return (int) $database->fetchValue($sql, [$pageId, $blockId, $now, $now]);
+        return TemplateBlocks::dbSectionCount($uBlock, $pageId);
     }
 }
 
@@ -590,7 +411,105 @@ if (!function_exists('block_has_sections')) {
      */
     function block_has_sections($uBlock = 1, ?int $pageId = null): bool
     {
-        return block_section_count($uBlock, $pageId) > 0;
+        return TemplateBlocks::dbHasSections($uBlock, $pageId);
+    }
+}
+
+if (!function_exists('register_block_content')) {
+    /**
+     * @brief   Lets a Page/Section-type module — or a SECTION/SPECIAL-level
+     *          OutputFilter, which runs synchronously during
+     *          get_section_content() — contribute additional HTML to a
+     *          block without an explicit {TP}sections row.
+     *
+     *          Blocks are addressed by number only — let the user pick it
+     *          from TemplateBlocks::getBlocks($page_id) and store that. A
+     *          number the current template does not declare is swallowed.
+     *
+     *          SYNC-ONLY: a slot reader (block_has_content()/
+     *          render_block_content()) only sees pushes that have already
+     *          happened. A template that reads a slot before the block that
+     *          writes it calls prerender_blocks() at the top of its index.php.
+     *
+     *          PAGE-level OutputFilters (Droplets among them) are OUT OF
+     *          SCOPE — they run once, after the whole template has already
+     *          executed, so a push from that stage would never be seen by
+     *          any reader. Do not call this from an OPF_TYPE_PAGE* filter.
+     *
+     * @param int        $block    Block number, as in the template's info.php.
+     * @param string     $html     Rendered HTML to contribute.
+     * @param int        $priority 0-9, lower renders first among non-override
+     *                             pushes (default 5).
+     * @param bool       $override When true, this push replaces the ENTIRE
+     *                             block output once it exists — lowest
+     *                             implementation priority, no known real
+     *                             use case yet.
+     * @return void
+     */
+    function register_block_content(int $block, string $html, int $priority = 5, bool $override = false): void
+    {
+        TemplateBlocks::push($block, $html, $priority, $override);
+    }
+}
+
+if (!function_exists('block_has_content')) {
+    /**
+     * @brief   Merged existence check: true if the block has DB sections OR
+     *          any register_block_content()'ed content. Unlike
+     *          block_has_sections() (strictly DB-only, unchanged), this is
+     *          the check to use for a template that wants to read a slot.
+     *
+     *          False for a block the current template does not declare.
+     *          Only reliable for pushes that have already happened — see
+     *          prerender_blocks().
+     *
+     * @param int      $block  Block number, as in the template's info.php
+     * @param int|null $pageId Defaults to the current page ($wb->page_id)
+     * @return bool
+     */
+    function block_has_content(int $block, ?int $pageId = null): bool
+    {
+        return TemplateBlocks::hasContent($block, $pageId);
+    }
+}
+
+if (!function_exists('render_block_content')) {
+    /**
+     * @brief   Merged output for a block: DB content (existing position
+     *          order, via page_content()) followed by
+     *          register_block_content()'ed content ordered by priority.
+     *          If any override push exists for this key, it alone is
+     *          output. See register_block_content() for the ordering/
+     *          override rules.
+     *
+     *          A block the current template does not declare outputs
+     *          nothing — unlike page_content(), which falls back to block 1.
+     *
+     * @param int  $block  Block number, as in the template's info.php
+     * @param bool $print  echo the contents, or false to fetch into a variable
+     * @return string
+     */
+    function render_block_content(int $block, bool $print = true): string
+    {
+        return TemplateBlocks::render($block, $print);
+    }
+}
+
+if (!function_exists('prerender_blocks')) {
+    /**
+     * @brief   Renders every block of the current template once, before the
+     *          template outputs anything, so every register_block_content()
+     *          has happened by the time a block is read. Call it at the top
+     *          of the template's index.php. page_content()/block_contents()
+     *          then come from the cache, no section runs twice.
+     *
+     *          Block 99 ("nicht zeigen" by convention) is never rendered.
+     *
+     * @return void
+     */
+    function prerender_blocks(): void
+    {
+        TemplateBlocks::prerender();
     }
 }
 
