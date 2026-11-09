@@ -1,5 +1,15 @@
 # Version History
 
+## 1.7.3 *(Christian M. Stefan, 9 November 2026)*
+
+- `opf_apply_filters()` returns early when the content is empty. With an
+  empty string every active filter "failed" the empty-result check and
+  logged `output filter failed: returned empty content` — one notice per
+  filter and request whenever a caller passed nothing to filter (e.g. the
+  `no_page` branch of `admin/admintools/tool.php` on HTMX requests, fixed
+  in the core at the same time). Output is unchanged; only the log noise
+  is gone.
+
 ## 1.7.2 *(Rik van Loenhout, Christian M. Stefan, 22 October 2026)*
 
 Security fix, based on Rik van Loenhout's report of 18 October 2026 (version

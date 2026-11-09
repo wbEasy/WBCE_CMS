@@ -225,16 +225,25 @@ final class TemplateBlocks
             if (isset($_GET['searchresult']) && is_numeric($_GET['searchresult'])
                 && !isset($_GET['nohighlight']) && !empty($_GET['sstring'])) {
 
-                $searchString = filter_input(INPUT_GET, 'sstring', FILTER_SANITIZE_ENCODED);
-                $searchString = str_replace('%', '', $searchString);
-                $searchTerms  = explode(' ', $searchString);
+                // Plain words, split at whitespace. FILTER_SANITIZE_ENCODED plus
+                // stripping '%' turned "Roger Boswarva" into "Roger20Boswarva" and
+                // "über" into "C3BCber", so only single ASCII words were ever
+                // highlighted. The terms are only used as regex patterns
+                // (search_highlight() quotes them), never output.
+                $searchString = is_string($_GET['sstring']) ? $_GET['sstring'] : '';
+                $searchTerms  = array_values(array_filter(
+                    preg_split('/\s+/u', trim($searchString)) ?: [],
+                    fn($t) => mb_strlen($t) >= 2
+                ));
 
                 if ($_GET['searchresult'] == 2) {
                     $searchTerms[0] = str_replace('_', ' ', $searchTerms[0] ?? '');
                 }
 
-                $blockSections[]['content'] = search_highlight($content, $searchTerms);
-                continue;
+                if ($searchTerms !== []) {
+                    $blockSections[]['content'] = search_highlight($content, $searchTerms);
+                    continue;
+                }
             }
 
             // Apply OPF 'special' filter — only outside search-highlight path

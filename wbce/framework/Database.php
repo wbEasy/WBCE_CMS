@@ -337,6 +337,7 @@ class Database
                 trigger_error('SQL Query Error: ' . $e->getMessage() .
                               ' | SQL: ' . preg_replace('/\s+/', ' ', $sql), E_USER_WARNING);
             }
+            $this->rethrowIfInTransaction($e);
             return new DatabaseResult(null);
         }
     }
@@ -501,11 +502,28 @@ class Database
         }
     }
     /**
+     * query()/insertRow()/upsertRow()/deleteRow() normally swallow
+     * PDOException and just set $this->error (the "check hasError() after
+     * every write" convention) — fine standalone, but inside a transaction()
+     * callback a later successful write resets $this->error and silently
+     * erases an earlier failure, so the transaction commits partial data
+     * instead of rolling back. Called from each of those methods' catch
+     * blocks: rethrow immediately while a transaction is open so
+     * transaction()'s own catch sees every failure, not just one that
+     * happens to be the callback's last statement.
+     */
+    private function rethrowIfInTransaction(PDOException $e): void
+    {
+        if ($this->pdo->inTransaction()) {
+            throw $e;
+        }
+    }
+
+    /**
      * Runs $fn inside a transaction. Commits on success, rolls back and
-     * rethrows on any Throwable. Also rolls back if $fn leaves an error on
-     * the last query without throwing (query()/upsertRow()/etc. swallow
-     * PDOException internally and only set $this->error — this closes that
-     * gap so callers don't have to check hasError() after every statement).
+     * rethrows on any Throwable — including a write that failed anywhere in
+     * $fn (see rethrowIfInTransaction()), not just the callback's last
+     * statement.
      */
     public function transaction(callable $fn): mixed
     {
@@ -544,6 +562,7 @@ class Database
             if (defined('SQL_DEBUG') && SQL_DEBUG) {
                 trigger_error('SQL insertRow Error: ' . $e->getMessage(), E_USER_WARNING);
             }
+            $this->rethrowIfInTransaction($e);
             return $e->getMessage();
         }
     }
@@ -587,6 +606,7 @@ class Database
             if (defined('SQL_DEBUG') && SQL_DEBUG) {
                 trigger_error('SQL upsertRow Error: ' . $e->getMessage(), E_USER_WARNING);
             }
+            $this->rethrowIfInTransaction($e);
             return $e->getMessage();
         }
     }
@@ -686,6 +706,7 @@ class Database
             if (defined('SQL_DEBUG') && SQL_DEBUG) {
                 trigger_error('SQL deleteRow Error: ' . $e->getMessage(), E_USER_WARNING);
             }
+            $this->rethrowIfInTransaction($e);
             return $e->getMessage();
         }
     }
@@ -739,6 +760,107 @@ class Database
         } catch (PDOException) {
             return false;
         }
+    }
+
+    /**
+     * Portable table listing — replaces `INFORMATION_SCHEMA.TABLES` /
+     * `SHOW TABLES LIKE`, neither of which exists in SQLite.
+     *
+     * @param  string $prefix  Only tables whose name starts with this
+     *                         (supports {TP}/custom prefixes, e.g. '{TP}mod_').
+     *                         '' = all tables.
+     * @return string[]        Full table names, sorted.
+     */
+    public function listTables(string $prefix = ''): array
+    {
+        $prefix = $this->prep($prefix);
+        // LIKE wildcards in the prefix (TABLE_PREFIX usually ends in "_")
+        // must match literally.
+        $like = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $prefix) . '%';
+        try {
+            if ($this->driver === 'sqlite') {
+                $stmt = $this->pdo->prepare(
+                    "SELECT name FROM sqlite_master
+                     WHERE type = 'table' AND name NOT LIKE 'sqlite\_%' ESCAPE '\\' AND name LIKE ? ESCAPE '\\'
+                     ORDER BY name"
+                );
+            } else {
+                $stmt = $this->pdo->prepare('SHOW TABLES LIKE ?');
+            }
+            $stmt->execute([$like]);
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            sort($tables, SORT_STRING);
+            return $tables;
+        } catch (PDOException $e) {
+            $this->error = $e->getMessage();
+            return [];
+        }
+    }
+
+    /**
+     * Portable column listing — replaces `INFORMATION_SCHEMA.COLUMNS`.
+     *
+     * Types are normalised to the lower-case base type without length or
+     * modifiers ('varchar', 'text', 'int', 'tinyint', 'mediumtext', …), so
+     * a caller can filter e.g. text columns the same way on both drivers.
+     * SQLite keeps the type exactly as written in the CREATE statement
+     * (after importSql()'s normalisation: VARCHAR(255), TEXT, INTEGER …);
+     * a column declared without a type comes back as ''.
+     *
+     * @param  string $table  Table name (supports {TP}/custom prefixes)
+     * @return array<string,string>  ['column' => 'basetype', …] in table order;
+     *                               [] for an unknown table.
+     */
+    public function listColumns(string $table): array
+    {
+        $table = $this->prep($table);
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return [];
+        }
+        try {
+            if ($this->driver === 'sqlite') {
+                $rows = $this->pdo->query("PRAGMA table_info(`$table`)")->fetchAll(PDO::FETCH_ASSOC);
+                $nameKey = 'name';
+                $typeKey = 'type';
+            } else {
+                $rows = $this->pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_ASSOC);
+                $nameKey = 'Field';
+                $typeKey = 'Type';
+            }
+        } catch (PDOException) {
+            return []; // unknown table — not an error worth recording
+        }
+
+        $columns = [];
+        foreach ($rows as $row) {
+            preg_match('/^\s*([A-Za-z]+)/', (string) $row[$typeKey], $m);
+            $columns[$row[$nameKey]] = strtolower($m[1] ?? '');
+        }
+        return $columns;
+    }
+
+    /**
+     * SQL fragment that concatenates the values of a group into one string.
+     * Use inside a GROUP BY query.
+     *
+     *   MySQL:  GROUP_CONCAT(expr SEPARATOR ', ')
+     *   SQLite: group_concat(expr, ', ')
+     *
+     *   $sql = "SELECT a.id, " . $db->groupConcat('b.`name`', ', ') . " AS names FROM … WHERE a.x = ?";
+     *
+     * The separator is quoted via PDO::quote() rather than bound, so the
+     * fragment adds no placeholder and the caller's params keep their order.
+     *
+     * @param  string $expr       Column or expression — trusted SQL, never user input
+     * @param  string $separator  Literal separator (quoted for you)
+     */
+    public function groupConcat(string $expr, string $separator = ','): string
+    {
+        $sep = $this->pdo->quote($separator);
+        return match ($this->driver) {
+            'sqlite' => "group_concat($expr, $sep)",
+            default  => "GROUP_CONCAT($expr SEPARATOR $sep)",
+        };
     }
 
     public function addField(string $table, string $field, string $definition, bool $setError = true): bool
@@ -1445,8 +1567,14 @@ class Database
      *
      * The caller must bind the JSON string as a ? parameter.
      *
-     *   MySQL:  JSON_MERGE_PATCH(`col`, ?)
-     *   SQLite: json_patch(col, ?)
+     *   MySQL:  JSON_MERGE_PATCH(COALESCE(`col`, '{}'), ?)
+     *   SQLite: json_patch(COALESCE(col, '{}'), ?)
+     *
+     * COALESCE guards a column that's still NULL (e.g. a freshly inserted row
+     * that never set it) — both JSON_MERGE_PATCH and json_patch propagate a
+     * NULL first argument straight through to a NULL result, silently
+     * discarding the merge instead of erroring, so this would otherwise
+     * quietly no-op forever on such a row.
      *
      * Prefer jsonSave() for the common save-all-fields use case.
      *
@@ -1458,8 +1586,8 @@ class Database
         $col = "`$column`";
 
         return match($this->driver) {
-            'sqlite' => "json_patch($col, ?)",
-            default  => "JSON_MERGE_PATCH($col, ?)",
+            'sqlite' => "json_patch(COALESCE($col, '{}'), ?)",
+            default  => "JSON_MERGE_PATCH(COALESCE($col, '{}'), ?)",
         };
     }
 

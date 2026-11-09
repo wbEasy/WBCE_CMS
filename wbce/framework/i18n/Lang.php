@@ -169,8 +169,11 @@ class Lang
         $locale = self::$locale;
 
         // ── Mode 1: /languages/ directory ────────────────────────────────────
+        // Require EN.php (the base of every chain) to actually be there — an
+        // empty or stub languages/ folder (some IDEs and sync tools create one)
+        // must not shadow a sibling single-file languages.php.
         $langDir = $dir . '/languages';
-        if (is_dir($langDir)) {
+        if (is_dir($langDir) && is_file($langDir . '/EN.php')) {
             foreach (self::buildChain($locale) as $loc) {
                 self::includeFile($langDir . '/' . $loc . '.php');
             }
@@ -374,7 +377,7 @@ class Lang
             return sprintf((string)$val['zero'], $n);
         }
 
-        $category = PluralRules::category(self::$locale, $n);
+        $category = LangPlural::category(self::$locale, $n);
         $form     = $val[$category] ?? $val['other'] ?? $val['many'] ?? $val['one'] ?? reset($val);
         return sprintf((string)$form, $n);
     }

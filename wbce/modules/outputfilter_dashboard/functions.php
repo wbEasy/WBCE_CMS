@@ -1335,6 +1335,11 @@ function opf_preload_filter_definitions() {
 // apply filters of type $type and module $module on $content (passed by reference)
 function opf_apply_filters(&$content, $type, $module, $page_id, $section_id, $wb) {
     global $opf_FILTERS;
+    // Nothing to filter: without this every active filter "fails" on ''
+    // (the empty-result check below) and logs a notice.
+    if ($content === '' || $content === null || $content === false) {
+        return;
+    }
     global $opf_MODULE, $opf_PAGEID, $opf_SECTIONID;
     $opf_MODULE = $module;
     $opf_PAGEID = $page_id;

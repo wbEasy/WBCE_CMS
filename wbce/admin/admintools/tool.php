@@ -122,14 +122,19 @@ if ($toolCheck) {
     if (!$noPage) {
         $admin->print_footer();
     } else {
-        // Fetch the Buffer for later filtering
-        $fullOutput = ob_get_clean();
-
-        // FILTER for OPF DASHBOARD for whole page
-        if (function_exists('opf_controller')) {
-            $fullOutput = opf_controller('backend', $fullOutput);
+        // no_page (HTMX fragments, save scripts): Admin was built without a
+        // page frame, so its buffer was already taken above as $toolOutput
+        // and echoed. Usually no outer buffer is left — filtering the
+        // false/'' of ob_get_clean() made every page-level filter "fail"
+        // (one log notice per filter and request). Filter only what is
+        // really buffered.
+        if (ob_get_level() > 0) {
+            $fullOutput = ob_get_clean();
+            if (is_string($fullOutput) && $fullOutput !== '' && function_exists('opf_controller')) {
+                $fullOutput = opf_controller('backend', $fullOutput);
+            }
+            echo $fullOutput;
         }
-        echo $fullOutput;
     }
 } else {
     // invalid module name requested, jump to index.php of admintools
