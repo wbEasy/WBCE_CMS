@@ -314,22 +314,6 @@ class Frontend extends Wbce
         }
         $this->extra_where_sql .= $this->sql_where_language;
 
-        // Work-out if any possible in-line search boxes should be shown
-        if (!defined('SHOW_SEARCH')) {
-            $bShowSearch = false;
-            if (SEARCH == 'public') {
-                $bShowSearch = true;
-            } elseif (SEARCH == 'private' && VISIBILITY == 'private') {
-                $bShowSearch = true;
-            } elseif (SEARCH == 'private' && $this->is_authenticated() == true) {
-                $bShowSearch = true;
-            } elseif (SEARCH == 'registered' && $this->is_authenticated() == true) {
-                $bShowSearch = true;
-            }
-
-            define('SHOW_SEARCH', $bShowSearch);
-        }
-
         // define SHOW_MENU constant
         defined('SHOW_MENU') or define('SHOW_MENU', true);
     }

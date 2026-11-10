@@ -139,6 +139,17 @@ defined('FRONTEND_CONTEXT') || define('BACKEND_CONTEXT', true);
 // WB_FRONTEND — @deprecated since WBCE 1.7.0, use FRONTEND_CONTEXT instead.
 defined('WB_FRONTEND') || (defined('FRONTEND_CONTEXT') && define('WB_FRONTEND', true));
 
+// SHOW_SEARCH — may the current visitor search? 
+if (!defined('SHOW_SEARCH')) {
+    $_wbLoggedIn = is_numeric($_SESSION['USER_ID'] ?? null);
+    define('SHOW_SEARCH', match (defined('SEARCH') ? (string) SEARCH : '') {
+        'public'                => true,
+        'private', 'registered' => $_wbLoggedIn,
+        default                 => false,   // 'none' (or no setting, e.g. installer)
+    });
+    unset($_wbLoggedIn);
+}
+
 // LOCALE — set early so module initialize files can call Lang::loadLanguage()
 // and get the user's actual language instead of the EN default.
 // Session is open (WbceSession::start() above), DEFAULT_LANGUAGE is defined
