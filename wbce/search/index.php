@@ -10,6 +10,7 @@
  * @license GNU GPL2 (or any later version)
  */
 
+defined('FRONTEND_CONTEXT') or define('FRONTEND_CONTEXT', true);
 // Include the config file
 require '../config.php';
 

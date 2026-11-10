@@ -10,6 +10,7 @@
  * @license GNU GPL2 (or any later version)
  */
 
+defined('FRONTEND_CONTEXT') or define('FRONTEND_CONTEXT', true);
 require_once dirname(__DIR__) . '/config.php';
 
 if (!FRONTEND_LOGIN) {
