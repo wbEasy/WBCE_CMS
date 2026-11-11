@@ -131,6 +131,20 @@
  *    {if FORMAT == "png" or FORMAT == "gif"}
  *    {if not R.HIDDEN and (USER_LOGGED_IN or IS_ADMIN)}
  *
+ * ── Layout files and assets ─────────────────────────────────────────────────
+ *  $parser->parseFile($file, $data)   layout from an .htt file inside the
+ *                                     installation (droplets may not read files)
+ *
+ *  {insertCssFile "{MODULES}/foo/foo.css"}
+ *  {insertCssFile "foo.css" position="head_late" id="foo" media="print"}
+ *  {insertJsFile  "{TEMPLATE}/js/foo.js" position="body_late" defer}
+ *  Hands the file to the AssetQueue (same names as the Twig functions); the
+ *  directive itself prints nothing. AssetQueue tokens ({WB_URL}, {MODULES},
+ *  {TEMPLATE}, …) are expanded there; a plain relative path is relative to
+ *  the layout file (parseFile() only). Only .css / .js, no external URLs,
+ *  no "..". In a branch of {if} that is not taken nothing is loaded.
+ *  No bundles: those are set up at boot time (initialize_fe.php), as in Twig.
+ *
  * ── Loops ────────────────────────────────────────────────────────────────────
  *  {foreach LIST as ITEM} … {/foreach}
  *  {foreach MAP as KEY => VALUE} … {/foreach}
@@ -275,6 +289,9 @@ class LayoutParser
 
     /** setDebugUndefined(true): a missing key prints [UNDEFINED:KEY] instead of "". */
     private bool $debugUndefined = false;
+
+    /** Folder of the layout file being parsed (parseFile()), '' for a string. */
+    private string $layoutDir = '';
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -487,6 +504,55 @@ class LayoutParser
 
     // ── Public API — Parse ────────────────────────────────────────────────────
 
+    /**
+     * parse() with the layout read from an .htt file — the way for code that
+     * may not read files itself (droplets: CodeVet blocks file_get_contents).
+     * Only .htt files inside the installation are read (see readLayoutFile());
+     * anything else renders "" (with setDebugUndefined(): an HTML comment).
+     */
+    public function parseFile(string $file, array|object $data): string
+    {
+        $layout = self::readLayoutFile($file);
+        if ($layout === null) {
+            return $this->debugUndefined
+                ? '<!-- layout file not found or not allowed: ' . htmlspecialchars(basename($file), ENT_QUOTES, 'UTF-8') . ' -->'
+                : '';
+        }
+        // Relative {insertCssFile}/{insertJsFile} paths resolve against this folder.
+        $previousDir     = $this->layoutDir;
+        $this->layoutDir = dirname((string) realpath($file));
+        try {
+            return $this->parse($layout, $data);
+        } finally {
+            $this->layoutDir = $previousDir;
+        }
+    }
+
+    /**
+     * Contents of a layout file, or null unless it is an existing .htt file
+     * inside WB_PATH. The checks run on the resolved path, so "../" and a
+     * symlink to config.php or a file outside the installation are refused
+     * — a droplet must not be able to print arbitrary files through this.
+     */
+    public static function readLayoutFile(string $file): ?string
+    {
+        $root = defined('WB_PATH') ? realpath(WB_PATH) : false;
+        $real = realpath($file);
+        if ($root === false || $real === false || !is_file($real)) {
+            return null;
+        }
+        $real = str_replace('\\', '/', $real);
+        $root = rtrim(str_replace('\\', '/', $root), '/') . '/';
+        $same = DIRECTORY_SEPARATOR === '\\'
+            ? stripos($real, $root) === 0        // Windows: paths are case-insensitive
+            : str_starts_with($real, $root);
+        if (!$same || strtolower(pathinfo($real, PATHINFO_EXTENSION)) !== 'htt') {
+            return null;
+        }
+        $layout = file_get_contents($real);
+        return $layout === false ? null : $layout;
+    }
+
     public function parse(string $layout, array|object $data): string
     {
         $merged = array_merge(
@@ -555,12 +621,108 @@ class LayoutParser
         $html = $this->_resolveLoops($html, $this->currentScope);
         $html = $this->_resolvePartials($html, $this->currentScope);
         $html = $this->_resolveConditionals($html, $this->currentScope);
+        // After the conditionals: an {insertCssFile} in a branch that is not
+        // taken loads nothing.
+        $html = $this->_resolveAssets($html);
         $html = $this->_resolveDefaults($html, $this->currentScope);
         $html = $this->_resolvePlaceholders($html, $this->currentScope);
 
         $this->currentScope = $previousScope;
 
         return $html;
+    }
+
+    // ── Private — Assets ──────────────────────────────────────────────────────
+
+    /**
+     * {insertCssFile "…" position="…" id="…" media="…"}
+     * {insertJsFile  "…" position="…" id="…" defer async type="module"}
+     *
+     * Same names as the Twig functions (tsf_insert.php). The directive is
+     * removed from the output and the file handed to the AssetQueue
+     * (I::insertCssFile / I::insertJsFile), which expands its {TOKENS}
+     * ({MODULES}, {TEMPLATE}, {WB_URL}, …), checks the file exists, dedupes
+     * and adds the cache buster. This method only:
+     *   - turns a RELATIVE path into a URL against the layout file's folder
+     *     (parseFile() only — parse() of a string has no folder);
+     *   - refuses what an editable layout / droplet must not load: another
+     *     extension than .css / .js, external URLs (http(s)://, //) and "..".
+     * A refused or unresolvable entry loads nothing (setDebugUndefined():
+     * an HTML comment says why).
+     */
+    private function _resolveAssets(string $html): string
+    {
+        if (!str_contains($html, '{insert')) {
+            return $html;
+        }
+        return preg_replace_callback(
+            '~\{(insertCssFile|insertJsFile)\s+"([^"]*)"((?:\s+[a-z]+(?:="[^"]*")?)*)\s*\}~',
+            function (array $m): string {
+                $isCss = $m[1] === 'insertCssFile';
+                $why   = $this->_queueAsset($m[2], $m[3], $isCss);
+                return ($why !== '' && $this->debugUndefined)
+                    ? '<!-- ' . $m[1] . ' "' . htmlspecialchars($m[2], ENT_QUOTES, 'UTF-8') . '": ' . $why . ' -->'
+                    : '';
+            },
+            $html
+        ) ?? $html;
+    }
+
+    /** Queues one asset; returns '' on success, else the reason. */
+    private function _queueAsset(string $src, string $attrString, bool $isCss): string
+    {
+        $src = trim($src);
+        $ext = $isCss ? 'css' : 'js';
+        $bare = (string) strtok($src, '?#');
+
+        if ($src === '' || preg_match('~^(?:[a-z][a-z0-9+.\-]*:|//)~i', $src)) {
+            return 'external or empty URL not allowed';
+        }
+        if (strtolower(pathinfo($bare, PATHINFO_EXTENSION)) !== $ext) {
+            return 'only .' . $ext . ' files';
+        }
+        if (str_contains($bare, '..')) {
+            return '".." not allowed';
+        }
+
+        if (!str_starts_with($src, '{')) {
+            // Relative to the layout file — only known for parseFile().
+            $root = defined('WB_PATH') ? realpath(WB_PATH) : false;
+            if ($this->layoutDir === '' || $root === false || !defined('WB_URL')) {
+                return 'relative path needs parseFile()';
+            }
+            $dir  = str_replace('\\', '/', $this->layoutDir);
+            $root = rtrim(str_replace('\\', '/', $root), '/');
+            if (stripos($dir . '/', $root . '/') !== 0) {
+                return 'layout outside the installation';
+            }
+            $src = rtrim(WB_URL, '/') . substr($dir, strlen($root)) . '/' . ltrim($src, '/');
+        }
+
+        preg_match_all('~([a-z]+)(?:="([^"]*)")?~', $attrString, $am, PREG_SET_ORDER);
+        $opt = [];
+        foreach ($am as $a) {
+            $opt[$a[1]] = $a[2] ?? true;
+        }
+        $position = (string) ($opt['position'] ?? ($isCss ? 'head_late' : 'body_late'));
+        $id       = (string) ($opt['id'] ?? '');
+        $attrs    = [];
+        if ($isCss) {
+            if (isset($opt['media'])) $attrs['media'] = (string) $opt['media'];
+        } else {
+            foreach (['defer', 'async'] as $flag) {
+                if (isset($opt[$flag])) $attrs[$flag] = true;
+            }
+            if (($opt['type'] ?? '') === 'module') $attrs['type'] = 'module';
+        }
+
+        if (!class_exists('I')) {
+            return 'no AssetQueue';
+        }
+        $isCss
+            ? I::insertCssFile($src, $position, $attrs, $id)
+            : I::insertJsFile($src, $position, $attrs, $id);
+        return '';
     }
 
     // ── Private — Key resolution ──────────────────────────────────────────────
