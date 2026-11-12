@@ -67,8 +67,11 @@ class LangPlural
         return match ($lang) {
             // ── 1 / other (Germanic, most common) ────────────────────────────
             'en', 'de', 'nl', 'sv', 'da', 'no', 'nb', 'nn', 'fi', 'et', 
-            'hu', 'tr', 'el', 'it', 'pt', 'es', 'ca', 'bg', 'hr', 'ro'            
+            'hu', 'tr', 'el', 'it', 'pt', 'es', 'ca', 'bg', 'ro'
                 => self::germanic($n),
+
+            // ── South Slavic: Croatian, Bosnian, Serbian ──────────────────
+            'hr', 'bs', 'sr' => self::southSlavic($n),
 
             // ── 0-1 / other (French family) ───────────────────────────────
             'fr', 'ff', 'kab' => self::french($n),
@@ -170,6 +173,22 @@ class LangPlural
     }
 
     /**
+     * Croatian / Bosnian / Serbian (CLDR, integers)
+     * one: n % 10 = 1 and n % 100 != 11 (1, 21, 31, …)
+     * few: n % 10 in 2–4 and n % 100 not in 12–14 (2–4, 22–24, …)
+     * other: everything else
+     */
+    private static function southSlavic(int|float $n): string
+    {
+        $mod10  = (int)$n % 10;
+        $mod100 = (int)$n % 100;
+
+        if ($mod10 === 1 && $mod100 !== 11)                                return 'one';
+        if ($mod10 >= 2 && $mod10 <= 4 && ($mod100 < 12 || $mod100 > 14)) return 'few';
+        return 'other';
+    }
+
+    /**
      * Czech / Slovak
      * one: n = 1 | few: n in 2–4 | many: everything else
      */
@@ -219,6 +238,12 @@ class LangPlural
      * zero: n = 0
      * one:  n % 10 = 1  AND  n % 100 ≠ 11
      * other: everything else
+     *
+     * Deliberately NOT full CLDR: CLDR's Latvian "zero" also covers 10–20,
+     * 30, 40, … But WBCE language files use the 'zero' key for the
+     * "nothing there" message (Ln_() picks it at n = 0), so a CLDR-exact
+     * rule would print "No results" for 10 hits. Latvian strings therefore
+     * put the 10–20 form into 'other'.
      */
     private static function latvian(int|float $n): string
     {
