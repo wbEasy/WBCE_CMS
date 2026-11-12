@@ -221,29 +221,14 @@ final class TemplateBlocks
 
             if ($content === '') continue;
 
-            // Search result highlighting — mutually exclusive with OPF 'special' filter
-            if (isset($_GET['searchresult']) && is_numeric($_GET['searchresult'])
-                && !isset($_GET['nohighlight']) && !empty($_GET['sstring'])) {
-
-                // Plain words, split at whitespace. FILTER_SANITIZE_ENCODED plus
-                // stripping '%' turned "Roger Boswarva" into "Roger20Boswarva" and
-                // "über" into "C3BCber", so only single ASCII words were ever
-                // highlighted. The terms are only used as regex patterns
-                // (search_highlight() quotes them), never output.
-                $searchString = is_string($_GET['sstring']) ? $_GET['sstring'] : '';
-                $searchTerms  = array_values(array_filter(
-                    preg_split('/\s+/u', trim($searchString)) ?: [],
-                    fn($t) => mb_strlen($t) >= 2
-                ));
-
-                if ($_GET['searchresult'] == 2) {
-                    $searchTerms[0] = str_replace('_', ' ', $searchTerms[0] ?? '');
-                }
-
-                if ($searchTerms !== []) {
-                    $blockSections[]['content'] = search_highlight($content, $searchTerms);
-                    continue;
-                }
+            // Search result highlighting (page opened from a search hit,
+            // ?searchresult=1&sstring=…) — mutually exclusive with the OPF
+            // 'special' filter. Done by WBCE Search; its classes are only
+            // registered while the visitor may search (SHOW_SEARCH).
+            $highlighter = class_exists('WbceSearchHighlighter') ? WbceSearchHighlighter::fromRequest() : null;
+            if ($highlighter !== null) {
+                $blockSections[]['content'] = $highlighter->apply($content);
+                continue;
             }
 
             // Apply OPF 'special' filter — only outside search-highlight path

@@ -27,24 +27,16 @@ define('MENU_TITLE', $TEXT['SEARCH']);
 define('MODULE', '');
 define('VISIBILITY', 'public');
 
-// wbce_search Admin Tool
-// Use the Search Admin Tool if present and enabled
-$useSearchTool = (bool) Settings::get('use_search_tool');
+// The search page is WBCE Search (core module, always shipped). It also
+// handles a search that is switched off or not open to this visitor
+// (SHOW_SEARCH) and sets the page's TEMPLATE from its own setting.
 $searchToolPath = WB_PATH . '/modules/wbce_search';
-if (file_exists($searchToolPath . '/search_admin_tool.php') && $useSearchTool) {
-    define('PAGE_CONTENT', $searchToolPath . '/search_output.php');
-    include $searchToolPath . '/search_admin_tool.php';
-} else {
-    define('PAGE_CONTENT', __DIR__ . '/search.php');
+if (!is_file($searchToolPath . '/search_admin_tool.php')) {
+    http_response_code(404);
+    exit('Search is not available.');
 }
-
-// Find out what the search template is (WBCE Search may have set TEMPLATE
-// above from its own setting)
-$template = Settings::get('template');
-if ($template != '' && !defined('TEMPLATE')) {
-    define('TEMPLATE', $template);
-}
-unset($template);
+define('PAGE_CONTENT', $searchToolPath . '/search_output.php');
+include $searchToolPath . '/search_admin_tool.php';
 
 // Get the referrer page ID if it exists
 $referrer = 0;

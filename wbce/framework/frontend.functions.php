@@ -65,67 +65,22 @@ if (!function_exists('get_page_link')) {
 //function to highlight search results
 if (!function_exists('search_highlight')) {
     /**
+     * Wraps the search terms in <span class="highlight">.
      *
-     * @staticvar  bool    $string_ul_umlaut
-     * @staticvar  bool    $string_ul_regex
-     * @param string $foo
-     * @param array $arr_string
-     * @return     string
+     * @deprecated since WBCE 1.7.0 — use WbceSearchHighlighter (module
+     *             wbce_search). Kept for output filters and templates that
+     *             call it; returns the content unchanged while the search is
+     *             off for the visitor (the class is not registered then).
+     * @param string $foo        HTML
+     * @param array  $arr_string search terms
      */
     function search_highlight($foo = '', $arr_string = array())
     {
-        require_once WB_PATH . '/framework/functions.php';
-        static $string_ul_umlaut = false;
-        static $string_ul_regex = false;
-        if ($string_ul_umlaut === false || $string_ul_regex === false) {
-            require WB_PATH . '/search/search_convert.php';
+        if (!class_exists('WbceSearchHighlighter')) {
+            return (string) $foo;
         }
-        $foo = entities_to_umlauts($foo, 'UTF-8');
-        array_walk($arr_string, function (&$v, $k) {
-            $v = preg_quote($v, '~'); // '~' is the pattern delimiter below
-        });
-        $search_string = implode("|", array_filter($arr_string, fn($v) => $v !== ''));
-        // No term: the pattern "()" would match everywhere and wrap every
-        // character position in an empty <span class="highlight">.
-        if ($search_string === '') {
-            return $foo;
-        }
-        $string = str_replace($string_ul_umlaut, $string_ul_regex, $search_string);
-        // the highlighting
-        // match $string, but not inside <style>...</style>, <script>...</script>, <!--...--> or HTML-Tags
-        // Also droplet tags are now excluded from highlighting.
-        // split $string into pieces - "cut away" styles, scripts, comments, HTML-tags and eMail-addresses
-        // we have to cut <pre> and <code> as well.
-        // An HTML tag is "<", then unquoted characters or whole quoted attribute
-        // values, then ">" — so <input ... value="<b>value</b>" > stays one tag.
-        // Atomic/possessive on purpose: the former <(?:[^<]|<.*>)*> nested two
-        // repetitions, and on rich markup (inline SVG, <picture>, long card
-        // lists) PCRE gave up with "backtrack limit exhausted" — preg_split()
-        // returned false and the page was shown without any highlight.
-        // <svg> is cut away whole: a <span> inside an SVG <text> is no SVG
-        // element, and the browser would stop drawing the highlighted word.
-        $matches = preg_split("~(\[\[.*\]\]|<style.*</style>|<script.*</script>|<svg.*</svg>|<pre.*</pre>|<code.*</code>|<!--.*-->|<(?>[^<>\"']++|\"[^\"]*+\"|'[^']*+')*+>|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,8}\b)~iUs", $foo, -1, (PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY));
-        if (is_array($matches) && $matches != array()) {
-            $foo = "";
-            foreach ($matches as $match) {
-                if ($match[0] != "<" && !preg_match('/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,8}$/i', $match) && !preg_match('~\[\[.*\]\]~', $match)) {
-                    $match = str_replace(array('&lt;', '&gt;', '&amp;', '&quot;', '&#039;', '&nbsp;'), array('<', '>', '&', '"', '\'', "\xC2\xA0"), $match);
-                    $match = preg_replace('~(' . $string . ')~ui', '_span class=_highlight__$1_/span_', $match);
-                    // Re-escape the decoded text. Without this, text shown escaped on
-                    // the page (&lt;img onerror=…&gt; in a post or comment) became live
-                    // HTML for anyone opening the page with ?searchresult=1&sstring=…
-                    // (XSS). double_encode=false keeps entities the decode above did
-                    // not touch (&copy;, &#8212; …) as they were.
-                    $match = htmlspecialchars($match, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
-                    $match = str_replace(array('_span class=_highlight__', '_/span_'), array('<span class="highlight">', '</span>'), $match);
-                }
-                $foo .= $match;
-            }
-        }
-        if (DEFAULT_CHARSET != 'utf-8') {
-            $foo = umlauts_to_entities($foo, 'UTF-8');
-        }
-        return $foo;
+        $highlighter = WbceSearchHighlighter::forTerms((array) $arr_string);
+        return $highlighter === null ? (string) $foo : $highlighter->apply((string) $foo);
     }
 }
 

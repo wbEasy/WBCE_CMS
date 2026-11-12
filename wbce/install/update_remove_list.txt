@@ -104,6 +104,13 @@
 # Languages
 [LANGUAGES]/SE.php
 
+# Search — the legacy search engine; /search/ is WBCE Search (core module),
+# highlighting is WbceSearchHighlighter (1.7.0)
+[ROOT]/search/search.php
+[ROOT]/search/search_modext.php
+[ROOT]/search/search_convert.php
+[ROOT]/search/search_convert_ul.php
+
 # Modules
 [MODULES]/captcha_control/FTAN_SUPPORTED
 # captcha_control 2.x → 3.0.0: image captcha replaced by ALTCHA

@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS `{TP}pages` (
 ){TABLE_ENGINE};
 --
 -- `search`
+-- DEPRECATED since 1.7.0, removed in 2.0.0 at the latest: nothing reads it
+-- any more (the search is WBCE Search, modules/wbce_search). Still created so
+-- module installers that write into it keep working — see
+-- modules/MODULE_PDO_MIGRATION.md, "Suche: {TP}search ist deprecated".
 CREATE TABLE IF NOT EXISTS `{TP}search` (
   `search_id` INT           NOT NULL AUTO_INCREMENT,
   `name`      VARCHAR(255)  NOT NULL DEFAULT '',
