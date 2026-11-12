@@ -233,6 +233,9 @@ if ((!($database->is_error()))&&($old_section_id!=$section_id)) {
     // Clean up ordering
     $order = new order(TABLE_PREFIX.'mod_news_img_posts', 'position', 'post_id', 'section_id');
     $order->clean($old_section_id);
+    // The target section changed too (the old one was touched by
+    // modules/admin.php, $update_when_modified) — for search indexes.
+    $admin->touchSection((int) $section_id);
 }
 
 // remove current tags

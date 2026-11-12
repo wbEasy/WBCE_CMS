@@ -16,15 +16,28 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.36';
-$module_platform    = '1.4';
+$module_version     = '5.0.37';
+$module_platform    = '1.7.0';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';
 $module_description = 'This page module is designed for making a news page with images and lightbox effect.';
 
 /**
  * CHANGE LOG
- * 
+ *
+ * v5.0.37 - 2026/11/12
+ *         - Christian M. Stefan
+ *         * search_index.php: posts are found by WBCE Search (WBCE 1.7) —
+ *           only what the page shows (active, published, active group),
+ *           with the post's own link and preview image
+ *         * mass actions and moving a post to another section mark the
+ *           affected sections as changed, so the search index follows
+ *         * no more rows in {TP}search and no empty placeholder rows in
+ *           the module's tables (leftovers of the WebsiteBaker <= 2.6
+ *           search); upgrade removes them, and the unused search.php
+ *         * platform 1.7.0: the module has needed WBCE 1.7's database API
+ *           (parameter binding, {TP}) for a while; '1.4' was out of date
+ *
  * v5.0.36 - 2026/10/28
  *         - Fernando via Rik van Loenhout (report), Christian M. Stefan
  *         * fetchNewsItems / mod_nwi_get_news_items() returned news of every

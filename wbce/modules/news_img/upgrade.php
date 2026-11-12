@@ -314,6 +314,24 @@ require(WB_PATH."/index.php");
         @unlink(__DIR__.'/config.php');
     }
 
+    // Leftovers of the WebsiteBaker <= 2.6 search, written by installers up to
+    // 5.0.36: query rows in {TP}search (never read — the core's legacy search
+    // used search.php) and one empty placeholder row per table that search
+    // needed. {TP}search goes in WBCE 2.0: only clean it where it exists.
+    if ($database->tableExists('{TP}search')) {
+        $database->query(
+            "DELETE FROM `{TP}search` WHERE (`name` = 'module' AND `value` = 'news_img') OR `extra` = 'news_img'"
+        );
+    }
+    $database->query("DELETE FROM `{TP}mod_news_img_posts` WHERE `section_id` = 0 AND `title` = ''");
+    $database->query("DELETE FROM `{TP}mod_news_img_groups` WHERE `section_id` = 0 AND `title` = ''");
+    $database->query("DELETE FROM `{TP}mod_news_img_settings` WHERE `section_id` = 0");
+
+    // search.php served the legacy core search, gone in WBCE 1.7;
+    // search_index.php (WBCE Search) replaces it.
+    if (is_file(__DIR__ . '/search.php')) {
+        @unlink(__DIR__ . '/search.php');
+    }
 
     // install the droplet(s)
     if(!defined('CAT_PATH')) {

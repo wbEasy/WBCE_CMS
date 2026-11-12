@@ -70,6 +70,8 @@ if (isset($_POST['manage_posts'])) {
 }
 
 if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
+    // "group" below switches $section_id to the target section
+    $own_section_id = (int) $section_id;
     switch($action) {
         case "copy":
             $result = mod_nwi_post_copy($section_id,$page_id);
@@ -166,6 +168,16 @@ if(isset($_POST['exec']) && isset($_POST['manage_posts'])) {
             }
             $result = true;
             break;
+    }
+    // Search indexes re-read a section whose page changed (search_index.php):
+    // this one, and the one posts were copied, moved or regrouped into.
+    if ($result == true) {
+        $admin->touchSection($own_section_id);
+        $target = mod_nwi_parse_target($_POST['group'] ?? null);
+        if (is_array($target) && in_array($action, ['copy', 'copy_with_tags', 'move', 'move_with_tags', 'group'], true)
+            && (int) $target['s'] !== $own_section_id) {
+            $admin->touchSection((int) $target['s']);
+        }
     }
     unset($_POST['action']);
     unset($_POST['manage_posts']);
