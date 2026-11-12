@@ -31,12 +31,12 @@ define('VISIBILITY', 'public');
 // handles a search that is switched off or not open to this visitor
 // (SHOW_SEARCH) and sets the page's TEMPLATE from its own setting.
 $searchToolPath = WB_PATH . '/modules/wbce_search';
-if (!is_file($searchToolPath . '/search_admin_tool.php')) {
+if (!is_file($searchToolPath . '/search_page.php')) {
     http_response_code(404);
     exit('Search is not available.');
 }
 define('PAGE_CONTENT', $searchToolPath . '/search_output.php');
-include $searchToolPath . '/search_admin_tool.php';
+include $searchToolPath . '/search_page.php';
 
 // Get the referrer page ID if it exists
 $referrer = 0;
