@@ -49,6 +49,34 @@
     --danger-bg:  #f8d7da;
     --info:       #0c5fa5;
     --info-bg:    #cfe2ff;
+
+    /* Switch colours — the dimensions live in cp_chrome.css, which stays
+       colour-free by doctrine. Values are the ones that were previously
+       hardcoded there, carried over unchanged so nothing shifts visually;
+       a theme may now re-point them (e.g. --switch-bg-on: var(--success))
+       without touching the structural file. */
+    --switch-bg-off:           #8a9ab3;
+    --switch-bg-on:            #a9d249;
+    --switch-radio-on:         #6087b2;
+
+    --switch-shadow-inset-off: 1px 1px 10px rgba(0, 0, 0, 0.5);
+    --switch-shadow-inset-on:  1px 1px 5px  rgba(0, 0, 0, 0.2);
+
+    --switch-label-color-off:  #fff;
+    --switch-label-color-on:   #fff;
+
+    --switch-knob-bg:          #f7f7f7;
+    --switch-knob-shadow:      1px 1px 10px 0 rgba(0, 0, 0, 0.3);
+
+    /* Radio switches (segmented control): the track is the switch's "off"
+       grey, the chosen segment its knob. Shadows deliberately light. */
+    --seg-track-bg:            var(--switch-bg-off);
+    --seg-track-shadow:        inset 0 1px 2px rgba(0, 0, 0, 0.10);
+    --seg-label-color:         var(--switch-label-color-off);
+    --seg-hover-bg:            rgba(255, 255, 255, 0.18);
+    --seg-on-bg:               var(--switch-knob-bg);
+    --seg-on-color:            #374151;
+    --seg-on-shadow:           0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 
@@ -93,6 +121,37 @@ nav.cp-tabs a.tab-active {
     background: var(--surface2);
     border-color: var(--border);
     font-weight: 600;
+}
+
+
+/* ── Sub tab bar ───────────────────────────────────────────────── */
+
+nav.cp-subtabs {
+    background: var(--surface2);
+}
+nav.cp-subtabs a {
+    color: var(--text-dim);
+}
+nav.cp-subtabs a:hover {
+    color: var(--text);
+    background: var(--surface3);
+}
+nav.cp-subtabs a.sel,
+nav.cp-subtabs a.tab-active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+nav.cp-subtabs .cp-subtab-count {
+    background: var(--surface3);
+    color: var(--text-dim);
+}
+nav.cp-subtabs a.sel .cp-subtab-count,
+nav.cp-subtabs a.tab-active .cp-subtab-count {
+    background: var(--accent);
+    color: #fff;
+}
+nav.cp-subtabs li.cp-subtabs-sep {
+    background: var(--border);
 }
 
 
@@ -331,8 +390,36 @@ span.cp-label {
     background: var(--surface2);
     border-color: var(--border);
     color: var(--text-dim);
-    border-radius: var(--r);    
+    border-radius: var(--r);
     white-space:nowrap;
+}
+
+
+/* ── State badge ───────────────────────────────────────────────── */
+/* Structure in cp_chrome.css. Every state derives from the Status
+   tokens above, so restyling status anywhere restyles badges too. */
+
+.cp-badge,
+.cp-badge--muted {
+    background: var(--surface3);
+    color: var(--text-dim);
+}
+.cp-badge--draft {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+.cp-badge--live {
+    background: var(--success-bg);
+    color: var(--success);
+}
+.cp-badge--warn {
+    background: var(--warning-bg);
+    color: var(--warning);
+    box-shadow: inset 0 0 0 1px var(--warning);
+}
+.cp-badge--stop {
+    background: var(--danger-bg);
+    color: var(--danger);
 }
 
 

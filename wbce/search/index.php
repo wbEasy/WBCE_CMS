@@ -38,9 +38,10 @@ if (file_exists($searchToolPath . '/search_admin_tool.php') && $useSearchTool) {
     define('PAGE_CONTENT', __DIR__ . '/search.php');
 }
 
-// Find out what the search template is
+// Find out what the search template is (WBCE Search may have set TEMPLATE
+// above from its own setting)
 $template = Settings::get('template');
-if ($template != '') {
+if ($template != '' && !defined('TEMPLATE')) {
     define('TEMPLATE', $template);
 }
 unset($template);

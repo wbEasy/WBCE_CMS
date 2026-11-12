@@ -367,9 +367,10 @@
     </section>
 
     <!-- SEARCH SETTINGS ****************************************** -->
-    <h2 class="page_titel"> {HEADING_SEARCH_SETTINGS}
-        <div class="headline-link" {DISPLAY_ADVANCED_BUTTON}> <a href="#settings-search-settings" title="{MODE_SWITCH_WARNING}" onclick="window.location = '{ADVANCED_LINK}#settings-search-settings'; return false;"> {ADVANCED_BUTTON} </a> </div>
-    </h2>
+    <!-- Only the visibility; everything else is in the WBCE Search admin
+         tool. The whole card is shown only with access to that tool. -->
+    <!-- BEGIN show_search_card_block -->
+    <h2 class="page_titel"> {HEADING_SEARCH_SETTINGS}</h2>
 
     <section class="content-box" id="settings-search-settings">
         <div class="row top">
@@ -384,74 +385,10 @@
             </div>
         </div>
         <div class="row">
-            <div class="fg3">{TEXT_TEMPLATE}:</div>
-            <div class="fg9">
-                <select name="search_template" class="wdt250">
-                    <!-- BEGIN search_template_list_block -->
-                    <option value="{FILE}" {SELECTED}>{NAME}</option>
-                    <!-- END search_template_list_block -->
-                </select>
+            <div class="fg9 push3">
+                <a href="{SEARCH_TOOL_URL}"><i class="fa fa-fw fa-search"></i> {SEARCH_TOOL_NAME} &raquo;</a>
             </div>
         </div>
-
-        <!-- BEGIN show_search_block -->
-        <section {DISPLAY_ADVANCED}>
-            <div class="row">
-                <div class="fg3">{TEXT_HEADER}:</div>
-                <div class="fg9">
-                    <textarea name="search_header" class="tabbed code wdt500">{SEARCH_HEADER}</textarea>
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_RESULTS_HEADER}:</div>
-                <div class="fg9">
-                    <textarea name="search_results_header" class="tabbed code wdt500">{SEARCH_RESULTS_HEADER}</textarea>
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_RESULTS_LOOP}:</div>
-                <div class="fg9">
-                    <textarea name="search_results_loop" class="tabbed code wdt500">{SEARCH_RESULTS_LOOP}</textarea>
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_RESULTS_FOOTER}:</div>
-                <div class="fg9">
-                    <textarea name="search_results_footer" class="tabbed code wdt500">{SEARCH_RESULTS_FOOTER}</textarea>
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_NO_RESULTS}:</div>
-                <div class="fg9">
-                    <input type="text" name="search_no_results" value="{SEARCH_NO_RESULTS}" class="code wdt500">
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_FOOTER}:</div>
-                <div class="fg9">
-                    <textarea name="search_footer" class="tabbed code wdt500">{SEARCH_FOOTER}</textarea>
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_MODULE_ORDER}:</div>
-                <div class="fg9">
-                    <input type="text" name="search_module_order" class="wdt500" value="{SEARCH_MODULE_ORDER}">
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_MAX_EXCERPT}:</div>
-                <div class="fg9">
-                    <input type="text" name="search_max_excerpt" value="{SEARCH_MAX_EXCERPT}" class="wdt50">
-                </div>
-            </div>
-            <div class="row">
-                <div class="fg3">{TEXT_TIME_LIMIT}:</div>
-                <div class="fg9">
-                    <input type="text" name="search_time_limit" value="{SEARCH_TIME_LIMIT}" class="wdt50">
-                </div>
-            </div>
-        </section>
-        <!-- END show_search_block -->
 
         <hr class="fg12">
         <div class="row">
@@ -460,6 +397,7 @@
             </div>
         </div>
     </section>
+    <!-- END show_search_card_block -->
 
     <!-- SERVER SETTINGS ****************************************** -->
     <h2 class="page_titel"> {HEADING_SERVER_SETTINGS}

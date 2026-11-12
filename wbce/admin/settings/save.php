@@ -181,7 +181,7 @@ if ($advanced == '') {
 $basicSettings = array(
     'app_name', 'default_date_format', 'default_language', 'default_template', 'default_theme',
     'default_time_format', 'default_timezone', 'frontend_login', 'frontend_signup', 'home_folders',
-    'intro_page', 'page_spacer', 'page_trash', 'search', 'sec_anchor', 'server_email',
+    'intro_page', 'page_spacer', 'page_trash', 'sec_anchor', 'server_email',
     'wbmailer_default_sendername', 'wbmailer_routine', 'wbmailer_smtp_auth', 'wbmailer_smtp_host',
     'wbmailer_smtp_password', 'wbmailer_smtp_port', 'wbmailer_smtp_secure', 'wbmailer_smtp_username',
     'website_description', 'website_footer', 'website_header', 'website_keywords', 'website_title',
@@ -192,13 +192,15 @@ $advancedSettings = array(
     'pages_directory', 'redirect_timer', 'rename_files_on_upload', 'section_blocks', 'smart_login',
     'string_dir_mode', 'string_file_mode', 'wysiwyg_editor', 'wysiwyg_style',
 );
-$basicSearch    = array('template');
-$advancedSearch = array(
-    'footer', 'header', 'max_excerpt', 'module_order', 'no_results',
-    'results_footer', 'results_header', 'results_loop', 'time_limit',
-);
+// Search: only the visibility ("search") is set here, and only by whoever may
+// open the WBCE Search admin tool — the card is not shown to anyone else
+// (index.php), so it is not accepted from anyone else either. Everything
+// else about the search lives in that tool; the old {TP}search fields
+// (template, header, results loop, ...) are no longer written from here.
+if (is_file(WB_PATH . '/modules/wbce_search/tool.php') && $admin->hasToolPermission('wbce_search')) {
+    $basicSettings[] = 'search';
+}
 $allowedSettings = ($advanced == '') ? $basicSettings : array_merge($basicSettings, $advancedSettings);
-$allowedSearch   = ($advanced == '') ? $basicSearch   : array_merge($basicSearch, $advancedSearch);
 
 $allow_tags_in_fields = array('website_header', 'website_footer');
 $allow_empty_values = array('website_header', 'website_footer', 'sec_anchor', 'pages_directory', 'page_spacer');
@@ -260,37 +262,6 @@ if ($res_settings = $database->query($sql)) {
                 $admin->print_error($database->getError(), $js_back);
                 break;
             }
-        }
-    }
-}
-
-// Query current search settings in the db, then loop through them and update the db with the new value
-$sql = "SELECT `name`, `value` FROM `{TP}search` WHERE `extra`= ''";
-$res_search = $database->query($sql);
-if ($database->hasError()) {
-    $admin->print_error($database->getError(), $js_back);
-}
-while ($search_setting = $res_search->fetchRow()) {
-    $old_value = $search_setting['value'];
-    $setting_name = $search_setting['name'];
-    if (!in_array($setting_name, $allowedSearch, true)) {
-        continue;
-    }
-    $post_name = 'search_' . $search_setting['name'];
-
-    // hold old value if post is empty
-    // check search template
-    $value = (($admin->get_post($post_name) == '') && ($setting_name != 'template'))
-        ? $old_value
-        : $admin->get_post($post_name);
-    if (isset($value)) {
-        $database->query(
-            "UPDATE `{TP}search` SET `value` = ? WHERE `name` = ? AND `extra` = ''",
-            [$value, $setting_name]
-        );
-        if ($database->hasError()) {
-            $admin->print_error($database->getError(), $js_back);
-            break;
         }
     }
 }

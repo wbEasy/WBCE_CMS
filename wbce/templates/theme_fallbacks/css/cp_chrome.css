@@ -186,6 +186,75 @@ nav.cp-tabs a {
 }
 
 
+/* ── Sub tab bar ───────────────────────────────────────────────────
+   Second navigation level, sits between nav.cp-tabs and .cp-pane-inlay.
+   Same nav > ul > li > a structure and same .sel as the tab bar above —
+   deliberately not a new convention, just one level down. Use it for
+   places (Form Generator / Field Management), never for actions; a
+   button promises something to happen, these only change where you are.
+   ────────────────────────────────────────────────────────────────── */
+
+nav.cp-subtabs {
+    display: flex;
+    align-items: stretch;
+    min-height: 2.15rem;
+    padding: 0 .5rem 0 .8rem;
+    border-bottom: 1px solid var(--border);
+    /* Scroll rather than wrap — a wrapped second row would double the
+       header height and push the content down, which is exactly what
+       this component exists to avoid. */
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+nav.cp-subtabs ul {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+}
+nav.cp-subtabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: .45em;
+    padding: .45rem .8rem;
+    font-size: .85rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    /* The marker is always present, only transparent — otherwise the
+       row jumps by 2px the moment an item becomes active. */
+    border-bottom: 2px solid transparent;
+    transition: color .12s, background .12s, border-color .12s;
+}
+nav.cp-subtabs a.sel { font-weight: 600; }
+nav.cp-subtabs a[aria-disabled="true"] { pointer-events: none; opacity: .45; }
+nav.cp-subtabs a > i { font-size: .95em; }
+
+/* Counter pill, e.g. "Field Management 38" */
+nav.cp-subtabs .cp-subtab-count {
+    font-size: .68rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: .15rem .35rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Group divider */
+nav.cp-subtabs li.cp-subtabs-sep {
+    width: 1px;
+    margin: .5rem .45rem;
+    flex: 0 0 1px;
+}
+
+/* Action slot — same class name as .cp-toolbar's */
+nav.cp-subtabs .pull-right { margin-left: auto; }
+
+
 /* ── Content inlay ─────────────────────────────────────────────── */
 
 .cp-pane-inlay {
@@ -480,7 +549,13 @@ label.cp-required::after,
     /* Round bottom corners to match the card container */
     border-radius: 0 0 var(--r) var(--r);
 }
-.pos-right {
+/* Scoped (not bare ".pos-right") so this beats the legacy ACPI_content.css
+   ".button { margin-left: 3px }" rule regardless of CSS load order — both
+   are single-class-specificity otherwise, so source order would decide,
+   and on pages where ACPI_content.css loads after this file the button
+   silently lost its right alignment. */
+.cp-buttons-row .pos-right,
+.cp-card-foot   .pos-right {
     margin-left: auto;
 }
 /* First .pos-right pushes itself right (existing rule).
@@ -601,46 +676,20 @@ label.cp-required::after,
 
 
 /* ============================================
-   Switch Variables
-   ============================================ */
-:root {
-  --switch-width:               2.8rem;
-  --switch-height:              1.4rem;
-  --switch-padding:             0.19rem;
-  --switch-border-radius:       1rem;
+   Switch Variables — DIMENSIONS ONLY
+   ============================================
+   Colours, shadows and knob fill live in cp_theme.css (see its
+   "Switch colours" block) — this file stays colour-free by doctrine
+   (see the header at the top).
 
-  --switch-bg-off:              #cfc9ca;
-  --switch-bg-on:               #77b628;
-  --switch-shadow-inset-off:    1px 1px 10px rgba(0, 0, 0, 0.5);
-  --switch-shadow-inset-on:     1px 1px 5px rgba(0, 0, 0, 0.2);
-
-  --switch-label-color-off:     #fff;
-  --switch-label-color-on:      #fff;
-  --switch-label-font-size:     0.65rem;
-
-  --switch-knob-size:           1.005rem;
-  --switch-knob-bg:             #f7f7f7;
-  --switch-knob-shadow:         1px 1px 10px 0 rgba(0, 0, 0, 0.3);
-  --switch-knob-pos-off:        0.25rem;
-  --switch-knob-pos-on:         1.6rem;
-
-  --switch-labeled-width:       7rem;
-  --switch-labeled-knob-pos-on: 5.68rem;
-
-  --switch-transition:          all 0.25s ease-in-out;
-
-  /* Radio-specific */
-  --switch-radio-font-size:     0.65rem;
-  --switch-radio-gap:           0.45rem;
-  --switch-radio-on:            #6087b2;
-  --switch-radio-padding:       0.22rem 0.7rem 0.22rem 0.3rem;
-  --switch-radio-knob-size:     1rem;
-  --switch-radio-group-gap:     0.4rem;
-}
-
-
-/* ============================================
-   Switch Variables
+   History: this block existed TWICE, back to back, with conflicting
+   values (border-radius 1rem vs 2rem, bg-on #77b628 vs #a9d249,
+   label-font-size 0.65 vs 0.7rem). The second won for everything it
+   declared, while --switch-labeled-width / --switch-labeled-knob-pos-on
+   and all --switch-radio-* survived only from the first — so the
+   .labeled variant was sized by block 1 while the base switch used
+   block 2. Merged here into one block carrying the values that were
+   actually in effect, so appearance is unchanged.
    ============================================ */
 :root {
   --switch-width:                   2.8rem;
@@ -648,26 +697,25 @@ label.cp-required::after,
   --switch-padding:                 0.19rem;
   --switch-border-radius:           2rem;
 
-  --switch-bg-off:                  #cfc9ca;
-  --switch-bg-on:                   #a9d249;
-  --switch-radio-on:                #6087b2;
-
-  --switch-shadow-inset-on:         1px 1px 5px rgba(0, 0, 0, 0.2);
-
-  --switch-label-color-off:         #fff;
-  --switch-label-color-on:          #fff;
   --switch-label-font-size:         0.7rem;
 
   --switch-knob-size:               1.005rem;
-  --switch-knob-bg:                 #f7f7f7;
-  --switch-knob-shadow:             1px 1px 10px 0 rgba(0, 0, 0, 0.3);
   --switch-knob-pos-off:            0.25rem;
   --switch-knob-pos-on:             1.6rem;
 
+  /* .labeled variant — wide switch with On/Off text inside */
+  --switch-labeled-width:           7rem;
+  --switch-labeled-knob-pos-on:     5.68rem;
   --switch-labeled-padding:         0.22rem 0.7rem 0.22rem 0.3rem;
 
   --switch-transition:              all 0.25s ease-in-out;
 
+  /* Radio-specific (segmented control) */
+  --switch-radio-font-size:         0.65rem;
+  --switch-radio-gap:               0.45rem;
+  --switch-radio-padding:           0.22rem 0.7rem 0.22rem 0.3rem;
+  --switch-radio-knob-size:         1rem;
+  --switch-radio-group-gap:         0.4rem;
 }
 
 
@@ -829,56 +877,84 @@ input[switch=bool]:checked + label.labeled {
 
 
 /* ============================================
-   Radio Switches
-   ============================================ */
+   Radio Switches — segmented control
+   ============================================
+   Markup (unchanged since the pill version):
+     <div class="radio-switch-group">
+       <input type="radio" class="switch-radio" id="x_a" …><label for="x_a">A</label>
+       …
+     </div>
+   The container is whatever DIRECTLY holds the radios — .radio-switch-group,
+   or a plain wrapper (menu_link uses .cb); :has() turns either into the
+   track, so the inline whitespace between the labels can't open gaps.
+   Track = the switch's "off" grey, chosen segment = its knob (colours in
+   cp_theme.css, --seg-*). */
+:root {
+  --seg-padding:      var(--switch-padding);
+  --seg-height:       var(--switch-height);
+  --seg-item-pad-x:   0.8rem;
+  --seg-radius:       6px;
+  --seg-item-radius:  4px;
+}
+
 input[type="radio"].switch-radio {
   display: none;
+}
+
+.radio-switch-group,
+:has(> input[type="radio"].switch-radio) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: center;
+  /* Only as wide as its segments — also inside a flex column such as
+     .cp-setting-value, which would otherwise stretch it to full width. */
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  padding: var(--seg-padding);
+  border-radius: var(--seg-radius);
+  background-color: var(--seg-track-bg);
+  box-shadow: var(--seg-track-shadow);
 }
 
 input[type="radio"].switch-radio + label {
   display: inline-flex;
   align-items: center;
-  gap: var(--switch-radio-gap);
-  padding: var(--switch-radio-padding);
-  border-radius: var(--switch-border-radius);
+  height: var(--seg-height);
+  padding: 0 var(--seg-item-pad-x);
+  margin: 0;
+  border-radius: var(--seg-item-radius);
   cursor: pointer;
-  font-size: var(--switch-radio-font-size);
-  font-weight: 500;
+  font-size: var(--switch-label-font-size);
+  font-weight: 600;
+  letter-spacing: .03em;
   text-transform: uppercase;
   line-height: 1;
-  background-color: var(--switch-bg-off);
-  color: var(--switch-label-color-off);
+  color: var(--seg-label-color);
   transition: var(--switch-transition);
   user-select: none;
   white-space: nowrap;
 }
 
-input[type="radio"].switch-radio + label::before {
-  content: "";
-  display: inline-block;
-  width: var(--switch-radio-knob-size);
-  height: var(--switch-radio-knob-size);
-  border-radius: 50%;
-  background-color: var(--switch-knob-bg);
-  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
-  flex-shrink: 0;
-  transition: var(--switch-transition);
+input[type="radio"].switch-radio + label:hover {
+  background-color: var(--seg-hover-bg);
 }
 
 input[type="radio"].switch-radio:checked + label {
-  background-color: var(--switch-radio-on);
-  box-shadow: var(--switch-shadow-inset-on);
+  background-color: var(--seg-on-bg);
+  box-shadow: var(--seg-on-shadow);
+  color: var(--seg-on-color);
 }
 
-input[type="radio"].switch-radio:checked + label::before {
-  box-shadow: var(--switch-knob-shadow);
+input[type="radio"].switch-radio:focus-visible + label {
+  outline: 2px solid var(--switch-radio-on);
+  outline-offset: 1px;
 }
 
-.radio-switch-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--switch-radio-group-gap);
-  align-items: center;
+input[type="radio"].switch-radio:disabled + label {
+  opacity: .45;
+  cursor: not-allowed;
 }
 
 
@@ -1033,6 +1109,53 @@ span.cp-label {
     border: 1px solid var(--border);
     white-space: nowrap;
     cursor: default;
+}
+
+
+/* ── State badge ───────────────────────────────────────────────── */
+/*
+ * .cp-badge — a small pill stating the CURRENT STATE of the row/record
+ * it sits in: Draft, Scheduled, Expired, Archived, Hidden, Members only…
+ *
+ * Distinct from .cp-label / span.usergroup, which tags a record with an
+ * ASSOCIATION (a usergroup it belongs to) rather than a state. Keep them
+ * apart: a state answers "what is this right now", a label answers
+ * "what is this attached to".
+ *
+ * State is carried by a modifier class, never by an inline colour, so a
+ * theme can restyle every badge in the CMS at once:
+ *
+ *   <span class="cp-badge cp-badge--draft">Draft</span>
+ *
+ * Modifiers (colours in cp_theme.css):
+ *   --draft   pending / not yet live      (warning)
+ *   --live    active / published          (success)
+ *   --warn    expiring / needs attention  (warning, stronger)
+ *   --stop    blocked / nobody can see it (danger)
+ *   --muted   inert / archived / hidden   (neutral, default when omitted)
+ *
+ * Multiple badges may sit side by side when the states are independent
+ * (e.g. "Published" + "Archived" — archived does not imply unpublished).
+ */
+.cp-badge {
+    display: inline-block;
+    padding: .1em .5em;
+    border-radius: 999px;
+    font-size: .72em;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    vertical-align: baseline;
+    cursor: default;
+}
+
+/* Icon-only variant — for dense list rows where the label would crowd */
+.cp-badge.is-icon {
+    padding: .1em .4em;
+}
+.cp-badge.is-icon i {
+    font-size: 1.05em;
 }
 
 

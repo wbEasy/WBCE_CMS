@@ -43,7 +43,6 @@ $template->set_block('main_block', 'language_list_block', 'language_list');
 $template->set_block('main_block', 'date_format_list_block', 'date_format_list');
 $template->set_block('main_block', 'time_format_list_block', 'time_format_list');
 $template->set_block('main_block', 'theme_list_block', 'theme_list');
-$template->set_block('main_block', 'search_template_list_block', 'search_template_list');
 $template->set_block('main_block', 'group_list_block', 'group_list');
 $template->set_block('main_block', 'charset_list_block', 'charset_list');
 $template->set_block('main_block', 'error_reporting_list_block', 'error_reporting_list');
@@ -58,7 +57,7 @@ $template->set_block('main_block', 'show_php_error_level_block', 'show_php_error
 $template->set_block('main_block', 'show_charset_block', 'show_charset');
 $template->set_block('main_block', 'show_wysiwyg_block', 'show_wysiwyg');
 $template->set_block('main_block', 'show_access_block', 'show_access');
-$template->set_block('main_block', 'show_search_block', 'show_search');
+$template->set_block('main_block', 'show_search_card_block', 'show_search_card');
 $template->set_block('main_block', 'show_redirect_timer_block', 'show_redirect_timer');
 
 // Query current settings in the db, then loop through them and print them
@@ -91,56 +90,6 @@ if ($is_advanced) {
     $template->set_var('ADVANCED_LINK', 'index.php?advanced=yes');
 }
 
-$query = "SELECT * FROM `{TP}search` WHERE extra = ''";
-$results = $database->query($query);
-
-// Query current settings in the db, then loop through them and print them
-while ($setting = $results->fetchRow()) {
-    $setting_name = $setting['name'];
-    $setting_value = htmlspecialchars(($setting['value']));
-    switch ($setting_name) {
-        // Search header
-        case 'header':
-            $template->set_var('SEARCH_HEADER', $setting_value);
-            break;
-        // Search results header
-        case 'results_header':
-            $template->set_var('SEARCH_RESULTS_HEADER', $setting_value);
-            break;
-        // Search results loop
-        case 'results_loop':
-            $template->set_var('SEARCH_RESULTS_LOOP', $setting_value);
-            break;
-        // Search results footer
-        case 'results_footer':
-            $template->set_var('SEARCH_RESULTS_FOOTER', $setting_value);
-            break;
-        // Search no results
-        case 'no_results':
-            $template->set_var('SEARCH_NO_RESULTS', $setting_value);
-            break;
-        // Search footer
-        case 'footer':
-            $template->set_var('SEARCH_FOOTER', $setting_value);
-            break;
-        // Search module-order
-        case 'module_order':
-            $template->set_var('SEARCH_MODULE_ORDER', $setting_value);
-            break;
-        // Search max lines of excerpt
-        case 'max_excerpt':
-            $template->set_var('SEARCH_MAX_EXCERPT', $setting_value);
-            break;
-        // time-limit
-        case 'time_limit':
-            $template->set_var('SEARCH_TIME_LIMIT', $setting_value);
-            break;
-        // Search template
-        case 'template':
-            $search_template = $setting_value;
-            break;
-    }
-}
 
 $template->set_var(array(
     'WB_URL' => WB_URL,
@@ -265,28 +214,6 @@ if ($result->numRows() > 0) {
         $selected = (!defined('WYSIWYG_EDITOR') || $addon['directory'] == WYSIWYG_EDITOR) ? ' selected="selected"' : '';
         $template->set_var('SELECTED', $selected);
         $template->parse('editor_list', 'editor_list_block', true);
-    }
-}
-
-// Insert templates for search settings
-$search_template = (($search_template == DEFAULT_TEMPLATE) || ($search_template == '')) ? '' : $search_template;
-$selected = (($search_template != DEFAULT_TEMPLATE)) ? ' selected="selected"' : $selected = '';
-
-$template->set_var(array(
-    'FILE' => '',
-    'NAME' => $TEXT['SYSTEM_DEFAULT'],
-    'SELECTED' => $selected
-));
-$template->parse('search_template_list', 'search_template_list_block', true);
-
-$result = $database->query("SELECT * FROM `{TP}addons` WHERE type = 'template' AND `function` = 'template' ORDER BY name");
-if ($result->numRows() > 0) {
-    while ($addon = $result->fetchRow()) {
-        $template->set_var('FILE', $addon['directory']);
-        $template->set_var('NAME', $addon['name']);
-        $selected = ($addon['directory'] == $search_template) ? ' selected="selected"' : $selected = '';
-        $template->set_var('SELECTED', $selected);
-        $template->parse('search_template_list', 'search_template_list_block', true);
     }
 }
 
@@ -697,7 +624,6 @@ if ($is_advanced) {
     $template->parse('show_php_error_level', 'show_php_error_level_block', true);
     $template->parse('show_charset', 'show_charset_block', true);
     $template->parse('show_wysiwyg', 'show_wysiwyg_block', true);
-    $template->parse('show_search', 'show_search_block', false);
     $template->parse('show_redirect_timer', 'show_redirect_timer_block', true);
 } else {
     $template->set_block('show_page_level_limit', '');
@@ -707,13 +633,30 @@ if ($is_advanced) {
     $template->set_block('show_php_error_level', '');
     $template->set_block('show_charset', '');
     $template->set_block('show_wysiwyg', '');
-    $template->set_block('show_search', '');
     $template->set_block('show_redirect_timer', '');
 }
 if ($is_advanced && $admin->get_user_id() == '1') {
     $template->parse('show_access', 'show_access_block', true);
 } else {
     $template->set_block('show_access', '');
+}
+
+// Search card (basic and advanced alike): only the visibility setting plus a
+// link to the WBCE Search admin tool, which holds everything else about the
+// search. Shown only to whoever may open that tool — save.php accepts
+// "search" on the same terms. Parsed here, after all {TEXT_…} and the
+// *_SEARCH "selected" vars are set.
+if (is_file(WB_PATH . '/modules/wbce_search/tool.php') && $admin->hasToolPermission('wbce_search')) {
+    $template->set_var([
+        'SEARCH_TOOL_URL'   => ADMIN_URL . '/admintools/tool.php?tool=wbce_search',
+        'SEARCH_TOOL_NAME'  => $admin->get_module_name('wbce_search', false, '', 'tool'),
+        'SEARCH_TAB_HIDDEN' => '',
+    ]);
+    $template->parse('show_search_card', 'show_search_card_block', false);
+} else {
+    $template->set_block('show_search_card', '');
+    // Argos' section tabs link to the card — hide that tab too.
+    $template->set_var('SEARCH_TAB_HIDDEN', ' hidden');
 }
 
 // Parse template objects output
