@@ -17,9 +17,11 @@
 // prevent this file from being accessed directly
 if(!defined('WB_PATH')) die(header('Location: index.php'));  
 
-function _db_add_field($field, $table, $desc) {
-	global $database;
-	$database->addField('{TP}'.$table, $field, $desc);
+if (!function_exists('_db_add_field')) {
+	function _db_add_field($field, $table, $desc) {
+		global $database;
+		$database->addField('{TP}'.$table, $field, $desc);
+	}
 }
 _db_add_field("use_ajax"          ,"mod_miniform", "INT NOT NULL default '1'");
 _db_add_field("use_recaptcha"     ,"mod_miniform", "INT NOT NULL default '0'");

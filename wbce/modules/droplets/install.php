@@ -13,6 +13,16 @@
 // Must include code to stop this file being accessed directly
 defined('WB_PATH') or die('No direct access!');
 
+// guarded and declared before use: install.php can be included twice in one
+// run (update.php), and a conditional function only exists once reached
+if (!function_exists('getDropletCodeFromFile')) {
+    function getDropletCodeFromFile($dropletfile)
+    {
+        $filename = WB_PATH . '/modules/droplets/example/' . $dropletfile;
+        return is_file($filename) ? (string) file_get_contents($filename) : '';
+    }
+}
+
 // DDL lives in install_struct.sql and goes through importSql() 
 $msg = [];
 foreach ($database->importSql(__DIR__ . '/install_struct.sql', null, false) as $r) {
@@ -107,18 +117,4 @@ if(file_exists($sOpfFile = WB_PATH.'/modules/outputfilter_dashboard/functions.ph
         'pages_parent' => 'all, backend, search'
     ))
     && opf_move_up_before('Droplets Injector');  // move up to the top
-}
-
-
-function getDropletCodeFromFile($dropletfile)
-{
-    $data = '';
-    $filename = WB_PATH."/modules/droplets/example/".$dropletfile;
-    if (file_exists($filename)) {
-        $filehandle = fopen($filename, "r");
-        $data = fread($filehandle, filesize($filename));
-        fclose($filehandle);
-        // unlink($filename); doesnt work in unix
-    }
-    return $data;
 }
