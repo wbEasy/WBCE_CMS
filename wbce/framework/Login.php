@@ -252,17 +252,37 @@ class Login extends Admin
     }
 
     /**
-     * Render captcha HTML if needed.
+     * The captcha widget for the form being shown, or '' when the NEXT
+     * attempt needs none.
+     *
+     * Asks the attempt counter afresh rather than $this->nocaptcha: that
+     * one is fixed at the start of the request (it decides whether THIS
+     * attempt had to carry a captcha), so the failed attempt that crosses
+     * the threshold showed a form without the widget, and the next try
+     * ended in "security offense" instead of a captcha to solve.
+     *
+     * Public for the frontend form (account/login.php → form_login.php),
+     * which is rendered outside display_login().
      */
-    private function getCaptchaHtml(): string
+    public function getCaptchaHtml(): string
     {
-        if ($this->nocaptcha) {
+        if ($this->shouldSkipCaptcha()) {
             return '';
         }
- 
+
         ob_start();
         call_captcha('all', '', 'login');
         return ob_get_clean();
+    }
+
+    /**
+     * The messages of this login attempt (wrong password, captcha missing …)
+     * as HTML — for the frontend form, which is rendered outside
+     * display_login(). Also shows flash messages carried over a redirect.
+     */
+    public function renderMessages(): string
+    {
+        return $this->alerts->render();
     }
 
 
@@ -481,27 +501,33 @@ class Login extends Admin
     }
 
     /**
-     * Get the client IP address.
+     * Get the client IP address for the login lockout.
+     *
+     * Forwarding headers are set by the client. X-Forwarded-For is only read
+     * when the request comes from a proxy listed in TRUSTED_PROXIES
+     * (var/config_constants.ini.php, comma-separated); otherwise REMOTE_ADDR
+     * counts. Before, a proxy on the same host (REMOTE_ADDR == SERVER_ADDR)
+     * let any client choose its own IP: dodge the lockout, or lock out others.
      */
     private function getClientIp(): string
     {
-        $headers = [
-            'REMOTE_ADDR',
-            'HTTP_CLIENT_IP',
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_FORWARDED',
-            'HTTP_FORWARDED_FOR',
-            'HTTP_FORWARDED',
-        ];
+        $remote  = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        $trusted = defined('TRUSTED_PROXIES')
+            ? array_filter(array_map('trim', explode(',', (string) TRUSTED_PROXIES)))
+            : [];
 
-        foreach ($headers as $key) {
-            $val = $_SERVER[$key] ?? getenv($key) ?: null;
-            if ($val && $val !== ($_SERVER['SERVER_ADDR'] ?? '')) {
-                return $val;
+        if ($remote !== '' && in_array($remote, $trusted, true)) {
+            // the right-most address that is not itself a trusted proxy is the
+            // client; anything left of it the client may have written itself
+            $chain = array_map('trim', explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')));
+            for ($i = count($chain) - 1; $i >= 0; $i--) {
+                if (filter_var($chain[$i], FILTER_VALIDATE_IP) && !in_array($chain[$i], $trusted, true)) {
+                    return $chain[$i];
+                }
             }
         }
 
-        return 'UNKNOWN';
+        return $remote !== '' ? $remote : 'UNKNOWN';
     }
 
 

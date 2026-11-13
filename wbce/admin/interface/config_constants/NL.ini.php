@@ -69,6 +69,18 @@
 ; NO_SESSION_COOKIE = true
 ;
 ; ─────────────────────────────────────────────────────────────────────────────
+;
+; TRUSTED_PROXIES
+; Sinds WBCE 1.7.0: IP-adressen van reverse proxy's (load balancer, CDN,
+; proxy op dezelfde host) waarvan de X-Forwarded-For-header voor de
+; login-blokkering vertrouwd mag worden. Meerdere gescheiden door komma's.
+; Zonder vermelding telt alleen REMOTE_ADDR, want doorstuur-headers zet de
+; client zelf.
+; Standaardwaarde: geen
+;
+; TRUSTED_PROXIES = 127.0.0.1, ::1
+;
+; ─────────────────────────────────────────────────────────────────────────────
 ; EIGEN CONSTANTEN — voer hier uw eigen vermeldingen in
 ; ─────────────────────────────────────────────────────────────────────────────
 

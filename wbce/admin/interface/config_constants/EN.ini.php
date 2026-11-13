@@ -68,6 +68,17 @@
 ; NO_SESSION_COOKIE = true
 ;
 ; ─────────────────────────────────────────────────────────────────────────────
+;
+; TRUSTED_PROXIES
+; Since WBCE 1.7.0: IP addresses of reverse proxies (load balancer, CDN,
+; proxy on the same host) whose X-Forwarded-For header may be trusted for
+; the login lockout. Comma-separated. Without an entry only REMOTE_ADDR
+; counts, because forwarding headers are set by the client.
+; Default: none
+;
+; TRUSTED_PROXIES = 127.0.0.1, ::1
+;
+; ─────────────────────────────────────────────────────────────────────────────
 ; CUSTOM CONSTANTS — add your own entries below
 ; ─────────────────────────────────────────────────────────────────────────────
 

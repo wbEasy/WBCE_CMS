@@ -68,6 +68,17 @@
 ; NO_SESSION_COOKIE = true
 ;
 ; ─────────────────────────────────────────────────────────────────────────────
+;
+; TRUSTED_PROXIES
+; Seit WBCE 1.7.0: IP-Adressen von Reverse Proxys (Load Balancer, CDN, Proxy
+; auf demselben Host), deren X-Forwarded-For-Header für die Login-Sperre
+; vertraut werden darf. Mehrere durch Komma getrennt. Ohne Eintrag zählt nur
+; REMOTE_ADDR, denn Weiterleitungs-Header setzt der Client selbst.
+; Standardwert: keiner
+;
+; TRUSTED_PROXIES = 127.0.0.1, ::1
+;
+; ─────────────────────────────────────────────────────────────────────────────
 ; EIGENE KONSTANTEN — hier eintragen
 ; ─────────────────────────────────────────────────────────────────────────────
 
