@@ -1,0 +1,168 @@
+{#
+    preferences.twig — "My data" (admin/preferences/index.php)
+
+    Two columns like Access → Users (access_users_form.twig):
+      main  — who you are and how you sign in: username (read only),
+              display name, email, new password, current password
+      aside — how the backend shows things: language, time zone, formats
+
+    Behaviour in admin/preferences/preferences.js: fetch save without
+    reload (reload only after a language change), errors at the fields,
+    "new password?" box shows the password fields, the current password
+    confirms every save and is emptied afterwards.
+
+    The backend's Twig runs WITHOUT autoescape: every value gets |e.
+#}
+
+{% macro select(name, current, choices, widget) %}
+    <select name="{{ name }}" id="pref_{{ name }}" class="ws-select" data-ws="{{ widget|json_encode|e }}"
+            data-search-label="{{ L_('TEXT:SEARCH')|e }} &hellip;">
+        {% for c in choices %}
+            <option value="{{ c.value|e }}"
+                {%- if c.right is defined %} data-right="{{ c.right|e }}"{% endif %}
+                {%- if c.left is defined %} data-left="{{ c.left|e }}"{% endif %}
+                {%- if c.value == current %} selected{% endif %}>{{ c.label|e }}</option>
+        {% endfor %}
+    </select>
+{% endmacro %}
+{% import _self as pref %}
+
+<section class="cp-main" id="wbce-preferences">
+    <div class="cp-pageinfo"></div>
+    <nav class="cp-tabs tabs-right">
+        <ul>
+            <li class="area-title">{{ L_('MENU:PREFERENCES') }}</li>
+        </ul>
+    </nav>
+    <div class="cp-pane-inlay">
+        <noscript><div class="alert alert-danger">JavaScript is required to save your data.</div></noscript>
+
+        <form id="preferences-form" method="post" action="{{ SAVE_URL|e }}" novalidate autocomplete="off"
+              data-msg-error="{{ L_('TEXT:ERROR')|e }}">
+            <input type="hidden" name="preferences_token" value="{{ TOKEN|e }}">
+
+            <div class="cp-settings">
+                <div class="cp-toggle-section">
+                    <div class="cp-card-head">
+                        <label><i class="fa fa-user"></i> {{ L_('MENU:PREFERENCES') }}: <span>{{ VALUES.display_name|e }}</span></label>
+                    </div>
+
+                    <section class="has-aside">
+
+                        {# ═══════ MAIN — account ═════════════════════════════════════ #}
+                        <div class="cp-card-main">
+
+                            <div class="cp-setting-row" data-field="username">
+                                <label class="cp-setting-name" for="pref_username">{{ L_('TEXT:USERNAME') }}</label>
+                                <div class="cp-setting-value">
+                                    <input type="text" id="pref_username" value="{{ VALUES.username|e }}" readonly class="cp-readonly">
+                                    <div class="cp-setting-hint">{{ L_('HINT:PREFERENCES_USERNAME')|e }}</div>
+                                </div>
+                            </div>
+
+                            <div class="cp-setting-row" data-field="display_name">
+                                <label class="cp-setting-name cp-required" for="pref_display_name">{{ L_('TEXT:DISPLAY_NAME') }}</label>
+                                <div class="cp-setting-value">
+                                    <input type="text" name="display_name" id="pref_display_name" maxlength="255" required
+                                           value="{{ VALUES.display_name|e }}">
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                            <div class="cp-setting-row" data-field="email">
+                                <label class="cp-setting-name cp-required" for="pref_email">{{ L_('TEXT:EMAIL') }}</label>
+                                <div class="cp-setting-value">
+                                    <input type="email" name="email" id="pref_email" maxlength="255" required
+                                           value="{{ VALUES.email|e }}" autocomplete="email">
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                            {# a new password only with the box ticked — as in Access → Users #}
+                            <div class="cp-setting-row">
+                                <div class="cp-setting-name"></div>
+                                <div class="cp-setting-value">
+                                    <label class="cb" for="pref_change_pswd">
+                                        <input type="checkbox" id="pref_change_pswd" name="change_pswd" value="1">
+                                        {{ L_('TEXT:NEW_PASSWORD') }}?
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="pref_renew_password" hidden>
+                                <div class="cp-setting-row" data-field="new_password_1">
+                                    <label class="cp-setting-name cp-required" for="new_password_1">{{ L_('TEXT:PASSWORD') }}</label>
+                                    <div class="cp-setting-value">
+                                        {{ PASSWORD_FIELD|raw }}
+                                        <div class="cp-setting-error" hidden></div>
+                                    </div>
+                                </div>
+
+                                <div class="cp-setting-row" data-field="new_password_2">
+                                    <label class="cp-setting-name cp-required" for="new_password_2">{{ L_('TEXT:RETYPE_NEW_PASSWORD') }}</label>
+                                    <div class="cp-setting-value">
+                                        <input type="password" name="new_password_2" id="new_password_2" autocomplete="new-password">
+                                        <div class="cp-setting-error" hidden></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# every save is confirmed with it; emptied after each save #}
+                            <div class="cp-setting-row" data-field="current_password">
+                                <label class="cp-setting-name cp-required" for="pref_current_password">{{ L_('TEXT:CURRENT_PASSWORD') }}</label>
+                                <div class="cp-setting-value">
+                                    <input type="password" name="current_password" id="pref_current_password" autocomplete="current-password">
+                                    <div class="cp-setting-hint">{{ L_('TEXT:NEED_CURRENT_PASSWORD')|e }}</div>
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                        </div>{# /cp-card-main #}
+
+                        {# ═══════ ASIDE — display ════════════════════════════════════ #}
+                        <div class="cp-card-aside">
+
+                            <div class="cp-setting-row" data-field="language">
+                                <label class="cp-setting-name" for="pref_language">{{ L_('TEXT:LANGUAGE') }}</label>
+                                <div class="cp-setting-value">
+                                    {{ pref.select('language', VALUES.language, CHOICES.language, {customSelector: 'cfg-lang'}) }}
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                            <div class="cp-setting-row" data-field="timezone">
+                                <label class="cp-setting-name" for="pref_timezone">{{ L_('TEXT:TIMEZONE') }}</label>
+                                <div class="cp-setting-value">
+                                    {{ pref.select('timezone', VALUES.timezone, CHOICES.timezone, {customSelector: 'title_only'}) }}
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                            <div class="cp-setting-row" data-field="date_format">
+                                <label class="cp-setting-name" for="pref_date_format">{{ L_('TEXT:DATE_FORMAT') }}</label>
+                                <div class="cp-setting-value">
+                                    {{ pref.select('date_format', VALUES.date_format, CHOICES.date_format, {customSelector: 'title_only'}) }}
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                            <div class="cp-setting-row" data-field="time_format">
+                                <label class="cp-setting-name" for="pref_time_format">{{ L_('TEXT:TIME_FORMAT') }}</label>
+                                <div class="cp-setting-value">
+                                    {{ pref.select('time_format', VALUES.time_format, CHOICES.time_format, {customSelector: 'title_only'}) }}
+                                    <div class="cp-setting-error" hidden></div>
+                                </div>
+                            </div>
+
+                        </div>{# /cp-card-aside #}
+
+                    </section>
+
+                    <div class="cp-buttons-row">
+                        <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
