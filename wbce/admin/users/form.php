@@ -46,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$isAdd) {
         $userId = intval($admin->checkIDKEY('user_key', 0, 'POST', true, 'user'));
+        // no value behind the key: the form outlived its token
+        if ($userId === 0) BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
     }
 
     if (!$isAdd && !$users->mayManageUser($admin, $userId)) {
@@ -56,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$admin->checkFTAN()) {
+        BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
         $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
         echo $alerts->renderFragment();
         exit;

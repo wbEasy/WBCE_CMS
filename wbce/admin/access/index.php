@@ -20,6 +20,7 @@ if (isset($_POST['save_settings'])) {
     $sRedirect = ADMIN_URL . '/access';
 
     if (!$admin->checkFTAN()) {
+        BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
         if (Alerts::isHtmx()) {
             $alerts->error(L_('MESSAGE:GENERIC_SECURITY_ACCESS'));
             echo $alerts->renderFragment();

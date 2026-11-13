@@ -34,6 +34,7 @@ $cfg = array_merge($defaults, $cfg);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_admintools_settings'])) {
 
     if (!$admin->checkFTAN()) {
+        BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
         if (Alerts::isHtmx()) {
             $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
             echo $alerts->renderFragment();

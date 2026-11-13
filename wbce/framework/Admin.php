@@ -66,7 +66,9 @@ class Admin extends Wbce
 
     /**
      * Verify the user is logged in and has the required section permission.
-     * Redirects to login or terminates with an error message on failure.
+     * Redirects to login or terminates with an error message on failure;
+     * script requests (fetch, XHR, htmx) get 401/403 JSON instead, see
+     * BackendAjax.
      *
      * @param string $section_permission  Permission key to check
      */
@@ -75,11 +77,13 @@ class Admin extends Wbce
         global $MESSAGE;
 
         if (!$this->is_authenticated()) {
+            BackendAjax::denyIfAjax(BackendAjax::SESSION_EXPIRED);
             header('Location: ' . ADMIN_URL . '/login/');
             exit;
         }
 
         if (!$this->get_permission($section_permission)) {
+            BackendAjax::denyIfAjax(BackendAjax::FORBIDDEN);
             // the message is UTF-8; without the header browsers may show "UngenÃ¼gende"
             if (!headers_sent()) {
                 header('Content-Type: text/html; charset=utf-8');
@@ -96,6 +100,10 @@ class Admin extends Wbce
      */
     private function redirectIfLanguageMismatch(): void
     {
+        // a redirected POST arrives as GET without its body — the script's
+        // save would be lost without a word; its response language can wait
+        if (BackendAjax::isAjax()) return;
+
         $user_language = $this->db->fetchValue(
             'SELECT `language` FROM `{TP}users` WHERE `user_id` = ?',
             [$this->get_user_id()]
@@ -241,6 +249,24 @@ class Admin extends Wbce
             WB_URL . '/include/SessionTimeout/SessionTimeout.js',
             'HEAD BTM+',
             'SessionTimeout'
+        );
+        // texts for the session-expired notice SessionTimeout.js shows;
+        // the countdown case has no server response to take them from
+        I::insertJsCode(
+            'window.WBCE_SESSION_TEXT = ' . json_encode([
+                'warn'      => L_('MESSAGE:SESSION_EXPIRES_SOON'),
+                'extend'    => L_('TEXT:EXTEND_SESSION'),
+                'keepalive' => ADMIN_URL . '/start/keepalive.php',
+                'expired'   => L_('MESSAGE:SESSION_EXPIRED'),
+                'request'   => L_('MESSAGE:SESSION_EXPIRED_REQUEST'),
+                'token'     => L_('MESSAGE:SESSION_TOKEN_EXPIRED'),
+                'forbidden' => L_('MESSAGE:ADMIN_INSUFFICIENT_PRIVELLIGES'),
+                'reload'    => L_('TEXT:RELOAD_PAGE'),
+                'close'     => L_('TEXT:CLOSE'),
+                'loginUrl'  => ADMIN_URL . '/login/',
+            ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) . ';',
+            'HEAD BTM+',
+            'SessionTimeoutText'
         );
 
         $wbceTag = in_array(WBCE_TAG, ['', '-'])

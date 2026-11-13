@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $admin = new Admin('Access', $isNew ? 'groups_add' : 'groups_modify', false);
 
     if (!$admin->checkFTAN()) {
+        BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
         $alerts->error($MESSAGE['GENERIC_SECURITY_ACCESS']);
         echo $alerts->renderFragment();
         exit;
