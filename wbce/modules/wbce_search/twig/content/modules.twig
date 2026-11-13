@@ -1,0 +1,117 @@
+{#
+    wbce_search/twig/content/modules.twig
+    Variables: rows (WbceSearchModules::listModules()), type_counts, open
+               (module whose editor is shown pre-opened, e.g. after a save),
+               semi (editor vars for `open`), admin_url, sec_anchor, icons_url
+
+    One <tr> per module. "Configure" hx-gets partials/semi_row.twig and
+    inserts it right below its row (hx-swap="afterend"); the editor is not
+    pre-rendered (that made the pre-0.4 page 6 MB). Filtering and sorting
+    are client-side (assets/backend.js: data-wss-kind / data-wss-group /
+    data-wss-name, th[data-wss-sort], td[data-sort]); an open editor row
+    travels with its module.
+#}
+{% include nav_partial|default('_nav.twig') %}
+
+<div class="wss-content">
+    <div class="wss-lede">{{ L_('SEARCH:LEDE_MODULES') }}
+        {% if help_url %}<a href="{{ help_url|e }}" class="wss-help-link" data-wss="md-popup" target="_blank" rel="noopener">{{ L_('SEARCH:LABEL_HELP') }}</a>{% endif %}
+    </div>
+
+    <div class="wss-mod-bar">
+        {% if show_kinds %}{# WbceSearchBackend::SHOW_ALL_KINDS #}
+        <div class="wss-mod-grp">
+            <span>{{ L_('SEARCH:LABEL_KIND') }}</span>
+            <div>
+                {% for k in ['page', 'snippet', 'output_filter', 'tool'] %}
+                <label><input type="checkbox" data-wss-kind="{{ k }}"{% if k == 'page' %} checked{% endif %}>
+                    {{ L_('SEARCH:KIND_' ~ k|upper) }} <sup>({{ type_counts[k]|default(0) }})</sup></label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="wss-mod-grp">
+            <span>{{ L_('SEARCH:LABEL_INDEXING') }}</span>
+            <div>
+                {% for g in ['def', 'open', 'title'] %}
+                <label><input type="checkbox" data-wss-group="{{ g }}" checked> {{ L_('SEARCH:GROUP_' ~ g|upper) }}</label>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="wss-mod-grp wss-mod-grp-end">
+            <span>{{ L_('SEARCH:LABEL_MODULE') }}</span>
+            <input type="search" data-wss-name placeholder="{{ L_('SEARCH:PLACEHOLDER_FILTER')|e('html_attr') }}">
+        </div>
+    </div>
+
+    <table class="wss-table wss-mod-table" id="wss-mod-table">
+        <thead>
+            <tr>
+                {% if show_kinds %}<th data-wss-sort>{{ L_('SEARCH:LABEL_KIND') }}</th>{% endif %}
+                <th data-wss-sort aria-sort="ascending">{{ L_('SEARCH:LABEL_MODULE') }}</th>
+                <th data-wss-sort>{{ L_('SEARCH:LABEL_INDEXING') }}</th>
+                <th data-wss-sort>{{ L_('SEARCH:PAGES') }}</th>
+                <th data-wss-sort class="num">{{ L_('SEARCH:ENTRIES') }}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% set kind_rank = {page: 1, snippet: 2, output_filter: 3, tool: 4} %}
+        {% for r in rows %}
+            <tr class="wss-mod-row{% if open == r.module and semi is defined %} is-open{% endif %}"
+                data-mod="{{ r.module|e('html_attr') }}" data-name="{{ r.name|e('html_attr') }}"
+                data-kind="{{ r.type|e('html_attr') }}" data-group="{{ r.source_group|e('html_attr') }}">
+                {% if show_kinds %}
+                <td data-sort="{{ kind_rank[r.type] }}">
+                    <span class="wss-kind wss-kind-{{ r.type|e('html_attr') }}">{{ L_('SEARCH:BADGE_' ~ r.type|upper) }}</span>
+                </td>
+                {% endif %}
+                <td data-sort="{{ r.name|lower|e('html_attr') }}">
+                    <span class="wss-mod-name">{{ r.name|e }}</span>
+                    <small class="wss-mod-dir">{{ r.module|e }}</small>
+                </td>
+                <td data-sort="{{ r.source_rank }}">
+                    <span class="wss-src wss-src-{{ r.source|e('html_attr') }}"
+                          title="{{ L_('SEARCH:HINT_SOURCE_' ~ r.source|upper)|e('html_attr') }}">{{ L_('SEARCH:SOURCE_' ~ r.source|upper) }}</span>
+                </td>
+                <td data-sort="{{ r.page_count }}">
+                    {% if r.page_count %}
+                    <details class="wss-pages">
+                        <summary>{{ Ln_('SEARCH:PAGE_COUNT', r.page_count)|e }}</summary>
+                        <ul>
+                            {% for p in r.pages %}
+                            {% set vis_tip = L_('SEARCH:VIS_' ~ p.visibility|upper) %}
+                            <li>
+                                <img class="wss-vis" src="{{ icons_url }}{{ p.visibility|e('url') }}.svg" alt="{{ vis_tip|e('html_attr') }}" title="{{ vis_tip|e('html_attr') }}" width="14" height="14">
+                                <span class="wss-pg-id">({{ p.page_id }})</span>
+                                <a href="{{ admin_url }}/pages/modify.php?page_id={{ p.page_id }}" target="_blank" rel="noopener">{{ p.title|e }}</a>
+                                {% if not p.searching %}<span class="wss-search-off" title="{{ L_('SEARCH:HINT_PAGE_SEARCH_OFF')|e('html_attr') }}"><i class="fa fa-search" aria-hidden="true"></i><span class="sr-only">{{ L_('SEARCH:HINT_PAGE_SEARCH_OFF') }}</span></span>{% endif %}
+                                <span class="wss-pg-secs">({{ L_('SEARCH:LABEL_SECTIONS') }}:
+                                    {%- for sid in p.sections %} <a href="{{ admin_url }}/pages/modify.php?page_id={{ p.page_id }}#{{ sec_anchor|e('url') }}{{ sid }}" target="_blank" rel="noopener">{{ sid }}</a>{{ loop.last ? '' : ',' }}{% endfor %})</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                    {% else %}<span class="wss-muted">—</span>{% endif %}
+                </td>
+                <td class="num" data-sort="{{ r.indexed }}">{{ r.indexed|e }}</td>
+                <td class="wss-row-actions">
+                    {% if r.editable %}
+                    <button type="button" class="button button-sm" data-wss-configure
+                            aria-expanded="{{ open == r.module and semi is defined ? 'true' : 'false' }}"
+                            hx-get="{{ TOOL_URI }}&amp;action=modules&amp;partial=semi&amp;mod={{ r.module|url_encode }}"
+                            hx-target="closest tr" hx-swap="afterend"><i class="fa fa-sliders" aria-hidden="true"></i>{{ L_('SEARCH:BTN_CONFIGURE') }}</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if open == r.module and semi is defined %}{% include 'partials/semi_row.twig' with {mod: r.module} %}{% endif %}
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr><td colspan="{{ cols }}" data-wss-count="{{ L_('SEARCH:MODULES_SHOWN')|e('html_attr') }}" data-total="{{ rows|length }}"></td></tr>
+        </tfoot>
+    </table>
+</div>
+
+    </div>
+</section>

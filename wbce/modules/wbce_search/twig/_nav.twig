@@ -1,0 +1,28 @@
+{#
+    wbce_search/twig/_nav.twig — horizontal tabs (native WBCE cp-tabs).
+
+    Asymmetric open/close contract (same as WbceAnalytics): opens
+    <section class="cp-main"> and <div class="cp-pane-inlay">; every
+    content/*.twig that includes this MUST end with </div></section>.
+    _nav_vertical.twig keeps the identical contract, so content templates
+    don't care which nav style is active.
+
+    Variables: active, views, crumb (optional).
+#}
+<section class="cp-main">
+    <div class="cp-pageinfo"></div>
+    <nav class="cp-tabs tabs-right">
+        <ul>
+            {% for v in views %}
+            <li{% if active == v %} class="actionSel"{% endif %}>
+                <a class="tab{% if active == v %} sel{% endif %}"
+                   href="{{ TOOL_URI }}&amp;action={{ v }}"
+                   {% if v not in full_load_views %}hx-get="{{ TOOL_URI }}&amp;action={{ v }}" hx-target="#wss-view" hx-push-url="true"{% endif %}>
+                    {{ icon(v) }} {{ L_('SEARCH:MENU_' ~ v|upper) }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+    {% include 'partials/page_header.twig' %}
+    <div class="cp-pane-inlay">

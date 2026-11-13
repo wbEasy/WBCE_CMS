@@ -1,0 +1,91 @@
+{#
+    wbce_search/twig/content/settings.twig
+    Variables: values (WbceSearchSettings::all()), groups (schema by group),
+               site_language, ajax_endpoint
+
+    Generated from WbceSearchSettings::SCHEMA — label key SET_<NAME>, hint
+    key SET_<NAME>_HINT. The server clamps every value (WbceSearchSettings::
+    save()), the min/max attributes here are only a convenience.
+#}
+{% include nav_partial|default('_nav.twig') %}
+
+<div class="wss-content">
+    <div class="wss-lede">{{ L_('SEARCH:LEDE_SETTINGS') }}</div>
+
+    <form hx-post="{{ TOOL_URI }}&amp;action=settings" hx-target="#wss-view" hx-disabled-elt="find button[type=submit]">
+        {{ FTAN }}
+        <input type="hidden" name="op" value="save_settings">
+
+        {% for group, defs in groups %}
+        <section class="cp-toggle-section wss-settings-group">
+            <div class="cp-card-head"><label>{{ L_('SEARCH:GROUP_' ~ group|upper) }}</label></div>
+            {% for name, def in defs %}
+            {% set key = name|upper %}
+            <div class="cp-setting-row">
+                <label class="cp-setting-name" for="wss-set-{{ name }}">{{ L_('SEARCH:SET_' ~ key) }}</label>
+                <div class="cp-setting-value">
+                    {% if def.type == 'bool' %}
+                        <input type="checkbox" switch="bool" name="{{ name }}" id="wss-set-{{ name }}" value="1"{% if values[name] %} checked{% endif %}>
+                        <label for="wss-set-{{ name }}" class="labeled"
+                               data-on-label="{{ L_('SEARCH:STATUS_ACTIVE')|e('html_attr') }}"
+                               data-off-label="{{ L_('SEARCH:STATUS_INACTIVE')|e('html_attr') }}"></label>
+                    {% elseif def.type == 'template' %}
+                        <select name="{{ name }}" id="wss-set-{{ name }}">
+                            <option value="">{{ L_('SEARCH:OPT_TEMPLATE_DEFAULT')|format(default_template|e) }}</option>
+                            {% for dir, tpl_name in frontend_templates %}
+                            <option value="{{ dir|e('html_attr') }}"{% if values[name] == dir %} selected{% endif %}>{{ tpl_name|e }}</option>
+                            {% endfor %}
+                        </select>
+                    {% elseif def.type == 'int' %}
+                        <input type="number" name="{{ name }}" id="wss-set-{{ name }}" value="{{ values[name]|e('html_attr') }}"
+                               min="{{ def.min }}" max="{{ def.max }}" class="wss-num">
+                    {% else %}
+                        <select name="{{ name }}" id="wss-set-{{ name }}">
+                            {% for o in def.options %}
+                            <option value="{{ o|e('html_attr') }}"{% if values[name] == o %} selected{% endif %}>{{ L_('SEARCH:OPT_' ~ key ~ '_' ~ o|upper) }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                    <div class="cp-setting-hint">
+                        {% if name == 'language_filter' %}{{ L_('SEARCH:SET_LANGUAGE_FILTER_HINT')|format(site_language|e) }}{% else %}{{ L_('SEARCH:SET_' ~ key ~ '_HINT') }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if group == 'index' %}
+            {# Word index state (moved here from the overview: nothing to do
+               there unless its build has a backlog). #}
+            <div class="cp-setting-row">
+                <label class="cp-setting-name">{{ L_('SEARCH:CARD_WORDS') }}</label>
+                <div class="cp-setting-value">
+                    <div class="wss-words-state">
+                    {% if not words_active %}
+                        <i class="fa fa-circle-o" aria-hidden="true"></i> {{ (words_mode == 'off' ? L_('SEARCH:WORDS_OFF') : L_('SEARCH:WORDS_INACTIVE'))|format(index_count, words_threshold) }}
+                    {% elseif words_backlog > 0 %}
+                        <i class="fa fa-hourglass-half wss-act-warn" aria-hidden="true"></i> {{ L_('SEARCH:WORDS_BUILDING') }} — {{ Ln_('SEARCH:MSG_WORDS_PENDING', words_backlog)|e }}
+                    {% else %}
+                        <i class="fa fa-check-circle wss-ok" aria-hidden="true"></i> {{ Ln_('SEARCH:WORDS_READY_ROWS', words_rows)|e }}
+                    {% endif %}
+                    </div>
+                    <div class="cp-setting-hint">{{ L_('SEARCH:HINT_WORDS')|format(words_threshold|e) }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if group == 'live' %}
+            <div class="cp-setting-row">
+                <label class="cp-setting-name">{{ L_('SEARCH:LABEL_AJAX_ENDPOINT') }}</label>
+                <div class="cp-setting-value"><code>{{ ajax_endpoint|e }}</code>
+                    <div class="cp-setting-hint">{{ L_('SEARCH:HINT_LIVE_SEARCH_FIELDS') }}</div></div>
+            </div>
+            {% endif %}
+        </section>
+        {% endfor %}
+
+        <div class="wss-form-foot">
+            <button type="submit" class="button ico-save pos-right">{{ L_('SEARCH:SAVE') }}</button>
+        </div>
+    </form>
+</div>
+
+    </div>
+</section>

@@ -1,0 +1,375 @@
+/**
+ * wbce_search — assets/backend.css (auto-loaded for ?tool=wbce_search)
+ *
+ * Admin shell for the AdminTool: page header band, vertical icon nav,
+ * content spacing, KPI cards. Taken from modules/WbceAnalytics/assets/
+ * theme.css (same look, own .wss- prefix so the two tools never fight over
+ * class names). Like the original it deliberately does NOT restyle
+ * section.cp-main / nav.cp-tabs / .cp-pane-inlay — the horizontal nav uses
+ * WBCE's native chrome from cp_chrome.css/cp_theme.css unchanged, and all
+ * colours come from cp_theme.css's global tokens (--surface, --text, …).
+ */
+#contentarea { max-width: 1400px; }
+
+.wss-theme {
+    --text-faint:   #677d96;
+    --radius:       10px;
+    --font-ui:      'IBM Plex Sans', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Space Grotesk', var(--font-ui);
+    --font-mono:    'IBM Plex Mono', 'JetBrains', 'Proggy', monospace;
+
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    display: block;
+}
+/* The frontend template's theme.css leaks a bare `button { margin-top }`
+   into backend pages — reset once (same fix as WbceAnalytics). */
+.wss-theme button { margin: 0; }
+button.button-sm {
+    font-size: 90%;
+    padding: .2rem .3rem;
+}
+
+.wss-theme h1, .wss-theme h2, .wss-theme h3 { font-family: var(--font-display); }
+.wss-theme .mono { font-family: var(--font-mono); }
+
+.wss-theme nav.cp-tabs a.tab svg.nav-icon { width: 16px; height: 16px; vertical-align: -3px; }
+
+/* ---------- Vertical nav (_nav_vertical.twig) ----------
+   Grid, not flex: the page header needs its own row above .cp-pane-inlay
+   while the nav spans both rows — without an extra wrapper div, which would
+   break the "content/*.twig closes exactly two elements" contract. */
+.wss-theme .wss-vnav-shell {
+    display: grid; grid-template-columns: 120px 1fr; grid-template-rows: auto 1fr;
+}
+.wss-theme .wss-vnav {
+    grid-column: 1; grid-row: 1 / span 2;
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+    padding: 16px 8px; background: #eceff4; border-right: 1px solid rgba(255, 255, 255, .08);
+}
+.wss-theme .wss-vnav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 10px 4px; border-radius: 10px; text-decoration: none;
+    color: rgb(107, 117, 133); font-family: var(--font-ui);
+    font-size: 14px; line-height: 1.2; text-align: center;
+}
+.wss-theme .wss-vnav-item svg { width: 32px; height: 32px; flex-shrink: 0; }
+.wss-theme .wss-vnav-item:hover { background: rgb(220, 224, 231); color: #5b759e; }
+.wss-theme .wss-vnav-item.sel { background: #fcfdfe; color: #6c798d; font-weight: 500; }
+.wss-theme .wss-vnav-shell .cp-pane-inlay { grid-column: 2; grid-row: 2; min-width: 0; }
+
+/* ---------- Page header (both nav styles) ----------
+   grid-column/row only take effect inside .wss-vnav-shell; under the
+   horizontal nav's block layout they are ignored. */
+.wss-theme .wss-page-header {
+    grid-column: 2; grid-row: 1;
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 20px;
+    background: #f3f8fe;
+    background: linear-gradient(to bottom, #ffffff 0, #ffffff 5px, #f3f8fe 70px, #f3f8fe 100%);
+    border-bottom: 1px solid var(--border);
+}
+.wss-theme .wss-page-header-icon { width: 64px; height: 64px; flex-shrink: 0; color: #677894; }
+.wss-theme .wss-page-header h1 { font-size: 19px; font-weight: 600; margin: 0; }
+.wss-theme .wss-crumb { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); margin-top: 2px; }
+
+.wss-theme .wss-icon-sm { width: 14px; height: 14px; }
+
+/* ---------- Content ---------- */
+.wss-theme .wss-content { padding: 20px; }
+.wss-theme .wss-lede { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; max-width: 640px; line-height: 1.5; }
+
+.wss-theme .wss-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.wss-theme .wss-kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.wss-theme .wss-kpi-card .label { font-size: 12px; color: var(--accent-h); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.wss-theme .wss-kpi-card .value { font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1; }
+.wss-theme .wss-kpi-card .value.wss-value-sm { font-size: 17px; }
+.wss-theme .wss-kpi-card.wss-kpi-warn .value { color: var(--warning); }
+.wss-theme .wss-kpi-card .value small { font-size: 14px; color: var(--text-faint); font-weight: 400; }
+
+/* ---------- Panels, tables, small parts ---------- */
+.wss-theme .wss-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 16px;
+}
+.wss-theme .wss-panel h3 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+.wss-theme .wss-panel h3 small { font-weight: 400; color: var(--text-faint); }
+.wss-theme .wss-panel-sub { font-size: 12px; color: var(--text-faint); margin-bottom: 14px; }
+.wss-theme .wss-panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.wss-theme .wss-muted { color: var(--text-faint); }
+.wss-theme .wss-pad { padding: 8px 0; }
+.wss-theme .wss-warn { color: var(--danger); margin: 10px 0 0; }
+
+.wss-theme .wss-badge {
+    display: inline-block; min-width: 18px; padding: 0 5px; margin-left: auto; border-radius: 9px;
+    background: var(--warning); color: #fff; font-size: 11px; line-height: 18px; text-align: center;
+}
+.wss-theme .wss-bar { height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+.wss-theme .wss-bar-fill { height: 100%; background: var(--success); }
+.wss-theme .wss-bar-fill.warn { background: var(--warning); }
+
+/* ---------- Overview: search index panel ---------- */
+/* Overview cards: cp_chrome settings card (.cp-toggle-section + .cp-card-head) */
+.wss-theme .wss-card { margin-bottom: 16px; }
+.wss-theme .wss-card .cp-toggle-section { margin: 0; background: var(--surface); }
+.wss-theme .wss-card form.cp-setting-row { margin: 0; }
+.wss-theme .wss-card-body { padding: 4px 20px 16px; }
+/* Right side of the card head: plain text, not the uppercase heading style */
+.wss-theme .cp-card-head .wss-index-last {
+    font-size: 12.5px; font-weight: 400; text-transform: none; letter-spacing: 0;
+    color: var(--text-dim); white-space: nowrap;
+}
+.wss-theme .wss-index-last b { color: var(--text); font-variant-numeric: tabular-nums; }
+.wss-theme .wss-index-last .fa { color: var(--text-faint); margin-right: 2px; }
+
+/* Buttons in one column, same width; description beside each. */
+.wss-theme .wss-index-actions {
+    display: grid; grid-template-columns: max-content 1fr; gap: 10px 18px; align-items: center; margin: 16px 0 18px;
+}
+.wss-theme .wss-index-actions form { display: contents; }
+.wss-theme .wss-act {
+    display: inline-flex; align-items: center; gap: 8px; width: 100%; min-width: 230px; margin: 0; text-align: left;
+}
+.wss-theme .wss-act .fa { width: 16px; text-align: center; }
+/* Spinner while the request runs (htmx sets .htmx-request on the form). */
+.wss-theme .wss-act-spin, .wss-theme .htmx-request .wss-act-ico { display: none; }
+.wss-theme .htmx-request .wss-act-spin { display: inline-block; }
+.wss-theme .wss-act-danger, .wss-theme .wss-act-danger:hover {
+    background: var(--surface); color: var(--danger); border: 1px solid var(--danger);
+}
+.wss-theme .wss-act-danger:hover { background: var(--danger-bg, var(--surface2)); }
+.wss-theme .wss-act-desc { font-size: 13px; color: var(--text-dim); }
+.wss-theme .wss-act-desc b { color: var(--text); }
+.wss-theme .wss-act-warn { color: var(--warning); }
+.wss-theme .wss-ok { color: var(--success); }
+.wss-theme .wss-words-state > .fa { margin-right: 4px; color: var(--text-faint); }
+.wss-theme .wss-words-state > .fa.wss-ok { color: var(--success); }
+.wss-theme .wss-words-state > .fa.wss-act-warn { color: var(--warning); }
+
+.wss-theme .wss-fresh {
+    display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; align-items: center;
+    padding-top: 12px; border-top: 1px solid var(--border);
+}
+.wss-theme .wss-fresh-label {
+    min-width: 230px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint);
+}
+.wss-theme .wss-fresh .wss-act-desc { grid-column: 2; }
+
+.wss-theme .wss-setting-src { display: block; font-weight: 400; font-size: 11px; color: var(--text-faint); }
+
+@media (max-width: 640px) {
+    .wss-theme .wss-index-actions, .wss-theme .wss-fresh { grid-template-columns: 1fr; }
+    .wss-theme .wss-fresh .wss-act-desc { grid-column: 1; }
+    .wss-theme .wss-act, .wss-theme .wss-fresh-label { min-width: 0; }
+}
+
+.wss-theme table.wss-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wss-theme .wss-table th, .wss-theme .wss-table td {
+    padding: 6px 8px 6px 0; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top;
+}
+.wss-theme .wss-table thead th {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent-h); font-weight: 600;
+}
+.wss-theme .wss-table .num { text-align: right; }
+/* Overview: visibility / language flag in front of a row label */
+.wss-theme .wss-table .wss-row-icon {
+    width: 16px; height: 16px; object-fit: contain;
+    vertical-align: -3px; margin-right: 8px;
+}
+.wss-theme .wss-table tr:last-child td, .wss-theme .wss-table tr:last-child th { border-bottom: none; }
+.wss-theme .wss-row-actions { text-align: right; white-space: nowrap; }
+.wss-theme .wss-row-actions form { display: inline; margin: 0; }
+.wss-theme .wss-icon-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-faint);
+    width: 24px; height: 24px; border-radius: 6px; cursor: pointer; line-height: 1; font-size: 16px;
+}
+.wss-theme .wss-icon-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ---------- Modules view ---------- */
+.wss-theme .wss-help-link { margin-left: 6px; }
+/* Toolbar: kind / indexing checkboxes, name filter */
+.wss-theme .wss-mod-bar {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 22px;
+    padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+.wss-theme .wss-mod-grp { display: flex; flex-direction: column; gap: 4px; }
+.wss-theme .wss-mod-grp > span {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint);
+}
+.wss-theme .wss-mod-grp > div { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.wss-theme .wss-mod-grp label { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer; }
+.wss-theme .wss-mod-grp label input { margin: 0; }
+.wss-theme .wss-mod-grp sup { color: var(--text-faint); }
+.wss-theme .wss-mod-grp-end { margin-left: auto; }
+.wss-theme .wss-mod-grp input[type=search] { width: 190px; }
+
+/* Table */
+.wss-theme .wss-mod-table { border: 1px solid var(--border); }
+.wss-theme .wss-mod-table th, .wss-theme .wss-mod-table td { padding: 7px 10px; }
+.wss-theme .wss-mod-table thead th { background: var(--surface3); white-space: nowrap; }
+.wss-theme .wss-mod-table th[data-wss-sort] { cursor: pointer; user-select: none; }
+.wss-theme .wss-mod-table th[data-wss-sort]:hover { color: var(--accent); }
+.wss-theme .wss-mod-table th[data-wss-sort]::after { content: ' ⇅'; opacity: .35; }
+.wss-theme .wss-mod-table th[aria-sort=ascending]::after { content: ' ↑'; opacity: .9; }
+.wss-theme .wss-mod-table th[aria-sort=descending]::after { content: ' ↓'; opacity: .9; }
+.wss-theme .wss-mod-row:hover { background: var(--surface2); }
+.wss-theme .wss-mod-row.is-open { background: var(--switch-knob-bg); }
+.wss-theme .wss-mod-row.is-open td { border-bottom-color: transparent; }
+.wss-theme .wss-mod-table tfoot td { color: var(--text-faint); font-size: 12px; border-top: 1px solid var(--border); }
+
+/* Kind badge (colours as in the Addon Monitor) */
+.wss-theme .wss-kind {
+    display: inline-block; padding: 1px 9px; border-radius: 20px; color: #fff; white-space: nowrap;
+    font: 600 11px/1.6 var(--font-mono, monospace);
+}
+.wss-theme .wss-kind-page { background: #2585eb; }
+.wss-theme .wss-kind-snippet { background: #e69d49; }
+.wss-theme .wss-kind-output_filter { background: #7c3aed; }
+.wss-theme .wss-kind-tool { background: #a13838; }
+
+.wss-theme .wss-mod-name { font-weight: 600; }
+.wss-theme .wss-mod-dir { display: block; color: var(--text-faint); font-style: italic; font-size: 11.5px; }
+
+/* Indexing source: coloured dot + label, explanation in the tooltip */
+.wss-theme .wss-src { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.wss-theme .wss-src::before {
+    content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--surface3);
+}
+.wss-theme .wss-src-module::before, .wss-theme .wss-src-callback::before,
+.wss-theme .wss-src-shipped::before { background: var(--success); }
+.wss-theme .wss-src-generated::before { background: var(--info); }
+.wss-theme .wss-src-semi::before, .wss-theme .wss-src-search_php::before { background: var(--warning); }
+.wss-theme .wss-src-title::before { background: var(--text-faint); opacity: .5; }
+.wss-theme .wss-src-none { color: var(--text-faint); cursor: default; }
+.wss-theme .wss-src-none::before { display: none; }
+
+/* Pages: [visibility] (id) title (Sections: …) */
+.wss-theme .wss-pages summary { cursor: pointer; color: var(--accent); }
+.wss-theme .wss-pages ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; }
+.wss-theme .wss-pages li {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px;
+    padding: 3px 0; border-top: 1px solid var(--border);
+}
+.wss-theme .wss-pages li:first-child { border-top: 0; }
+.wss-theme .wss-search-off { color: var(--danger); cursor: help; }
+.wss-theme .wss-search-off .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.wss-theme .wss-vis { width: 14px; height: 14px; cursor: help; }
+.wss-theme .wss-pg-id, .wss-theme .wss-pg-secs { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.wss-theme .wss-pages a { text-decoration: none; }
+.wss-theme .wss-pages a:hover { text-decoration: underline; }
+
+/* Tags in the editor head (built-in / generated definition) */
+.wss-theme .wss-tag {
+    display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 4px; font-size: 11px;
+    background: var(--surface3); color: var(--text-dim);
+}
+.wss-theme .wss-tag-shipped { background: var(--info-bg); color: var(--info); }
+.wss-theme .wss-tag-generated { background: var(--success-bg); color: var(--success); }
+
+/* Editor row, inserted below its module */
+.wss-theme .wss-detail > td { padding: 0 10px 10px; background: var(--switch-knob-bg); }
+/* The editor is a cp_chrome settings card (.cp-settings > .cp-toggle-section,
+   as on admin/admintools/) — only spacing and the card background here. */
+.wss-theme .wss-detail .wss-semi { margin: 0; }
+.wss-theme .wss-detail .cp-toggle-section { margin-bottom: 0; background: var(--surface); }
+.wss-theme .wss-semi .cp-card-head code { text-transform: none; letter-spacing: 0; }
+.wss-theme .wss-semi-note { margin: 0 0 8px; }
+.wss-get-help:hover {
+    color: var(--switch-radio-on);
+}
+/* Blocks between the setting rows and the button row: same side inset
+   as the card's rows, and air above the buttons. */
+.wss-theme .wss-semi .wss-joins { margin: 12px 1rem 16px; }
+.wss-theme .wss-semi .wss-semi-secondary { margin: 0 1rem 16px; }
+.wss-theme .wss-semi .cp-setting-value select,
+.wss-theme .wss-semi .cp-setting-value input[type=text] { max-width: 260px; }
+.wss-theme .wss-checks { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.wss-theme .wss-joins { margin: 10px 0; }
+.wss-theme .wss-joins summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.wss-theme .wss-join { border: 1px dashed var(--border); border-radius: 8px; padding: 6px 10px; margin: 8px 0; }
+.wss-theme .wss-join-head { font-size: 12px; font-weight: 600; color: var(--accent-h); }
+.wss-theme .wss-semi-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.wss-theme .wss-semi-actions form { margin: 0; }
+.wss-theme .wss-semi-secondary { border-top: 1px solid var(--border); padding-top: 10px; }
+
+/* ---------- Layout / settings ---------- */
+/* Layout tab: one group per file kind (search page, tag cloud, stylesheet),
+   one radio row per file (custom → template → default). Plain heading, no
+   card band; the active row is marked by the radio, a light background and
+   the green "aktiv" — no full-row colour. */
+.wss-theme .wss-fgroup { margin-top: 26px; }
+.wss-theme .wss-fgroup-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; }
+.wss-theme .wss-fgroup-head > .fa { color: var(--text-faint); font-size: 15px; width: 16px; text-align: center; }
+/* a span with role="heading", not <h3>: the backend theme draws a dotted
+   rule and margins under every h3 */
+.wss-theme .wss-fgroup-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text); }
+.wss-theme .wss-fgroup-sub { color: var(--text-faint); font-size: 12.5px; }
+
+.wss-theme .wss-files { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.wss-theme .wss-file-row {
+    /* fixed action column: the right-aligned paths end in one line */
+    display: grid; grid-template-columns: 16px minmax(0, 1fr) auto 64px; gap: 14px; align-items: center;
+    padding: 11px 12px 11px 16px;
+}
+.wss-theme .wss-file-row + .wss-file-row { border-top: 1px solid var(--border); }
+.wss-theme .wss-file-row:hover { background: #f7f9fb; }
+.wss-theme .wss-file-row.is-on { background: #f6ffe6; }
+.wss-theme .wss-file-row > input { margin: 0; width: 16px; height: 16px; cursor: pointer; accent-color: #5b7fb0; }
+.wss-theme .wss-file-main { display: grid; gap: 2px; min-width: 0; margin: 0; cursor: pointer; font-weight: 400; }
+.wss-theme .wss-file {
+    font-family: var(--font-mono); font-size: 13.5px; font-weight: 500; overflow-wrap: anywhere;
+    background: none; padding: 0; border: 0; color: var(--text); justify-self: start;
+}
+.wss-theme .wss-file-plain { font-family: inherit; font-size: 14px; }
+/* "aktiv · eigene Datei · geändert …" — parts never break inside */
+.wss-theme .wss-file-meta { display: flex; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--text-faint); }
+.wss-theme .wss-file-meta > span { white-space: nowrap; }
+.wss-theme .wss-file-meta > span + span::before { content: "·"; margin: 0 6px; opacity: .5; }
+.wss-theme .wss-file-meta .fa { font-size: 11px; }
+.wss-theme .wss-on { color: var(--success); font-weight: 500; }
+.wss-theme .wss-on::before {
+    content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; vertical-align: 1px; margin-right: 5px;
+}
+.wss-theme .wss-path { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); overflow-wrap: anywhere; }
+.wss-theme .wss-file-row .wss-path {
+    cursor: pointer; margin: 0; font-weight: 400;
+    max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-self: end;
+}
+.wss-theme .wss-file-acts { display: flex; gap: 2px; justify-content: flex-end; }
+
+/* Row actions as icons: grey until hovered (trash turns red then) */
+.wss-theme .wss-act-icon {
+    display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin: 0; padding: 0;
+    border: 1px solid transparent; border-radius: 6px; background: transparent; color: #8a9bb0;
+    font-size: 15px; cursor: pointer; text-decoration: none;
+}
+.wss-theme .wss-act-icon:hover { background: #fff; border-color: var(--border); color: var(--text); }
+.wss-theme .wss-act-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wss-theme .wss-act-icon-danger:hover { color: var(--danger); border-color: #efc9c4; background: #fdf5f4; }
+@media (max-width: 760px) {
+    .wss-theme .wss-file-row { grid-template-columns: 16px minmax(0, 1fr) 64px; }
+    .wss-theme .wss-file-row .wss-path { display: none; }
+}
+
+/* Layout editor */
+.wss-theme .wss-ed-bar { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 6px 0 10px; }
+.wss-theme #wss_layout_content { width: 100%; font-family: var(--font-mono); font-size: 13px; }
+.wss-theme #wss-layout-form .cp-buttons-row { margin-top: 12px; }
+.wss-theme .wss-btns-end { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.wss-theme .wss-btns-end .button { margin: 0; }
+.wss-theme .wss-settings-group { margin-bottom: 16px; }
+.wss-theme .wss-num { width: 90px; }
+.wss-theme .wss-form-foot { overflow: hidden; padding-top: 6px; }
+
+
+
+@media (max-width: 700px) {
+    .wss-theme .wss-vnav-shell { grid-template-columns: 72px 1fr; }
+    .wss-theme .wss-vnav-item span { font-size: 11px; }
+}

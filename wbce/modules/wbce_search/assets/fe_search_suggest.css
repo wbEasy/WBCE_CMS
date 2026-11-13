@@ -1,0 +1,195 @@
+/**
+ * wbce_search - assets/fe_search_suggest.css
+ * The live-search dropdown (suggestions while typing) — loaded together with
+ * fe_search.js on every page that has the live search.
+ *
+ * Template-proof: the list is appended to <body>, and every rule is scoped
+ * to "ul.ws-suggest.ws-suggest" (the class twice raises the specificity
+ * above usual template rules like "ul li", "body ul", ".content a") and
+ * resets what templates like to change (list bullets via ::before, margins,
+ * fonts, img max-width/borders). No !important — a template that WANTS a
+ * different look sets the custom properties below instead.
+ *
+ * Themes: light by default; dark when the page around the search field is
+ * dark (fe_search.js sets data-ws-theme="dark" on the list — see there).
+ *
+ * Customising from a template, e.g.:
+ *   :root { --ws-suggest-bg: #fdfaf3; --ws-suggest-hover: #f3ead6; }
+ *   :root { --ws-suggest-dark-bg: #101418; }   (dark variant)
+ *
+ * @module    wbce_search
+ * @author    Peter Kitzinger (Slugger)
+ * @author    Christian M. Stefan (https://www.wbEasy.de)
+ * @copyright WBCE Project (2026-)
+ * @license   GNU General Public License
+ * @platform  WBCE 1.7.0+
+ *
+ * Developed with AI assistance (Claude).
+ */
+
+/* ── Colours (zero specificity — any template rule beats them) ───────────── */
+:where(:root) {
+    --ws-suggest-bg:          #ffffff;
+    --ws-suggest-fg:          #1a1a1a;
+    --ws-suggest-muted:       #5f6368;
+    --ws-suggest-border:      #c9ccd1;
+    --ws-suggest-divider:     #ececec;
+    --ws-suggest-hover:       #e8f0fe;
+    --ws-suggest-hit-bg:      #fff2a8;
+    --ws-suggest-hit-fg:      inherit;
+    --ws-suggest-tile:        #f0f0f0;
+    --ws-suggest-shadow:      0 6px 18px rgba(0, 0, 0, .18);
+
+    --ws-suggest-dark-bg:     #1f2329;
+    --ws-suggest-dark-fg:     #e8eaed;
+    --ws-suggest-dark-muted:  #a0a6ae;
+    --ws-suggest-dark-border: #3c424b;
+    --ws-suggest-dark-divider:#2c3138;
+    --ws-suggest-dark-hover:  #2d3a4f;
+    --ws-suggest-dark-hit-bg: #6b5a12;
+    --ws-suggest-dark-hit-fg: #fff6c8;
+    --ws-suggest-dark-tile:   #2c3138;
+    --ws-suggest-dark-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+}
+
+/* ── The list ──────────────────────────────────────────────────────────────── */
+ul.ws-suggest.ws-suggest {
+    --_bg:      var(--ws-suggest-bg);
+    --_fg:      var(--ws-suggest-fg);
+    --_muted:   var(--ws-suggest-muted);
+    --_border:  var(--ws-suggest-border);
+    --_divider: var(--ws-suggest-divider);
+    --_hover:   var(--ws-suggest-hover);
+    --_hit-bg:  var(--ws-suggest-hit-bg);
+    --_hit-fg:  var(--ws-suggest-hit-fg);
+    --_tile:    var(--ws-suggest-tile);
+    --_shadow:  var(--ws-suggest-shadow);
+
+    display: none;
+    position: absolute;          /* top/left/width: set by fe_search.js */
+    z-index: 99999;
+    box-sizing: border-box;
+    min-width: 260px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 2px 0 0;
+    padding: 0;
+    list-style: none;
+    background: var(--_bg);
+    color: var(--_fg);
+    border: 1px solid var(--_border);
+    border-radius: 4px;
+    box-shadow: var(--_shadow);
+    color-scheme: light;
+    /* the template's typography is not ours */
+    font: 400 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    letter-spacing: normal;
+    text-align: left;
+    text-transform: none;
+    text-shadow: none;
+}
+ul.ws-suggest.ws-suggest.is-open { display: block; }
+
+/* Everything inside takes the list's typography — template rules on li,
+   span, mark ("body ul li { font: … }") must not reach in. */
+ul.ws-suggest.ws-suggest > li,
+ul.ws-suggest.ws-suggest > li * {
+    font-family: inherit;
+    font-size: inherit;
+    font-style: normal;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-transform: none;
+    text-decoration: none;
+    text-shadow: none;
+}
+
+ul.ws-suggest.ws-suggest[data-ws-theme="dark"] {
+    --_bg:      var(--ws-suggest-dark-bg);
+    --_fg:      var(--ws-suggest-dark-fg);
+    --_muted:   var(--ws-suggest-dark-muted);
+    --_border:  var(--ws-suggest-dark-border);
+    --_divider: var(--ws-suggest-dark-divider);
+    --_hover:   var(--ws-suggest-dark-hover);
+    --_hit-bg:  var(--ws-suggest-dark-hit-bg);
+    --_hit-fg:  var(--ws-suggest-dark-hit-fg);
+    --_tile:    var(--ws-suggest-dark-tile);
+    --_shadow:  var(--ws-suggest-dark-shadow);
+    color-scheme: dark;
+}
+
+/* ── Rows ──────────────────────────────────────────────────────────────────── */
+ul.ws-suggest.ws-suggest > li {
+    display: block;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 12px;
+    list-style: none;
+    background: var(--_bg);
+    color: var(--_fg);
+    border: 0;
+    border-bottom: 1px solid var(--_divider);
+    cursor: pointer;
+}
+ul.ws-suggest.ws-suggest > li::before,
+ul.ws-suggest.ws-suggest > li::after { content: none; display: none; }
+ul.ws-suggest.ws-suggest > li:last-child { border-bottom: 0; }
+ul.ws-suggest.ws-suggest > li:hover,
+ul.ws-suggest.ws-suggest > li.ws-suggest-active { background: var(--_hover); }
+
+/* With pictures: one image column for every row, so the titles line up */
+ul.ws-suggest.ws-suggest.ws-suggest--thumbs > li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ── Texts ─────────────────────────────────────────────────────────────────── */
+ul.ws-suggest.ws-suggest .ws-suggest-text {
+    display: block;
+    flex: 1;
+    min-width: 0;
+}
+ul.ws-suggest.ws-suggest .ws-suggest-title {
+    display: block;
+    margin: 0;
+    font-weight: 600;
+    color: var(--_fg);
+}
+ul.ws-suggest.ws-suggest .ws-suggest-desc {
+    display: block;
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--_muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+ul.ws-suggest.ws-suggest mark.ws-suggest-hit {
+    padding: 0;
+    border-radius: 2px;
+    background: var(--_hit-bg);
+    color: var(--_hit-fg);
+    font-weight: 700;
+}
+
+/* ── Picture tiles ─────────────────────────────────────────────────────────── */
+ul.ws-suggest.ws-suggest .ws-suggest-thumb {
+    display: block;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    box-shadow: none;
+    background: var(--_tile);
+    object-fit: cover;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    ul.ws-suggest.ws-suggest > li { transition: background-color .1s; }
+}

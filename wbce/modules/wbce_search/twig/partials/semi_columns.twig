@@ -1,0 +1,66 @@
+{#
+    wbce_search/twig/partials/semi_columns.twig — column pickers of the main table.
+    Rendered inside semi_panel.twig and on its own when the table select changes.
+    Variables: mod, semi
+#}
+{% macro colselect(name, cols, current, empty) %}
+<select name="semi[{{ name }}]">
+    {% if empty %}<option value="">— {{ empty }} —</option>{% endif %}
+    {% for c in cols %}<option value="{{ c|e('html_attr') }}"{% if c == current %} selected{% endif %}>{{ c|e }}</option>{% endfor %}
+</select>
+{% endmacro %}
+{% import _self as m %}
+{% set d = semi.data %}
+{% set cols = semi.columns|keys %}
+{% if not d.table %}
+<p class="wss-muted wss-pad">{{ L_('SEARCH:LABEL_TABLE_HINT') }}</p>
+{% else %}
+
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_ID_FIELD') }}</label>
+    <div class="cp-setting-value">{{ m.colselect('id_field', cols, d.id_field ?: 'section_id', '') }}
+        <div class="cp-setting-hint">{{ L_('SEARCH:LABEL_PAGE_ANCHOR') }}</div></div>
+</div>
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_ITEM_KEY') }}</label>
+    <div class="cp-setting-value">{{ m.colselect('item_key', cols, d.item_key, L_('SEARCH:LABEL_NONE')) }}
+        <div class="cp-setting-hint">{{ L_('SEARCH:HINT_ITEM_KEY') }}</div></div>
+</div>
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_TITLE_COL') }}</label>
+    <div class="cp-setting-value">{{ m.colselect('title', cols, d.title, L_('SEARCH:LABEL_NONE')) }}</div>
+</div>
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_TEXT_COLS') }}</label>
+    <div class="cp-setting-value wss-checks">
+        {% for c in semi.text_columns %}
+        <label><input type="checkbox" name="semi[fields][]" value="{{ c|e('html_attr') }}"{% if c in d.fields %} checked{% endif %}> {{ c|e }} <small class="wss-muted">{{ semi.columns[c]|e }}</small></label>
+        {% else %}
+        <span class="wss-muted">{{ L_('SEARCH:LABEL_NO_TEXT_COLS') }}</span>
+        {% endfor %}
+    </div>
+</div>
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_LINK_COL') }}</label>
+    <div class="cp-setting-value">{{ m.colselect('link', cols, d.link, L_('SEARCH:LABEL_NONE')) }}
+        <input type="text" name="semi[link_prefix]" value="{{ d.link_prefix|e('html_attr') }}" placeholder="{page_link}/">
+        <div class="cp-setting-hint">{{ L_('SEARCH:HINT_LINK_PREFIX') }}</div></div>
+</div>
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_IMAGE_COL') }}</label>
+    <div class="cp-setting-value">{{ m.colselect('image', cols, d.image, L_('SEARCH:LABEL_NONE')) }}
+        <input type="text" name="semi[image_path]" value="{{ d.image_path|e('html_attr') }}" placeholder="/path/{item_id}/">
+        <div class="cp-setting-hint">{{ L_('SEARCH:HINT_IMAGE_PATH') }}</div></div>
+</div>
+{#- The filters need fixed columns; a table without them can't offer the
+    filter (saveSemi() drops it as well). #}
+{% set has_active = 'active' in cols %}
+{% set has_time = 'published_when' in cols and 'published_until' in cols %}
+<div class="cp-setting-row">
+    <label class="cp-setting-name">{{ L_('SEARCH:LABEL_FILTER') }}</label>
+    <div class="cp-setting-value">
+        <label{% if not has_active %} class="wss-muted"{% endif %}><input type="checkbox" name="semi[filter_active]" value="1"{% if has_active and d.filter_active %} checked{% endif %}{% if not has_active %} disabled{% endif %}> {{ L_('SEARCH:LABEL_ACTIVE_ONLY') }}</label>
+        <label{% if not has_time %} class="wss-muted"{% endif %}><input type="checkbox" name="semi[filter_time]" value="1"{% if has_time and d.filter_time %} checked{% endif %}{% if not has_time %} disabled{% endif %}> {{ L_('SEARCH:LABEL_TIME_CONTROL') }}</label>
+    </div>
+</div>
+{% endif %}

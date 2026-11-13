@@ -1,0 +1,114 @@
+{#
+    wbce_search/twig/partials/semi_panel.twig — semi-config editor for one module.
+    Variables: mod, semi (WbceSearchBackend::semiVars())
+
+    Field names are nested (semi[table], semi[joins][0][table], …) and every
+    value is re-validated server-side against the real schema on save
+    (WbceSearchModules::saveSemi()). Table selects re-render their column
+    blocks from PHP via hx-get, so the first render and every table switch
+    share one code path.
+#}
+{% set d = semi.data %}
+{% set form_id = 'wss-semi-form-' ~ mod %}
+<div class="cp-settings wss-semi">
+<div class="cp-toggle-section">
+    <div class="cp-card-head">
+        <label><i class="fa fa-sliders"></i> {{ L_('SEARCH:STATUS_SEMI') }}: <code>{{ mod|e }}</code>
+            {#- <small>, not <span>: cp_chrome enlarges spans in the heading label -#}
+            {% if semi.def_kind == 'shipped' %}<small class="wss-tag wss-tag-shipped">{{ L_('SEARCH:DEF_SHIPPED') }}</small>{% endif %}
+            {% if semi.def_kind == 'generated' %}<small class="wss-tag wss-tag-generated">{{ L_('SEARCH:DEF_GENERATED') }}</small>{% endif %}
+        </label>
+        {% if semi.has_guide %}
+        <a href="#" class="pull-right wss-get-help" data-wss="guide" data-module="{{ mod|e('html_attr') }}"
+           title="{{ L_('SEARCH:LABEL_GUIDE')|e('html_attr') }}"><i class="fa fa-question-circle"></i></a>
+        {% endif %}
+        <a href="#" class="pull-right" data-wss="close-detail" title="{{ L_('SEARCH:BTN_CLOSE')|e('html_attr') }}"><i class="fa fa-times"></i></a>
+    </div>
+    <section>
+
+    <form id="{{ form_id|e('html_attr') }}" class="wss-semi-form" hx-post="{{ TOOL_URI }}&amp;action=modules" hx-target="#wss-view"
+          hx-disabled-elt="button[form='{{ form_id|e('html_attr') }}']">
+        {{ FTAN }}
+        <input type="hidden" name="mod" value="{{ mod|e('html_attr') }}">
+        <input type="hidden" name="op" value="save_semi">
+        {% if semi.def_kind == 'shipped' %}<div class="alertbox info" style="margin:4px">{{ L_('SEARCH:HINT_SHIPPED_DEF') }}</div>{% endif %}
+
+        <div class="cp-setting-row">
+            <label class="cp-setting-name">{{ L_('SEARCH:LABEL_TABLE') }}</label>
+            <div class="cp-setting-value">
+                <select name="semi[table]" id="wss-tbl-{{ mod|e('html_attr') }}"
+                        hx-get="{{ TOOL_URI }}&amp;action=modules&amp;partial=semi_cols&amp;mod={{ mod|url_encode }}"
+                        hx-trigger="change" hx-target="#wss-cols-{{ mod|e('html_attr') }}" hx-disabled-elt="this">
+                    <option value="">— {{ L_('SEARCH:LABEL_TABLE_SELECT') }} —</option>
+                    {% set own = semi.main_tables|filter(t => t starts with semi.own_prefix) %}
+                    {% set other = semi.main_tables|filter(t => not (t starts with semi.own_prefix)) %}
+                    {% if own|length %}<optgroup label="{{ L_('SEARCH:LABEL_OWN_TABLES')|e('html_attr') }}">
+                        {% for t in own %}<option value="{{ t|e('html_attr') }}"{% if t == d.table %} selected{% endif %}>{{ t|e }}</option>{% endfor %}
+                    </optgroup>{% endif %}
+                    <optgroup label="{{ L_('SEARCH:LABEL_OTHER_TABLES')|e('html_attr') }}">
+                        {% for t in other %}<option value="{{ t|e('html_attr') }}"{% if t == d.table %} selected{% endif %}>{{ t|e }}</option>{% endfor %}
+                    </optgroup>
+                </select>
+                <div class="cp-setting-hint">{{ L_('SEARCH:HINT_TABLE') }}</div>
+            </div>
+        </div>
+
+        <div id="wss-cols-{{ mod|e('html_attr') }}">
+            {% include 'partials/semi_columns.twig' %}
+        </div>
+
+        <div class="cp-setting-row">
+            <label class="cp-setting-name">{{ L_('SEARCH:LABEL_MODE') }}</label>
+            <div class="cp-setting-value">
+                <label><input type="radio" name="semi[mode]" value="single"{% if d.mode != 'multi' %} checked{% endif %}> {{ L_('SEARCH:MODE_SINGLE') }}</label>
+                <label><input type="radio" name="semi[mode]" value="multi"{% if d.mode == 'multi' %} checked{% endif %}> {{ L_('SEARCH:MODE_MULTI') }}</label>
+            </div>
+        </div>
+        <div class="cp-setting-row">
+            <label class="cp-setting-name">{{ L_('SEARCH:LABEL_INDEX_BASE') }}</label>
+            <div class="cp-setting-value">
+                <label><input type="radio" name="semi[index_base]" value="page"{% if d.index_base != 'all' %} checked{% endif %}> {{ L_('SEARCH:LABEL_SEARCHABLE_PAGES') }}</label>
+                <label><input type="radio" name="semi[index_base]" value="all"{% if d.index_base == 'all' %} checked{% endif %}> {{ L_('SEARCH:LABEL_ALL_SECTIONS') }}</label>
+            </div>
+        </div>
+        <details class="wss-joins"{% if d.joins|length %} open{% endif %}>
+            <summary>{{ L_('SEARCH:LABEL_JOIN_CONFIG') }}</summary>
+            {% for j in semi.joins %}
+            <div id="wss-join-{{ mod|e('html_attr') }}-{{ j.slot }}">
+                {% include 'partials/semi_join.twig' with j %}
+            </div>
+            {% endfor %}
+        </details>
+
+    </form>
+
+    {% if semi.is_semi or semi.def_kind == 'generated' or (semi.has_search and not semi.is_semi and not semi.def_kind) %}
+    <div class="wss-semi-actions wss-semi-secondary">
+        {% if semi.has_search and not semi.is_semi and not semi.def_kind %}
+        <form hx-post="{{ TOOL_URI }}&amp;action=modules" hx-target="#wss-view">
+            {{ FTAN }}<input type="hidden" name="op" value="import_search"><input type="hidden" name="mod" value="{{ mod|e('html_attr') }}">
+            <button type="submit" class="button ico-download">{{ L_('SEARCH:LABEL_FROM_SEARCH_PHP') }}</button>
+        </form>
+        {% endif %}
+        {% if semi.is_semi or semi.def_kind == 'generated' %}
+        <form hx-post="{{ TOOL_URI }}&amp;action=modules" hx-target="#wss-view"
+              hx-confirm="{{ L_('SEARCH:CONFIRM_MOD_DELETE')|format(mod)|e('html_attr') }}">
+            {{ FTAN }}<input type="hidden" name="op" value="delete_semi"><input type="hidden" name="mod" value="{{ mod|e('html_attr') }}">
+            <button type="submit" class="button ico-delete">{{ L_('SEARCH:LABEL_DELETE_CONFIG') }}</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Outside the main form (the two forms above can't be nested in it) —
+       the submit buttons belong to it through form="…". #}
+    <div class="cp-buttons-row">
+        <button type="button" class="button ico-cancel" data-wss="close-detail">{{ L_('TEXT:CANCEL') }}</button>
+        {% if semi.is_semi %}
+        <button type="submit" form="{{ form_id|e('html_attr') }}" name="op" value="gen_def" class="button pos-right">{{ L_('SEARCH:LABEL_GENERATE_DEF') }}</button>
+        {% endif %}
+        <button type="submit" form="{{ form_id|e('html_attr') }}" class="button ico-save pos-right">{{ L_('SEARCH:SAVE') }}</button>
+    </div>
+    </section>
+</div>
+</div>

@@ -1,0 +1,14 @@
+{#
+    wbce_search/twig/_shell.twig
+
+    Rendered once per normal (non-HTMX) page load. Owns only the #wss-view
+    swap target and the .wss-theme scope; nav + page header + body all live
+    inside content_template (via its {% include nav_partial %}), so a nav
+    click swaps everything below this wrapper in one go.
+    Pattern: modules/WbceAnalytics/twig/_shell.twig.
+#}
+<div class="wss-theme" id="wss-app" data-base="{{ ADDON_URL|e('html_attr') }}">
+<div id="wss-view">
+{% include content_template %}
+</div>
+</div>

@@ -1,0 +1,176 @@
+{# wbce_search - layouts/search_default.htt
+   Default search layout with tag cloud and advanced search.
+   All wording comes from the language file as [TEXT.KEY] (0.5.7).
+   A result's sections are a list (R.SECTIONS) looped over here (0.6.1).
+   @version 0.6.1 #}
+
+<div class="ws-search">
+  <h1>[TEXT.SEARCH_HEADING]</h1>
+  <br>
+
+  <form class="ws-form" method="get" action="[SEARCH_URL]">
+    <div class="ws-form-row">
+      <input type="text" name="string" value="[SEARCH_STRING]" placeholder="[TEXT.SEARCH]&hellip;" class="ws-input" aria-label="[TEXT.SEARCH]" autocomplete="off" aria-autocomplete="list" aria-haspopup="listbox">
+      <button type="submit" class="ws-btn ws-btn-primary">[TEXT.SEARCH]</button>
+    </div>
+    {if ADVANCED_SEARCH}
+    <div class="ws-advanced-row">
+      <label class="ws-adv-label">
+        <input type="checkbox" name="ws_scope[]" value="title" [SCOPE_TITLE_CHECKED]> [TEXT.SCOPE_TITLE]
+      </label>
+      <label class="ws-adv-label">
+        <input type="checkbox" name="ws_scope[]" value="content" [SCOPE_CONTENT_CHECKED]> [TEXT.SCOPE_CONTENT]
+      </label>
+      <label class="ws-adv-label">
+        <input type="checkbox" name="ws_or" value="1" [WS_OR_CHECKED]> [TEXT.SEARCH_OR]
+      </label>
+    </div>
+    {/if}
+  </form>
+
+  <div class="ws-legend">
+    <button type="button" class="ws-legend-toggle" onclick="var p=this.nextElementSibling;p.style.display=p.style.display==='none'?'block':'none';this.classList.toggle('ws-legend-open')">
+      <i class="fa fa-question-circle"></i> [TEXT.TIPS_TITLE]
+    </button>
+    <div class="ws-legend-body" style="display:none">
+      <table class="ws-legend-table">
+        <tr><td>[TEXT.LEGEND_WILDCARD]</td><td><code>[TEXT.EXAMPLE_WORD]*</code></td></tr>
+        <tr><td>[TEXT.LEGEND_FUZZY]</td><td><code>[TEXT.EXAMPLE_WORD]~</code></td></tr>
+        <tr><td>[TEXT.LEGEND_PHRASE]</td><td><code>"[TEXT.EXAMPLE_PHRASE]"</code></td></tr>
+        <tr><td>[TEXT.LEGEND_EXCLUDE]</td><td><code>[TEXT.EXAMPLE_WORD] -[TEXT.EXAMPLE_EXCLUDE]</code></td></tr>
+        <tr><td>[TEXT.LEGEND_OR]</td><td><code>[TEXT.EXAMPLE_WORD] | [TEXT.EXAMPLE_OR]</code></td></tr>
+        <tr><td>[TEXT.LEGEND_COMBINATION]</td><td><code>[TEXT.EXAMPLE_WORD] [TEXT.EXAMPLE_WORD2] -[TEXT.EXAMPLE_EXCLUDE] "[TEXT.EXAMPLE_PHRASE2]"</code></td></tr>
+        <tr><td>[TEXT.LEGEND_OPERATORS]</td><td><code>-</code> [TEXT.OP_EXCLUDE] &nbsp; <code>|</code> [TEXT.OP_OR] &nbsp; <code>*</code> [TEXT.OP_WILDCARD] &nbsp; <code>~</code> [TEXT.OP_TYPOS] &nbsp; <code>" "</code> [TEXT.OP_PHRASE]</td></tr>
+      </table>
+    </div>
+  </div>
+
+  [TAGCLOUD|raw]
+
+  {if SEARCH_STRING}
+  <div class="ws-results">
+
+    <p class="ws-results-label">[TEXT.RESULTS_FOR] <strong>[SEARCH_STRING]</strong>:</p>
+
+    {if RESULTS}
+
+      <div class="ws-label-legend">
+        <button type="button" class="ws-label-legend-toggle" onclick="var p=this.nextElementSibling;p.style.display=p.style.display==='none'?'block':'none';this.classList.toggle('ws-legend-open')">
+          <i class="fa fa-info-circle"></i> [TEXT.LABEL_LEGEND]
+        </button>
+        <div class="ws-label-legend-body" style="display:none">
+          <table class="ws-legend-table">
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_CONTENT]</span></td><td>[TEXT.LEGEND_HIT_CONTENT]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_KEYWORD]</span></td><td>[TEXT.LEGEND_HIT_KEYWORD]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_DESCRIPTION]</span></td><td>[TEXT.LEGEND_HIT_DESCRIPTION]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_TITLE]</span></td><td>[TEXT.LEGEND_HIT_TITLE]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_CONTENT] &amp; [TEXT.HIT_KEYWORD]</span></td><td>[TEXT.LEGEND_HIT_CONTENT_KEYWORD]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_CONTENT] &amp; [TEXT.HIT_DESCRIPTION]</span></td><td>[TEXT.LEGEND_HIT_CONTENT_DESCRIPTION]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_KEYWORD] &amp; [TEXT.HIT_DESCRIPTION]</span></td><td>[TEXT.LEGEND_HIT_KEYWORD_DESCRIPTION]</td></tr>
+            <tr><td><span class="ws-meta-label">[TEXT.HIT_CONTENT], [TEXT.HIT_KEYWORD] &amp; [TEXT.HIT_DESCRIPTION]</span></td><td>[TEXT.LEGEND_HIT_ALL]</td></tr>
+          </table>
+        </div>
+      </div>
+
+      {foreach RESULTS as R}
+      <div class="ws-result">
+        <div class="ws-result-header">
+          <a class="ws-result-title" href="[R.PAGE_LINK]">[R.PAGE_TITLE]</a>
+          {if R.META_LABEL}
+          <span class="ws-meta-label">[R.META_LABEL]</span>
+          {/if}
+        </div>
+        {if R.IS_META}
+        <p class="ws-result-excerpt">[R.EXCERPT|raw]</p>
+        {/if}
+        {if R.SECTIONS}
+        <div class="ws-result-sections">
+          {foreach R.SECTIONS as S}
+          <div class="ws-result-section">
+            {if S.THUMB_URL}
+            <div class="ws-result-thumb"><a href="[S.LINK]"><img src="[S.THUMB_URL]" alt="[S.TITLE]" loading="lazy"></a></div>
+            {/if}
+            <div class="ws-result-section-body">
+              {if S.ITEM_TITLE and S.LINK}
+              <a class="ws-result-item-title" href="[S.LINK]">[S.ITEM_TITLE]</a>
+              {/if}
+              {if S.EXCERPT}
+              <p class="ws-result-excerpt">[S.EXCERPT|raw]</p>
+              {/if}
+            </div>
+          </div>
+          {/foreach}
+        </div>
+        {/if}
+        {if DEBUG_MODE}
+        <details class="ws-debug-box">
+          <summary>&#x1F50D; Debug &mdash; [R.DEBUG_MODULE] | page_id=[R.DEBUG_PAGE_ID] | section_id=[R.DEBUG_SEC_ID] | score=[R.DEBUG_SCORE] | type=[R.MATCH_TYPE]</summary>
+          <table class="ws-debug-table">
+            <tr><th>Module</th><td>[R.DEBUG_MODULE]</td></tr>
+            <tr><th>page_id</th><td>[R.DEBUG_PAGE_ID]</td></tr>
+            <tr><th>section_id</th><td>[R.DEBUG_SEC_ID]</td></tr>
+            <tr><th>Score</th><td>[R.DEBUG_SCORE]</td></tr>
+            <tr><th>Match type</th><td>[R.MATCH_TYPE]</td></tr>
+          </table>
+        </details>
+        {/if}
+      </div>
+      {/foreach}
+
+      {if PAGES > 1}
+      <nav class="ws-pagination" aria-label="[TEXT.SEARCH] [TEXT.PAGES]">
+        <ul class="ws-pages">
+          {if PREV_PAGE}
+          <li><a href="[PREV_URL]" rel="prev" aria-label="[TEXT.PAGE_PREV]" title="[TEXT.PAGE_PREV]">&lsaquo;</a></li>
+          {/if}
+          {foreach PAGE_LINKS as PL}
+          {if PL.CURRENT}
+          <li class="ws-current"><span aria-current="page">[PL.NUM]</span></li>
+          {elseif PL.URL}
+          <li><a href="[PL.URL]">[PL.NUM]</a></li>
+          {else}
+          <li class="ws-ellipsis"><span>&hellip;</span></li>
+          {/if}
+          {/foreach}
+          {if NEXT_PAGE}
+          <li><a href="[NEXT_URL]" rel="next" aria-label="[TEXT.PAGE_NEXT]" title="[TEXT.PAGE_NEXT]">&rsaquo;</a></li>
+          {/if}
+        </ul>
+        <p class="ws-total">[TOTAL_TEXT]</p>
+      </nav>
+      {/if}
+
+    {else}
+      <div class="ws-no-results-box">
+        <p class="ws-no-results">[TEXT.NO_RESULTS]</p>
+        {if DID_YOU_MEAN}
+        <p class="ws-did-you-mean">[TEXT.DID_YOU_MEAN] <a href="[DID_YOU_MEAN_URL]">[DID_YOU_MEAN]</a></p>
+        {/if}
+        <div class="ws-tips">
+          <p class="ws-tips-title">[TEXT.TIPS_TITLE]</p>
+          <ul>
+            <li>[TEXT.TIP_FEWER]</li>
+            <li>[TEXT.TIP_OR] <code>[SEARCH_STRING] | [TEXT.TIP_OR_EXAMPLE]</code></li>
+            <li>[TEXT.TIP_NOT] <code>[SEARCH_STRING] -[TEXT.TIP_NOT_EXAMPLE]</code></li>
+            <li>[TEXT.TIP_PHRASE] <code>"[SEARCH_STRING]"</code></li>
+            <li>[TEXT.TIP_WILDCARD] <code>[SEARCH_STRING]*</code></li>
+            <li>[TEXT.TIP_FUZZY] <code>[SEARCH_STRING]~</code></li>
+          </ul>
+        </div>
+        {if SUGGESTION_AREAS}
+        <div class="ws-areas">
+          <p class="ws-areas-title">[TEXT.AREAS_TITLE]</p>
+          <div class="ws-areas-list">
+            {foreach SUGGESTION_AREAS as AREA}
+            <a href="[AREA.URL]" class="ws-area-btn">[AREA.TITLE]</a>
+            {/foreach}
+          </div>
+        </div>
+        {/if}
+      </div>
+    {/if}
+
+  </div>
+  {/if}
+
+</div>

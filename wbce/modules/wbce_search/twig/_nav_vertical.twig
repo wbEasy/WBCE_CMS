@@ -1,0 +1,23 @@
+{#
+    wbce_search/twig/_nav_vertical.twig — icon sidebar on the left.
+
+    Same open/close contract as _nav.twig: opens <section class="cp-main
+    wss-vnav-shell"> + <div class="cp-pane-inlay">, closed by the including
+    content/*.twig with </div></section>. The CSS grid on .wss-vnav-shell
+    (assets/shell.css) puts the page header above the pane, beside the nav.
+
+    Variables: active, views, crumb (optional).
+#}
+<section class="cp-main wss-vnav-shell">
+    <nav class="wss-vnav">
+        {% for v in views %}
+        <a class="wss-vnav-item{% if active == v %} sel{% endif %}"
+           href="{{ TOOL_URI }}&amp;action={{ v }}"
+           {% if v not in full_load_views %}hx-get="{{ TOOL_URI }}&amp;action={{ v }}" hx-target="#wss-view" hx-push-url="true"{% endif %}>
+            {{ icon(v) }}
+            <span>{{ L_('SEARCH:MENU_' ~ v|upper) }}</span>
+        </a>
+        {% endfor %}
+    </nav>
+    {% include 'partials/page_header.twig' %}
+    <div class="cp-pane-inlay">

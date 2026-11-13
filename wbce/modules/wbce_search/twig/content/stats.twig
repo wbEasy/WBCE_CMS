@@ -1,0 +1,107 @@
+{#
+    wbce_search/twig/content/stats.twig
+    Variables: rows (top 100 terms with hits: term, count, last), total, searches, tracking,
+               misses (top 100 queries without results: term, misses, last), misses_total
+
+    Terms are visitor input — always |e. Single terms can be removed (the
+    tag cloud is public, so junk/spam entries need a way out).
+#}
+{% include nav_partial|default('_nav.twig') %}
+
+<div class="wss-content">
+    <div class="wss-lede">{{ L_('SEARCH:LEDE_STATS') }}</div>
+
+    <div class="wss-kpi-row">
+        <div class="wss-kpi-card">
+            <div class="label">{{ L_('SEARCH:STATS_TERMS') }}</div>
+            <div class="value">{{ total|e }}</div>
+        </div>
+        <div class="wss-kpi-card">
+            <div class="label">{{ L_('SEARCH:STATS_SEARCHES') }}</div>
+            <div class="value">{{ searches|e }}</div>
+        </div>
+        <div class="wss-kpi-card">
+            <div class="label">{{ L_('SEARCH:SET_TAGCLOUD_TRACK') }}</div>
+            <div class="value wss-value-sm">{{ tracking ? L_('SEARCH:STATUS_ACTIVE') : L_('SEARCH:STATUS_INACTIVE') }}</div>
+        </div>
+    </div>
+
+    {% if rows|length %}
+    <div class="wss-panel">
+        <table class="wss-table wss-stats-table">
+            <thead>
+                <tr>
+                    <th>{{ L_('SEARCH:STATS_TERM') }}</th>
+                    <th class="num">{{ L_('SEARCH:STATS_COUNT') }}</th>
+                    <th>{{ L_('SEARCH:STATS_LAST') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td><a href="{{ WB_URL }}/search/index.php?string={{ r.term|url_encode }}" target="_blank" rel="noopener">{{ r.term|e }}</a></td>
+                    <td class="num">{{ r.count|e }}</td>
+                    <td class="mono">{{ r.last|e }}</td>
+                    <td class="wss-row-actions">
+                        <form hx-post="{{ TOOL_URI }}&amp;action=stats" hx-target="#wss-view">
+                            {{ FTAN }}<input type="hidden" name="op" value="delete_term">
+                            <input type="hidden" name="term" value="{{ r.term|e('html_attr') }}">
+                            <button type="submit" class="wss-icon-btn" title="{{ L_('SEARCH:BTN_DELETE_TERM')|e('html_attr') }}">&times;</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if total > rows|length %}<p class="wss-muted">{{ Ln_('SEARCH:STATS_SHOWING', total)|e }}</p>{% endif %}
+    </div>
+
+    <form hx-post="{{ TOOL_URI }}&amp;action=stats" hx-target="#wss-view"
+          hx-confirm="{{ L_('SEARCH:CONFIRM_STATS_DELETE')|e('html_attr') }}">
+        {{ FTAN }}<input type="hidden" name="op" value="clear_stats">
+        <button type="submit" class="button ico-delete">{{ L_('SEARCH:STATS_DELETE') }}</button>
+    </form>
+    {% else %}
+    <p class="wss-muted">{{ L_('SEARCH:STATS_EMPTY') }}</p>
+    {% endif %}
+
+    {# Searches without any result — whole query as typed. Not public (never in the tag cloud). #}
+    <div class="wss-panel">
+        <h3>{{ L_('SEARCH:STATS_MISSES') }} <small>({{ misses_total|e }})</small></h3>
+        <div class="wss-panel-sub">{{ L_('SEARCH:HINT_STATS_MISSES') }}</div>
+        {% if misses|length %}
+        <table class="wss-table wss-stats-table">
+            <thead>
+                <tr>
+                    <th>{{ L_('SEARCH:STATS_QUERY') }}</th>
+                    <th class="num">{{ L_('SEARCH:STATS_COUNT') }}</th>
+                    <th>{{ L_('SEARCH:STATS_LAST') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in misses %}
+                <tr>
+                    <td><a href="{{ WB_URL }}/search/index.php?string={{ r.term|url_encode }}" target="_blank" rel="noopener">{{ r.term|e }}</a></td>
+                    <td class="num">{{ r.misses|e }}</td>
+                    <td class="mono">{{ r.last|e }}</td>
+                    <td class="wss-row-actions">
+                        <form hx-post="{{ TOOL_URI }}&amp;action=stats" hx-target="#wss-view">
+                            {{ FTAN }}<input type="hidden" name="op" value="delete_term">
+                            <input type="hidden" name="term" value="{{ r.term|e('html_attr') }}">
+                            <button type="submit" class="wss-icon-btn" title="{{ L_('SEARCH:BTN_DELETE_TERM')|e('html_attr') }}">&times;</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="wss-muted">{{ L_('SEARCH:STATS_MISSES_EMPTY') }}</p>
+        {% endif %}
+    </div>
+</div>
+
+    </div>
+</section>

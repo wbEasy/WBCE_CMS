@@ -1,0 +1,135 @@
+{#
+    wbce_search/twig/content/overview.twig
+    Variables: sections, stale, stale_pct, last_index, words_backlog,
+               search_mode, settings_url,
+               pages_by_vis, pages_total, languages
+    Action forms hx-post back to this view; the controller answers with the
+    re-rendered fragment + a toast.
+
+    Only numbers the admin can act on are shown: how many sections are
+    stale (→ "Update changed"). Index size / indexed pages were dropped as
+    noise; the per-module numbers live in the Modules view.
+#}
+{% include nav_partial|default('_nav.twig') %}
+
+<div class="wss-content">
+    <div class="wss-lede">{{ L_('SEARCH:LEDE_OVERVIEW') }}</div>
+
+    {# ── Frontend search: the core's "Search" setting ─────────────────────── #}
+    <div class="wss-card">
+        <section class="cp-toggle-section">
+            <div class="cp-card-head"><label><i class="fa fa-search" aria-hidden="true"></i> {{ L_('SEARCH:LABEL_FRONTEND_SEARCH') }}</label></div>
+
+            {# Changes are saved right away after a confirm (assets/backend.js,
+               data-wss-confirm: "Cancel" puts the control back). #}
+            <form class="cp-setting-row" hx-post="{{ TOOL_URI }}&amp;action=overview" hx-target="#wss-view" hx-trigger="wss-confirmed">
+                {{ FTAN }}<input type="hidden" name="op" value="set_site_search">
+                <div class="cp-setting-name">{{ L_('SEARCH:LABEL_SITE_SEARCH') }}
+                    <small class="wss-setting-src">{{ L_('SEARCH:LABEL_SITE_SEARCH_SRC') }}</small></div>
+                <div class="cp-setting-value">
+                    <div class="radio-switch-group">
+                        {% for m in ['public', 'registered', 'private', 'none'] %}
+                        {% set m_label = L_('SEARCH:SITE_SEARCH_' ~ m|upper) %}
+                        <input type="radio" class="switch-radio" name="search" value="{{ m }}" id="wss-site-search-{{ m }}"
+                               data-wss-confirm="{{ L_('SEARCH:CONFIRM_SITE_SEARCH')|format(m_label)|e('html_attr') }}"
+                               {% if search_mode == m %}checked{% endif %}>
+                        <label for="wss-site-search-{{ m }}">{{ m_label }}</label>
+                        {% endfor %}
+                    </div>
+                    <div class="cp-setting-hint">{{ L_('SEARCH:HINT_SITE_SEARCH')|format(settings_url|e('html_attr'))|raw }}</div>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    {# ── Search index ─────────────────────────────────────────────────── #}
+    <div class="wss-card">
+        <section class="cp-toggle-section">
+        <div class="cp-card-head">
+            <label><i class="fa fa-database" aria-hidden="true"></i> {{ L_('SEARCH:CARD_INDEX') }}</label>
+            <span class="pull-right wss-index-last"><i class="fa fa-clock-o" aria-hidden="true"></i>
+                {{ L_('SEARCH:LABEL_LAST_INDEXED') }}: <b>{{ last_index|e }}</b></span>
+        </div>
+        <div class="wss-card-body">
+
+        {# All index buttons are locked while one of them runs (hx-disabled-elt). #}
+        <div class="wss-index-actions">
+            <form hx-post="{{ TOOL_URI }}&amp;action=overview" hx-target="#wss-view" hx-disabled-elt=".wss-index-actions button">
+                {{ FTAN }}<input type="hidden" name="op" value="rebuild">
+                <button type="submit" class="button wss-act">
+                    <i class="fa fa-refresh wss-act-ico" aria-hidden="true"></i><i class="fa fa-circle-o-notch fa-spin wss-act-spin" aria-hidden="true"></i>
+                    {{ L_('SEARCH:INDEX_BUILD') }}</button>
+            </form>
+            <div class="wss-act-desc">{{ L_('SEARCH:INDEX_BUILD_DESC') }}</div>
+
+            <form hx-post="{{ TOOL_URI }}&amp;action=overview" hx-target="#wss-view" hx-disabled-elt=".wss-index-actions button">
+                {{ FTAN }}<input type="hidden" name="op" value="smart_rebuild">
+                <button type="submit" class="button wss-act"{% if stale == 0 %} disabled{% endif %}>
+                    <i class="fa fa-bolt wss-act-ico" aria-hidden="true"></i><i class="fa fa-circle-o-notch fa-spin wss-act-spin" aria-hidden="true"></i>
+                    {{ L_('SEARCH:INDEX_UPDATE') }}{% if stale > 0 %} <span class="wss-badge">{{ stale|e }}</span>{% endif %}</button>
+            </form>
+            <div class="wss-act-desc">{{ L_(stale > 0 ? 'SEARCH:INDEX_UPDATE_DESC' : 'SEARCH:INDEX_UPDATE_DESC_NONE') }}</div>
+
+            <form hx-post="{{ TOOL_URI }}&amp;action=overview" hx-target="#wss-view" hx-disabled-elt=".wss-index-actions button"
+                  hx-confirm="{{ L_('SEARCH:CONFIRM_INDEX_DELETE')|e('html_attr') }}">
+                {{ FTAN }}<input type="hidden" name="op" value="clear_index">
+                <button type="submit" class="button wss-act wss-act-danger">
+                    <i class="fa fa-trash-o wss-act-ico" aria-hidden="true"></i><i class="fa fa-circle-o-notch fa-spin wss-act-spin" aria-hidden="true"></i>
+                    {{ L_('SEARCH:INDEX_CLEAR') }}</button>
+            </form>
+            <div class="wss-act-desc">{{ L_('SEARCH:INDEX_CLEAR_DESC') }}</div>
+
+            {# Word index: only worth a line here while its build has a backlog
+               (state otherwise: Settings → Word index). #}
+            {% if words_backlog > 0 %}
+            <form hx-post="{{ TOOL_URI }}&amp;action=overview" hx-target="#wss-view" hx-disabled-elt=".wss-index-actions button">
+                {{ FTAN }}<input type="hidden" name="op" value="build_words">
+                <button type="submit" class="button wss-act">
+                    <i class="fa fa-list-ul wss-act-ico" aria-hidden="true"></i><i class="fa fa-circle-o-notch fa-spin wss-act-spin" aria-hidden="true"></i>
+                    {{ L_('SEARCH:BTN_WORDS_CONTINUE') }}</button>
+            </form>
+            <div class="wss-act-desc wss-act-warn">{{ L_('SEARCH:WORDS_BUILDING') }} — {{ Ln_('SEARCH:MSG_WORDS_PENDING', words_backlog)|e }}</div>
+            {% endif %}
+        </div>
+
+        <div class="wss-fresh">
+            <span class="wss-fresh-label">{{ L_('SEARCH:LABEL_FRESHNESS') }}</span>
+            <div class="wss-bar" title="{{ (100 - stale_pct)|e }}%">
+                <div class="wss-bar-fill{% if stale_pct > 30 %} warn{% endif %}" style="width:{{ (100 - stale_pct)|e }}%"></div>
+            </div>
+            <div class="wss-act-desc">
+                {% if sections == 0 %}{{ L_('SEARCH:FRESH_NONE') }}
+                {% elseif stale == 0 %}{{ L_('SEARCH:FRESH_ALL')|format(sections)|raw }}
+                {% else %}{{ L_('SEARCH:FRESH_STALE')|format(stale, sections)|raw }}{% endif %}
+            </div>
+        </div>
+        </div>{# .wss-card-body #}
+        </section>
+    </div>
+
+    <div class="wss-panel-grid">
+        <div class="wss-panel">
+            <h3>{{ L_('SEARCH:PAGES') }} <small>({{ pages_total|e }})</small></h3>
+            <table class="wss-table">
+                {% for vis in ['public', 'registered', 'private', 'hidden', 'none'] %}
+                {% if pages_by_vis[vis] is defined %}
+                <tr><th><img class="wss-row-icon" src="{{ WB_URL }}/include/wbeSelect/icons/{{ vis }}.svg" alt="">{{ L_('SEARCH:VIS_' ~ vis|upper) }}</th><td>{{ pages_by_vis[vis]|e }}</td></tr>
+                {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+        <div class="wss-panel">
+            <h3>{{ L_('SEARCH:LABEL_LANGUAGES') }}</h3>
+            <table class="wss-table">
+                {% for l in languages %}
+                <tr><th>{% if l.flag %}<img class="wss-row-icon" src="{{ l.flag|e }}" alt="">{% endif %}{{ l.language|upper|e }}</th><td>{{ l.c|e }}</td></tr>
+                {% else %}
+                <tr><td class="wss-muted">{{ L_('SEARCH:LABEL_NO_LANG_INFO') }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+
+    </div>
+</section>

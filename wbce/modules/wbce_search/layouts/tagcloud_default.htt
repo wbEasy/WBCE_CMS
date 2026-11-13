@@ -1,0 +1,6 @@
+<div class="ws-tagcloud">
+    {if LABEL}<span class="ws-tagcloud-label">[LABEL]</span>{/if}
+    {foreach TAGS as TAG}
+    <a href="[TAG.URL]" class="ws-tag ws-tag-[TAG.SIZE]" title="[TAG.TITLE]">[TAG.TERM]</a>
+    {/foreach}
+</div>

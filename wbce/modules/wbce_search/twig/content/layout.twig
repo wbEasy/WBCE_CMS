@@ -1,0 +1,183 @@
+{#
+    wbce_search/twig/content/layout.twig
+    mode 'list': layouts (per layout: options, active, custom_file), stylesheets,
+                 stylesheet, template_title, template_name
+    mode 'edit': layout, file (WbceSearchLayouts::options()[custom]), layout_content
+
+    Full page load only (FULL_LOAD_VIEWS): CodeEditor::init() queues
+    CodeMirror's assets via I::, which an HTMX swap would not load. All forms
+    here are plain POSTs + redirect (WbceSearchBackend::respond()).
+
+    List: picking a radio submits its form at once (data-wss-autosubmit).
+    The rows hold no forms of their own — radios and buttons point at small
+    forms after the list via form="…" (forms cannot nest). "Edit" on the
+    template's or the default file asks first (data-confirm on the button),
+    then copies it to <x>_custom.htt and opens the editor.
+
+    Editor: only the layout's own copy is edited.
+      Save          AjaxSave ticked → CodeEditorToolbar saves via
+                    ajax_save_layout.php (IDKEY), else a plain POST.
+      Save & back   plain POST with back=1; hidden while AjaxSave is ticked
+                    (data-hide-on-ajax-save, handled by CodeEditorToolbar —
+                    its AJAX intercept would swallow the "back").
+      Back          link to the list, nothing saved.
+#}
+{% include nav_partial|default('_nav.twig') %}
+
+<div class="wss-content">
+{% if mode == 'edit' %}
+    {% set card_title = L_('SEARCH:LAYOUT_CARD_' ~ layout|upper) %}
+    <div class="wss-card">
+        <section class="cp-toggle-section">
+            <div class="cp-card-head">
+                <label><i class="fa fa-file-code-o" aria-hidden="true"></i> {{ card_title }}</label>
+            </div>
+            <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-layout-form" class="wss-card-body">
+                {{ FTAN }}
+                <input type="hidden" name="op" value="layout_save">
+                <input type="hidden" name="layout" value="{{ layout|e('html_attr') }}">
+                <div class="wss-ed-bar">
+                    <code class="wss-file">{{ file.file|e }}</code>
+                    <span class="wss-path">{{ file.rel|e }}</span>
+                </div>
+                <textarea id="wss_layout_content" name="layout_content" rows="24" spellcheck="false">{{ layout_content|e }}</textarea>
+                <div class="cp-buttons-row">
+                    <a href="{{ TOOL_URI }}&amp;action=layout" class="button ico-cancel">{{ L_('SEARCH:BTN_BACK') }}</a>
+                    {# one right-aligned group: hiding "Save & back" must not pull "Save" left #}
+                    <span class="wss-btns-end">
+                        <button type="submit" class="button ico-save" name="back" value="1" data-hide-on-ajax-save>{{ L_('SEARCH:BTN_SAVE_BACK') }}</button>
+                        <button type="submit" class="button ico-save">{{ L_('SEARCH:SAVE') }}</button>
+                    </span>
+                </div>
+                <div class="cp-setting-hint">{{ L_('SEARCH:HINT_LAYOUT_SAVE') }}</div>
+            </form>
+        </section>
+    </div>
+{% else %}
+    <div class="wss-lede">{{ L_('SEARCH:LEDE_LAYOUT') }}</div>
+
+    {#
+        One group per file kind: a plain heading, then one row per file.
+        Row: radio | name + meta line | path | actions. The path is a second
+        <label> of the same radio, so the whole row picks the file.
+    #}
+    {% for layout, l in layouts %}
+    {% set custom_exists = l.options.custom is defined %}
+    {% set group_title = L_('SEARCH:LAYOUT_CARD_' ~ layout|upper) %}
+    <section class="wss-fgroup">
+        <div class="wss-fgroup-head">
+            <i class="fa {{ layout == 'tagcloud' ? 'fa-cloud' : 'fa-file-code-o' }}" aria-hidden="true"></i>
+            <span class="wss-fgroup-title" role="heading" aria-level="3">{{ group_title }}</span>
+            <span class="wss-fgroup-sub">{{ L_('SEARCH:LAYOUT_CARD_' ~ layout|upper ~ '_SUB') }}</span>
+        </div>
+        <div class="wss-files" role="radiogroup" aria-label="{{ group_title|e('html_attr') }}">
+            {% for src, o in l.options %}
+            {% set on = l.active == src %}
+            {% set rid = 'wss-l-' ~ layout ~ '-' ~ src %}
+            <div class="wss-file-row{% if on %} is-on{% endif %}">
+                <input type="radio" name="source" value="{{ src }}" id="{{ rid }}" form="wss-pick-{{ layout }}"
+                       data-wss-autosubmit{% if on %} checked{% endif %}>
+                <label for="{{ rid }}" class="wss-file-main">
+                    <code class="wss-file">{{ o.file|e }}</code>
+                    <span class="wss-file-meta">
+                        {% if on %}<span class="wss-on">{{ L_('SEARCH:LAYOUT_ACTIVE') }}</span>{% endif %}
+                        {% if src == 'custom' %}<span>{{ L_('SEARCH:LAYOUT_SRC_CUSTOM') }}</span><span>{{ L_('SEARCH:LAYOUT_MODIFIED')|format(o.modified) }}</span>
+                        {% else %}<span>{{ src == 'template' ? L_('SEARCH:LAYOUT_SRC_TEMPLATE')|format(template_title) : L_('SEARCH:LAYOUT_SRC_DEFAULT') }}</span><span><i class="fa fa-lock" aria-hidden="true"></i> {{ L_('SEARCH:LAYOUT_READONLY') }}</span>{% endif %}
+                    </span>
+                </label>
+                <label for="{{ rid }}" class="wss-path" title="{{ o.rel|e('html_attr') }}">{{ o.rel|e }}</label>
+                <span class="wss-file-acts">
+                    {% if src == 'custom' %}
+                    <a href="{{ TOOL_URI }}&amp;action=layout&amp;edit={{ layout|url_encode }}" class="wss-act-icon"
+                       title="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}"><i class="fa fa-pencil" aria-hidden="true"></i></a>
+                    <button type="submit" class="wss-act-icon wss-act-icon-danger" form="wss-del-{{ layout }}"
+                            title="{{ L_('SEARCH:BTN_DELETE')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_DELETE')|e('html_attr') }}"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                    {% else %}
+                    {% set from_label = src == 'template' ? L_('SEARCH:LAYOUT_FROM_TEMPLATE')|format(o.file) : L_('SEARCH:LAYOUT_FROM_DEFAULT')|format(o.file) %}
+                    <button type="submit" class="wss-act-icon" form="wss-create-{{ layout }}" name="from" value="{{ src }}"
+                            title="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}"
+                            data-confirm="{{ (custom_exists
+                                ? L_('SEARCH:CONFIRM_LAYOUT_OVERWRITE')|format(l.custom_file, from_label)
+                                : L_('SEARCH:CONFIRM_LAYOUT_CREATE')|format(l.custom_file, from_label))|e('html_attr') }}"><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-pick-{{ layout }}" hidden>
+            {{ FTAN }}<input type="hidden" name="op" value="layout_pick"><input type="hidden" name="layout" value="{{ layout }}">
+        </form>
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-create-{{ layout }}" hidden>
+            {{ FTAN }}<input type="hidden" name="op" value="layout_create"><input type="hidden" name="layout" value="{{ layout }}">
+        </form>
+        {% if custom_exists %}
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-del-{{ layout }}" hidden
+              data-confirm="{{ L_('SEARCH:CONFIRM_LAYOUT_DELETE')|format(l.custom_file)|e('html_attr') }}">
+            {{ FTAN }}<input type="hidden" name="op" value="layout_delete"><input type="hidden" name="layout" value="{{ layout }}">
+        </form>
+        {% endif %}
+    </section>
+    {% endfor %}
+
+    {# ── Stylesheet ── #}
+    {% set css_custom_exists = stylesheets.custom is defined %}
+    <section class="wss-fgroup">
+        <div class="wss-fgroup-head">
+            <i class="fa fa-paint-brush" aria-hidden="true"></i>
+            <span class="wss-fgroup-title" role="heading" aria-level="3">{{ L_('SEARCH:LAYOUT_CARD_CSS') }}</span>
+            <span class="wss-fgroup-sub">{{ L_('SEARCH:LAYOUT_CARD_CSS_SUB') }} · {{ L_('SEARCH:LAYOUT_CSS_LEDE')|format(template_name ? 'templates/' ~ template_name ~ '/search/' : 'templates/…/search/', css_custom) }}</span>
+        </div>
+        <div class="wss-files" role="radiogroup" aria-label="{{ L_('SEARCH:LAYOUT_CARD_CSS')|e('html_attr') }}">
+            {% for id, s in stylesheets %}
+            {% set on = stylesheet == id %}
+            {% set rid = 'wss-css-' ~ loop.index %}
+            <div class="wss-file-row{% if on %} is-on{% endif %}">
+                <input type="radio" name="stylesheet" value="{{ id|e('html_attr') }}" id="{{ rid }}" form="wss-pick-css"
+                       data-wss-autosubmit{% if on %} checked{% endif %}>
+                <label for="{{ rid }}" class="wss-file-main">
+                    {% if s.source == 'none' %}<span class="wss-file wss-file-plain">{{ L_('SEARCH:LAYOUT_CSS_NONE') }}</span>
+                    {% else %}<code class="wss-file">{{ s.file|e }}</code>{% endif %}
+                    <span class="wss-file-meta">
+                        {% if on %}<span class="wss-on">{{ L_('SEARCH:LAYOUT_ACTIVE') }}</span>{% endif %}
+                        {% if s.source == 'custom' %}<span>{{ L_('SEARCH:LAYOUT_SRC_CUSTOM') }}</span><span>{{ L_('SEARCH:LAYOUT_MODIFIED')|format(s.modified) }}</span>
+                        {% elseif s.source == 'none' %}<span>{{ L_('SEARCH:LAYOUT_CSS_NONE_HINT') }}</span>
+                        {% else %}<span>{{ s.source == 'template' ? L_('SEARCH:LAYOUT_SRC_TEMPLATE')|format(template_title) : L_('SEARCH:LAYOUT_SRC_DEFAULT') }}</span><span><i class="fa fa-lock" aria-hidden="true"></i> {{ L_('SEARCH:LAYOUT_READONLY') }}</span>{% endif %}
+                    </span>
+                </label>
+                <label for="{{ rid }}" class="wss-path"{% if s.rel %} title="{{ s.rel|e('html_attr') }}"{% endif %}>{{ s.rel|e }}</label>
+                <span class="wss-file-acts">
+                    {% if s.source == 'custom' %}
+                    <a href="{{ TOOL_URI }}&amp;action=layout&amp;edit=css" class="wss-act-icon"
+                       title="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}"><i class="fa fa-pencil" aria-hidden="true"></i></a>
+                    <button type="submit" class="wss-act-icon wss-act-icon-danger" form="wss-del-css"
+                            title="{{ L_('SEARCH:BTN_DELETE')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_DELETE')|e('html_attr') }}"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                    {% elseif s.source != 'none' %}
+                    {% set from_label = s.source == 'template' ? L_('SEARCH:LAYOUT_FROM_TEMPLATE')|format(s.file) : L_('SEARCH:LAYOUT_FROM_DEFAULT')|format(s.file) %}
+                    <button type="submit" class="wss-act-icon" form="wss-create-css" name="from" value="{{ id|e('html_attr') }}"
+                            title="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}" aria-label="{{ L_('SEARCH:BTN_EDIT')|e('html_attr') }}"
+                            data-confirm="{{ (css_custom_exists
+                                ? L_('SEARCH:CONFIRM_LAYOUT_OVERWRITE')|format(css_custom, from_label)
+                                : L_('SEARCH:CONFIRM_LAYOUT_CREATE')|format(css_custom, from_label))|e('html_attr') }}"><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-pick-css" hidden>
+            {{ FTAN }}<input type="hidden" name="op" value="stylesheet_pick">
+        </form>
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-create-css" hidden>
+            {{ FTAN }}<input type="hidden" name="op" value="layout_create"><input type="hidden" name="layout" value="css">
+        </form>
+        {% if css_custom_exists %}
+        <form method="post" action="{{ TOOL_URI }}&amp;action=layout" id="wss-del-css" hidden
+              data-confirm="{{ L_('SEARCH:CONFIRM_LAYOUT_DELETE')|format(css_custom)|e('html_attr') }}">
+            {{ FTAN }}<input type="hidden" name="op" value="layout_delete"><input type="hidden" name="layout" value="css">
+        </form>
+        {% endif %}
+    </section>
+{% endif %}
+</div>
+
+    </div>
+</section>

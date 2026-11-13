@@ -1,0 +1,8 @@
+{# Icon + title + crumb band between nav and pane — shared by both nav styles. #}
+<div class="wss-page-header">
+    {{ icon(active, 'wss-page-header-icon') }}
+    <div>
+        <h1>{{ L_('SEARCH:MENU_' ~ active|upper) }}</h1>
+        <div class="wss-crumb">{{ L_('SEARCH:CRUMB_' ~ active|upper) }}</div>
+    </div>
+</div>

@@ -1,0 +1,12 @@
+{#
+    wbce_search/twig/partials/semi_row.twig — the semi-config editor as a
+    table row of its own, placed directly below the module's row.
+    Variables: mod, semi (WbceSearchBackend::semiVars())
+
+    Served by ?action=modules&partial=semi (the "Configure" button swaps it
+    in with hx-swap="afterend"), and included by content/modules.twig for a
+    module whose editor is open after a save.
+#}
+<tr class="wss-detail" data-for="{{ mod|e('html_attr') }}">
+    <td colspan="{{ cols }}">{% include 'partials/semi_panel.twig' %}</td>
+</tr>

@@ -1,0 +1,135 @@
+/**
+ * wbce_search - assets/fe_search.css
+ * Search form + results + pagination (frontend)
+ *
+ * @module    wbce_search
+ * @author    Peter Kitzinger (Slugger)
+ * @author    Christian M. Stefan (https://www.wbEasy.de)
+ * @copyright WBCE Project (2026-)
+ * @license   GNU General Public License
+ * @platform  WBCE 1.7.0+
+ *
+ * Developed with AI assistance (Claude).
+ */
+
+/* Form */
+.ws-search { max-width: 100%; }
+.ws-form-row { display: flex; gap: .5em; flex-wrap: wrap; margin-bottom: .5em; }
+.ws-input { flex: 1 1 200px; padding: .4em .6em; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+.ws-match-row { display: flex; gap: 1em; flex-wrap: wrap; font-size: .9em; }
+.ws-match-row label { cursor: pointer; }
+
+/* Results */
+.ws-results-label { margin: 1em 0 .5em; }
+.ws-result { padding: .75em 0; border-bottom: 1px solid #eee; }
+.ws-result-first { border-top: 1px solid #eee; }
+.ws-result-title { font-weight: 600; text-decoration: none; }
+.ws-result-title:hover { text-decoration: underline; }
+.ws-result-excerpt { margin: .25em 0 0; font-size: .9em; color: #555; }
+.ws-no-results { color: #888; font-style: italic; }
+.ws-did-you-mean { margin: .5em 0; font-size: 1.05em; }
+.ws-did-you-mean a { font-weight: 600; }
+
+/* Highlight */
+mark { background: #fff3cd; color: inherit; border-radius: 2px; padding: 0 2px; }
+
+/* Pagination */
+.ws-pagination { margin: 1.5em 0 0; padding: .75em 1em; background: #f4f6f8; border-radius: 4px; }
+.ws-pages { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35em; align-items: center; }
+.ws-pages li a,
+.ws-pages li span { display: inline-block; min-width: 2em; text-align: center; padding: .35em .7em; border: 2px solid #2980b9; border-radius: 4px; text-decoration: none; color: #2980b9; background: #fff; font-size: .9em; transition: background .15s, color .15s; }
+.ws-pages li a:hover { background: #2980b9; color: #fff; }
+.ws-pages .ws-current span { background: #2980b9; color: #fff; border-color: #2980b9; font-weight: 700; }
+.ws-pages .ws-ellipsis span { border-color: transparent; background: transparent; color: #999; }
+.ws-total { margin: .5em 0 0; font-size: .85em; color: #555; }
+
+/* Buttons */
+.ws-btn { padding: .4em .9em; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+.ws-btn-primary { background: var(--ws-accent, #4a90e2); color: #fff; }
+.ws-btn-primary:hover { opacity: .9; }
+
+/* Tag cloud */
+.ws-tagcloud { margin: 1em 0 1.5em; padding: .75em 1em; background: #f8f9fa; border-radius: 6px; line-height: 2; }
+.ws-tagcloud-label { font-size: .85em; color: #888; margin-right: .5em; }
+.ws-tag { display: inline-block; margin: .15em .25em; padding: .2em .6em;
+          border-radius: 3px; text-decoration: none; color: inherit;
+          background: #e9ecef; border: 1px solid #dee2e6; transition: background .15s; }
+.ws-tag:hover { background: var(--ws-accent, #4a90e2); color: #fff; border-color: var(--ws-accent, #4a90e2); }
+.ws-tag-1 { font-size: .8em;  opacity: .7; }
+.ws-tag-2 { font-size: .9em;  opacity: .8; }
+.ws-tag-3 { font-size: 1em; }
+.ws-tag-4 { font-size: 1.15em; font-weight: 500; }
+.ws-tag-5 { font-size: 1.3em;  font-weight: 700; }
+
+/* AJAX live search dropdown: assets/fe_search_suggest.css (loaded with
+   fe_search.js on every page that has the live search, light + dark) */
+
+/* Search result with thumbnail */
+.ws-result-item { display:flex; gap:1em; align-items:flex-start; margin-bottom:1.25em; }
+.ws-result-thumb-link { flex-shrink:0; }
+.ws-result-thumb { width:80px; height:80px; object-fit:cover; border-radius:4px; display:block; }
+.ws-result-body { flex:1; min-width:0; }
+
+/* Debug box */
+.ws-debug-box { margin-top:.5em; border:1px solid #f0ad4e; border-radius:4px; font-size:.8em; }
+.ws-debug-box summary { padding:.3em .6em; background:#fef9e7; cursor:pointer; color:#8a6d3b; font-weight:600; }
+.ws-debug-box summary:hover { background:#fdebd0; }
+.ws-debug-table { width:100%; border-collapse:collapse; margin:.25em 0; }
+.ws-debug-table th { width:120px; padding:.2em .5em; text-align:left; background:#fef9e7; border:1px solid #f5e0b0; color:#8a6d3b; }
+.ws-debug-table td { padding:.2em .5em; border:1px solid #f5e0b0; word-break:break-all; font-family:monospace; }
+
+/* No results box */
+.ws-no-results-box { margin-top: 1em; }
+.ws-tips { margin-top: 1em; padding: .75em 1em; background: #f8f9fa; border-left: 3px solid #2980b9; border-radius: 2px; }
+.ws-tips-title { font-weight: bold; margin: 0 0 .5em; }
+.ws-tips ul { margin: 0; padding-left: 1.25em; }
+.ws-tips li { margin: .2em 0; font-size: .9em; }
+.ws-tips code { background: #e8e8e8; padding: .1em .3em; border-radius: 2px; font-size: .85em; }
+.ws-areas { margin-top: 1.25em; }
+.ws-areas-title { font-weight: bold; margin: 0 0 .6em; color: #333; }
+.ws-areas-list { display: flex; flex-wrap: wrap; gap: .5em; }
+.ws-area-btn { display: inline-block; padding: .4em .9em; background: #fff; color: #2980b9; border: 2px solid #2980b9; border-radius: 3px; text-decoration: none; font-size: .9em; font-weight: 500; transition: background .15s, color .15s; }
+.ws-area-btn:hover { background: #2980b9; color: #fff; }
+
+/* Advanced search */
+.ws-advanced-row { display: flex; flex-wrap: wrap; gap: .75em; margin-top: .5em; padding: .5em .75em; background: #f4f6f8; border-radius: 4px; font-size: .9em; }
+.ws-adv-label { display: flex; align-items: center; gap: .3em; cursor: pointer; color: #444; }
+.ws-adv-label input[type="checkbox"] { cursor: pointer; }
+
+/* Aufklappbare Legende */
+.ws-legend { margin-top: .5em; }
+.ws-legend-toggle { background: none; border: none; color: #2980b9; cursor: pointer; font-size: .85em; padding: .2em 0; display: flex; align-items: center; gap: .3em; }
+.ws-legend-toggle:hover { color: #1a6a9a; }
+.ws-legend-toggle .fa { transition: transform .2s; }
+.ws-legend-toggle.ws-legend-open .fa { transform: rotate(90deg); }
+.ws-legend-body { margin-top: .4em; padding: .6em .9em; background: #f4f6f8; border-left: 3px solid #2980b9; border-radius: 2px; }
+.ws-legend-table { border-collapse: collapse; font-size: .85em; }
+.ws-legend-table tr:nth-child(even) td { background: #eef1f5; }
+.ws-legend-table td { padding: .3em .75em .3em .4em; vertical-align: middle; color: #444; }
+.ws-legend-table td:first-child { color: #666; font-size: .9em; width: 40%; }
+.ws-legend-table td:last-child { white-space: nowrap; }
+.ws-legend-table code { background: #ddeeff; color: #1a5a9a; padding: .15em .4em; border-radius: 3px; font-size: .9em; border: 1px solid #b8d4f0; }
+
+/* Grouped results */
+.ws-result { padding: 1em 0; border-bottom: 1px solid #e8ecf0; }
+.ws-result:last-child { border-bottom: none; }
+.ws-result-header { margin-bottom: .35em; }
+.ws-meta-label { display: inline-block; font-size: .75em; padding: .1em .5em; background: #eef1f5; color: #555; border-radius: 3px; margin-left: .5em; vertical-align: middle; border: 1px solid #d0d5db; }
+.ws-result-sections { margin-top: .4em; display: flex; flex-direction: column; gap: .5em; }
+.ws-result-section { display: flex; gap: .75em; align-items: flex-start; padding: .35em 0; border-top: 1px solid #f0f2f5; }
+.ws-result-section:first-child { border-top: none; }
+.ws-result-thumb { flex-shrink: 0; width: 80px; }
+.ws-result-thumb img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; display: block; }
+
+/* Section item-title Direktlink */
+.ws-result-section-body { flex: 1; min-width: 0; }
+.ws-result-item-title { display: block; font-weight: 600; color: #2980b9; text-decoration: none; margin-bottom: .2em; font-size: .95em; }
+.ws-result-item-title:hover { text-decoration: underline; }
+
+/* Label-Legende */
+.ws-label-legend { margin-bottom: .75em; }
+.ws-label-legend-toggle { background: none; border: none; color: #2980b9; cursor: pointer; font-size: .85em; padding: .2em 0; display: flex; align-items: center; gap: .3em; }
+.ws-label-legend-toggle:hover { color: #1a6a9a; }
+.ws-label-legend-body { margin-top: .4em; padding: .6em .9em; background: #f4f6f8; border-left: 3px solid #2980b9; border-radius: 2px; }
+.ws-label-legend-body .ws-legend-table td { padding: .25em .6em .25em .4em; }
+.ws-label-legend-body .ws-meta-label { display: inline-block; }

@@ -1,0 +1,70 @@
+{#
+    wbce_search/twig/partials/semi_join.twig — one join slot.
+    Rendered inside semi_panel.twig and on its own when the slot's table changes.
+    Variables: mod, slot, join, jtable, join_tables, own_prefix, jcolumns, jtext, main_columns
+#}
+{% set n = 'semi[joins][' ~ slot ~ ']' %}
+<div class="wss-join">
+    <div class="wss-join-head">Join {{ slot + 1 }}</div>
+    <div class="cp-setting-row">
+        <label class="cp-setting-name">{{ L_('SEARCH:LABEL_TABLE') }}</label>
+        <div class="cp-setting-value">
+            <select name="{{ n }}[table]"
+                    hx-get="{{ TOOL_URI }}&amp;action=modules&amp;partial=join_cols&amp;mod={{ mod|url_encode }}&amp;slot={{ slot }}"
+                    hx-trigger="change" hx-target="#wss-join-{{ mod|e('html_attr') }}-{{ slot }}"
+                    hx-include="#wss-tbl-{{ mod|e('html_attr') }}" hx-disabled-elt="this">
+                <option value="">— {{ L_('SEARCH:LABEL_NO_JOIN') }} —</option>
+                {% for t in join_tables %}
+                <option value="{{ t|e('html_attr') }}"{% if t == jtable %} selected{% endif %}>{{ t|e }}</option>
+                {% endfor %}
+            </select>
+            <select name="{{ n }}[type]">
+                <option value="LEFT"{% if join.type != 'INNER' %} selected{% endif %}>LEFT JOIN</option>
+                <option value="INNER"{% if join.type == 'INNER' %} selected{% endif %}>INNER JOIN</option>
+            </select>
+        </div>
+    </div>
+    {% if jtable %}
+    <div class="cp-setting-row">
+        <label class="cp-setting-name">ON</label>
+        <div class="cp-setting-value">
+            <select name="{{ n }}[on_main]">
+                <option value="">—</option>
+                {% for c in main_columns %}<option value="{{ c|e('html_attr') }}"{% if c == join.on_main %} selected{% endif %}>{{ c|e }}</option>{% endfor %}
+            </select>
+            =
+            <select name="{{ n }}[on_join]">
+                <option value="">—</option>
+                {% for c in jcolumns %}<option value="{{ c|e('html_attr') }}"{% if c == join.on_join %} selected{% endif %}>{{ jtable|e }}.{{ c|e }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="cp-setting-row">
+        <label class="cp-setting-name">{{ L_('SEARCH:LABEL_TEXT_COLS') }}</label>
+        <div class="cp-setting-value wss-checks">
+            {% for c in jtext %}
+            <label><input type="checkbox" name="{{ n }}[fields][]" value="{{ c|e('html_attr') }}"{% if c in join.fields %} checked{% endif %}> {{ c|e }}</label>
+            {% else %}<span class="wss-muted">{{ L_('SEARCH:LABEL_NO_TEXT_COLS') }}</span>{% endfor %}
+        </div>
+    </div>
+    <div class="cp-setting-row">
+        <label class="cp-setting-name">{{ L_('SEARCH:LABEL_IMAGE_COL') }}</label>
+        <div class="cp-setting-value">
+            <select name="{{ n }}[image]">
+                <option value="">— {{ L_('SEARCH:LABEL_NONE') }} —</option>
+                {% for c in jcolumns %}<option value="{{ c|e('html_attr') }}"{% if c == join.image %} selected{% endif %}>{{ c|e }}</option>{% endfor %}
+            </select>
+            <input type="text" name="{{ n }}[image_path]" value="{{ join.image_path|e('html_attr') }}" placeholder="/path/{item_id}/">
+        </div>
+    </div>
+    <div class="cp-setting-row">
+        <label class="cp-setting-name">{{ L_('SEARCH:LABEL_LINK_COL') }}</label>
+        <div class="cp-setting-value">
+            <select name="{{ n }}[link]">
+                <option value="">— {{ L_('SEARCH:LABEL_NONE') }} —</option>
+                {% for c in jcolumns %}<option value="{{ c|e('html_attr') }}"{% if c == join.link %} selected{% endif %}>{{ c|e }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+</div>
