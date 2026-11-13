@@ -49,6 +49,7 @@ function renderPageTree($pages, $level = 1, $levelLimit = 999)
             '{MENU_TITLE}' => $page['menu_title'],
             '{PAGE_TITLE}' => $page['page_title'],
             '{PAGE_ID}' => $page['page_id'],
+            '{LANG_FLAG}' => (defined('PAGE_LANGUAGES') && PAGE_LANGUAGES) ? '<img src="'.WB_URL.'/languages/'.$page['language'].'.svg" style="width:14px" alt="'.$page['language'].'">' : '',
             '{pageIDKEY}' => $admin->getIDKEY($page['page_id']),
             '{modifySectionsURL}' => '../pages/sections.php?page_id=' . $page['page_id'],
             '{modifyPageURL}' => '../pages/modify.php?page_id=' . $page['page_id'],
@@ -87,7 +88,7 @@ function renderPageTree($pages, $level = 1, $levelLimit = 999)
                         <br/>
                         <small>{PAGE_TITLE}</small>
                     </td>
-                    <td class="id">{PAGE_ID}</td>
+                    <td class="id" style="width: 40px">{LANG_FLAG} {PAGE_ID}</td>
                     <td class="modify">
                         <?php if ($canModifyPage) { ?>
                             <a href="{modifyPageURL}" title="<?= $HEADING['MODIFY_PAGE'] ?>"><i
@@ -112,6 +113,7 @@ function renderPageTree($pages, $level = 1, $levelLimit = 999)
                         <?php } ?>
                     </td>
                     <td class="btndesk">
+                        
                         <?php if ($page['visibility'] != 'deleted' && $page['visibility'] != 'none') { ?>
                             <a href="{frontendViewURL}" target="_blank" title="<?= $TEXT['VIEW'] ?> (Frontend)"><i
                                         class="fa fa-desktop" aria-hidden="true"></i></a>

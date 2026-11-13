@@ -49,6 +49,7 @@ while ($page = $queryPages->fetchRow()) {
     $thisref['position'] = $page['position'];
     $thisref['page_id'] = $page['page_id'];
     $thisref['link'] = $page['link'];
+    $thisref['language'] = $page['language'];
 
     if ($page['parent'] == 0) {
         $pages[$page['page_id']] = &$thisref;
