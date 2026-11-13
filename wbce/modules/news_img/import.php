@@ -47,6 +47,15 @@ $section_id = intval($_POST['section_id']);
 $page_id = intval($_POST['page_id']);
 $source_id = intval($_POST['source_id']);
 
+// The target section is checked by modules/admin.php, the source was not:
+// an editor could copy posts, groups and tags from a page he may not manage,
+// also from a private one.
+if ($source_id === $section_id || !mod_nwi_may_import_from($source_id)) {
+    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], ADMIN_URL.'/pages/modify.php?page_id='.$page_id);
+    $admin->print_footer();
+    exit();
+}
+
 // find out which type we have to import
 $query_module = $database->query("SELECT `module` FROM `".TABLE_PREFIX."sections` WHERE `section_id` = '$source_id'");
 $module_type = "";

@@ -650,6 +650,21 @@ function mod_nwi_may_manage_section($section_id)
 }
 
 /**
+ * May the current user import from this section? Any importable module
+ * (news_img, classic news, topics), but only from a page the user may manage:
+ * the import copies its posts, groups and tags and renumbers its positions.
+ */
+function mod_nwi_may_import_from($section_id)
+{
+    global $database, $admin;
+    $pageId = $database->fetchValue(
+        "SELECT `page_id` FROM `{TP}sections` WHERE `section_id` = ?", [(int) $section_id]
+    );
+    return $pageId !== '' && $pageId !== null
+        && ($admin->isAdmin() || $admin->get_page_permission((int) $pageId, 'admin'));
+}
+
+/**
  * Reads the serialized target {s: section, g: group, p: page} that the group
  * select posts (copy/move/assign group, save_post). Returns null when there
  * is no target ('p' = 0, i.e. "no group" in the current section), false when

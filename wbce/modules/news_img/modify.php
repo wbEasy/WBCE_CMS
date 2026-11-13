@@ -122,6 +122,16 @@ if (!is_array($posts) || count($posts)<1) {
                 }
             }
         }
+
+        // offer only sources the user may manage; import.php checks the same
+        $mayImport = function ($source) { return mod_nwi_may_import_from($source['section_id']); };
+        $nwi_sections  = array_values(array_filter($nwi_sections, $mayImport));
+        $news_sections = array_values(array_filter($news_sections, $mayImport));
+        foreach ($topics_sections as $name => $list) {
+            $topics_sections[$name] = array_values(array_filter($list, $mayImport));
+        }
+        $importable_sections = count($nwi_sections) + count($news_sections)
+            + array_sum(array_map('count', $topics_sections));
     }
 }
 

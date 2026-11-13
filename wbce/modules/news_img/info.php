@@ -16,7 +16,7 @@
 $module_directory   = 'news_img';
 $module_name        = 'News with Images';
 $module_function    = 'page';
-$module_version     = '5.0.37';
+$module_version     = '5.0.38';
 $module_platform    = '1.7.0';
 $module_author      = 'Ryan Djurovich, Rob Smith, Silvia Reins, Martin Hecht, Florian Meerwinck, Bianka Martinovic, Slugger';
 $module_license     = 'GNU General Public License';
@@ -24,6 +24,13 @@ $module_description = 'This page module is designed for making a news page with 
 
 /**
  * CHANGE LOG
+ *
+ * v5.0.38 - 2026/11/13
+ *         - Beachbone (report), Christian M. Stefan
+ *         * import: the source section must be on a page the user may
+ *           manage; before, an editor could copy posts, groups and tags
+ *           from any news section, also on a private page, and renumber
+ *           its positions. The import list offers only such sections.
  *
  * v5.0.37 - 2026/11/12
  *         - Christian M. Stefan
