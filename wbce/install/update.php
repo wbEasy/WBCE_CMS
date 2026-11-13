@@ -64,14 +64,34 @@ if ($langCode !== 'EN') {
 function check_wb_tables(): array
 {
     global $database, $table_list;
-    $search_for = addcslashes(TABLE_PREFIX, '%_');
-    $result     = $database->query('SHOW TABLES LIKE ?', [$search_for . '%']);
-    $found      = [];
-    while ($row = $result->fetchRow()) {
-        $name = substr($row[0], strlen(TABLE_PREFIX));
-        if (in_array($name, $table_list)) $found[] = $name;
+    // listTables(), not SHOW TABLES LIKE: that fails on SQLite, the list stays
+    // empty and every core module runs install.php instead of upgrade.php.
+    $found = [];
+    foreach ($database->listTables(TABLE_PREFIX) as $table) {
+        $name = substr($table, strlen(TABLE_PREFIX));
+        if (in_array($name, $table_list, true)) $found[] = $name;
     }
     return $found;
+}
+
+/**
+ * True only if $path exists below WB_PATH with exactly this spelling.
+ * On case-insensitive file systems (Windows, macOS) is_dir() finds
+ * include/PHPMailer/ for the entry include/phpmailer/ — the removal
+ * would delete the library that was just uploaded.
+ */
+function pathExistsExactCase(string $path): bool
+{
+    $base = str_replace('\\', '/', WB_PATH);
+    $rel  = trim(substr(str_replace('\\', '/', $path), strlen($base)), '/');
+    $dir  = $base;
+    foreach (explode('/', $rel) as $part) {
+        if ($part === '') continue;
+        $entries = @scandir($dir);
+        if ($entries === false || !in_array($part, $entries, true)) return false;
+        $dir .= '/' . $part;
+    }
+    return true;
 }
 // ── Decide which phase to show ────────────────────────────────────────────────
 
@@ -635,6 +655,9 @@ $removedFiles = $removedDirs = $failedRemove = 0;
 
 foreach ($itemsToRemove as $item) {
     $path = WB_PATH . strtr($item, $pathMap);
+
+    // exact spelling only — see pathExistsExactCase()
+    if (!pathExistsExactCase($path)) continue;
 
     if (function_exists('removePath')) {
         $signal = removePath($path, false);
