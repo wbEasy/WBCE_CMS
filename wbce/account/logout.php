@@ -13,10 +13,6 @@
 defined('FRONTEND_CONTEXT') or define('FRONTEND_CONTEXT', true);
 require_once dirname(__DIR__) . '/config.php';
 
-if (isset($_COOKIE['REMEMBER_KEY'])) {
-    setcookie('REMEMBER_KEY', '', time() - 3600, '/');
-}
-
 // unset the session data
 $_SESSION['USER_ID'] = null;
 $_SESSION['GROUP_ID'] = null;

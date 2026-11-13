@@ -58,7 +58,6 @@ $oLogin = new Login(
         "WARNING_URL" => ACCOUNT_URL . '/login_warning.php',
         "USERNAME_FIELDNAME" => 'username',
         "PASSWORD_FIELDNAME" => 'password',
-        "REMEMBER_ME_OPTION" => SMART_LOGIN,
         "MIN_USERNAME_LEN" => "2",
         "MIN_PASSWORD_LEN" => "3",
         "MAX_USERNAME_LEN" => "30",
