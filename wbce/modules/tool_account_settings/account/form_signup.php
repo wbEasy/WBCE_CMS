@@ -151,9 +151,12 @@ if(isset($_POST['signup_form_sent'])){
         $sEmailSubject     = '';
         $sErrorMessage     = $TEXT['ERROR']; //$MESSAGE['GENERIC_ISSUE_MESSAGE'];	
         $sConfirmTimeout   = (string)(time() + 86400); // now + 24hours
-        $sConfirmCode      = md5(md5($sUsername.$sConfirmTimeout).$sConfirmTimeout);
+        // Both random and independent of each other: the code (in both links)
+        // must not be guessable from username and time, and the checksum (only
+        // in the manager's approval link) must not be derivable from the code.
+        $sConfirmCode      = bin2hex(random_bytes(16));
         $sConfirmationUrl  = ACCOUNT_URL.'/confirm.php?id='.$sConfirmCode.'&lc='.$sLC;
-        $sCheckSum         = substr(md5($sConfirmCode), 0, 10);
+        $sCheckSum         = bin2hex(random_bytes(5));
 
         // Template token replacement array (will be added to down the code)
         $aTokenReplace = array( 
@@ -166,7 +169,9 @@ if(isset($_POST['signup_form_sent'])){
             'LOGIN_EMAIL'          => $email,
             'SUPPORT_EMAIL'        => $oAccounts->cfg['support_email'],
             'APPROVAL_LINK'        => $oAccounts->genEmailLinkFromUrl($sConfirmationUrl.'&mng=1&sum='.$sCheckSum),
-            'CONFIRMATION_LINK'    => $oAccounts->genEmailLinkFromUrl($sConfirmationUrl.'&mng=0&sum='.$sCheckSum),
+            // the applicant's link carries no checksum: with it, mng=0 -> mng=1
+            // turned the confirmation into the manager's approval
+            'CONFIRMATION_LINK'    => $oAccounts->genEmailLinkFromUrl($sConfirmationUrl.'&mng=0'),
             'CONFIRMATION_TIMEOUT' => date("Y-m-d H:i:s", $sConfirmTimeout), 
             'LOGIN_URL'            => ACCOUNT_URL . '/login.php'
         );	

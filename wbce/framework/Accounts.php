@@ -370,7 +370,8 @@ class Accounts extends Frontend
      */
     public function userIdFromConfirmcode(string $confirmCode): mixed
     {
-        if (!preg_match('/[0-9a-f]{32}/i', $confirmCode)) {
+        // anchored: the whole id must be the 32-hex code, not merely contain one
+        if (!preg_match('/^[0-9a-f]{32}$/i', $confirmCode)) {
             return false;
         }
         return $this->db->fetchValue(
@@ -386,7 +387,8 @@ class Accounts extends Frontend
             'SELECT `signup_checksum` FROM `{TP}users` WHERE `user_id` = ?',
             [$userId]
         );
-        return $dbChecksum == $checksum;
+        // constant-time, and never true for an empty checksum ('' == '')
+        return $checksum !== '' && is_string($dbChecksum) && hash_equals($dbChecksum, $checksum);
     }
 
     /** Generate a random 13-character password from a safe character set. */
