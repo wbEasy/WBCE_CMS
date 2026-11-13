@@ -9,7 +9,7 @@
     --ws-text:             #eef2f6;
     --ws-text-muted:       #9aa8b5;
     --ws-text-dim:         #7c8b99b0;
-    --ws-accent:           #2076c8;
+    --ws-accent:           #8a9ab3;
     --ws-accent-hover:     #2f87d8;
     --ws-accent-subtle:    rgba(32, 118, 200, 0.18);
     --ws-success:          #10b981;
@@ -749,6 +749,30 @@
     height: 28px;
     margin-top: 6px;
 }
+/* Single-line options (no data-subtitle): the 28px icon above is sized
+   for title + subtitle rows; one line gets a smaller icon, centred. */
+.cfg-visibility .ws-opts .ws-opt:not(:has(.ws-opt-sub)) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cfg-visibility .ws-opts .ws-opt:not(:has(.ws-opt-sub)) .ws-opt-l {
+    float: none;
+    flex: 0 0 20px;
+    display: flex;
+    justify-content: center;
+}
+.cfg-visibility .ws-opts .ws-opt:not(:has(.ws-opt-sub)) .ws-opt-l img {
+    height: 20px;
+    margin-top: 0;
+}
+.cfg-visibility .ws-opts .ws-opt:not(:has(.ws-opt-sub)) .ws-opt-ttl {
+    margin-left: 0;
+}
+/* The icons are shapes, not photos — rounding only clips them */
+.cfg-visibility .ws-tags .ws-tag .ws-tag-l img {
+    border-radius: 0;
+}
 .cfg-visibility .ws-opts .ws-opt .ws-opt-ttl, 
 .cfg-target .ws-opts .ws-opt .ws-opt-ttl, 
 .cfg-visibility .ws-opts .ws-opt .ws-opt-sub {
@@ -868,7 +892,11 @@
     letter-spacing: 0.04em;
     background-color: var(--ws-accent) !important;
     color: #fff !important;
-    padding: 3px 0 !important;
+    /* side padding as in the option list, so codes longer than two
+       characters (d.m.Y, utf-8) don't touch the badge edge; min-width
+       keeps 2-letter codes and short ids at their old size */
+    padding: 3px 6px !important;
+    box-sizing: border-box;
     border-radius: 4px !important;
     margin-top: 0px;
     min-width: 30px;
