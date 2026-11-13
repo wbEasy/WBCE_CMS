@@ -381,6 +381,28 @@ nav.cp-subtabs .pull-right { margin-left: auto; }
     color: inherit;    
 }
 
+/* Plain-text action in the heading (e.g. "Show advanced options »"):
+   no button chrome, reads like a link */
+.cp-card-head .cp-head-link {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0 0 0 auto;
+    font: inherit;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+    color: inherit;
+    opacity: .75;
+    cursor: pointer;
+}
+.cp-card-head .cp-head-link:hover,
+.cp-card-head .cp-head-link:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+}
+
 /* Close / pull-right link in heading */
 .pull-right,
 .cp-card-close {
@@ -534,6 +556,93 @@ label.cp-required::after,
     font-size: .72rem;
     min-height: 1em;
     line-height: 1.4;
+}
+
+/* The display rules above (grid/flex) would otherwise beat the
+   [hidden] attribute that scripts use to show and hide rows/cards. */
+.cp-settings[hidden],
+.cp-setting-row[hidden] {
+    display: none;
+}
+
+/* Field error (set by script after a failed save) */
+.cp-setting-error {
+    font-size: .72rem;
+    line-height: 1.4;
+    color: var(--danger);
+}
+.cp-setting-row.has-error input,
+.cp-setting-row.has-error select,
+.cp-setting-row.has-error textarea {
+    border-color: var(--danger);
+}
+
+/* Text input across the whole value column */
+/* [type] in the selector: it must out-rank ".cp-toggle-section
+   input[type="text"]" further down, which caps inputs at 300px */
+.cp-setting-value input[type="text"].cp-full {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+}
+
+/* Monospace fields (title, description, keywords: lengths readable at a
+   glance). [type] for the same reason as .cp-full above. */
+.cp-setting-value input[type="text"].cp-mono,
+.cp-setting-value textarea.cp-mono {
+    font-family: var(--font-mono);
+}
+
+/* Character counter, right-aligned under its field */
+.cp-counter {
+    align-self: flex-end;
+    font-family: var(--font-mono);   /* digits keep their width while typing */
+    font-size: .72rem;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.cp-counter.is-good { color: var(--success); }
+.cp-counter.is-bad  { color: var(--danger); }
+
+/* Code fields (CodeMirror_Config without toolbar) look like the other
+   fields: same frame, same minimum height as a 3-row textarea */
+.cp-setting-value .CodeMirror {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+}
+.cp-setting-value .CodeMirror-scroll {
+    min-height: 3.6em;
+}
+.cp-setting-value .CodeMirror-lines {
+    padding: 5px 4px;
+}
+.cp-setting-value .CodeMirror-focused {
+    /* as input/textarea:focus below */
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-s);
+}
+
+/* Code-ish textareas (HTML snippets) */
+textarea.cp-code {
+    font-family: var(--font-mono);
+    font-size: .8rem;
+}
+
+/* r/w/x × user/group/others grid */
+table.cp-filemode {
+    width: auto;
+    border-collapse: collapse;
+}
+table.cp-filemode th,
+table.cp-filemode td {
+    padding: .15rem .7rem;
+    text-align: center;
+    font-size: .75rem;
+}
+table.cp-filemode tbody th {
+    text-align: left;
+    font-weight: 600;
 }
 
 

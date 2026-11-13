@@ -1,474 +1,176 @@
 {#
-    settings.twig — CMS Settings page
-    
-    Sections are collapsible cards. Advanced fields are hidden until
-    the user clicks "Show Advanced" (htmx-verified). Boolean settings
-    use switch widgets. Save is htmx — no page reload.
+    settings.twig — the CMS settings page (admin/settings/index.php)
+
+    Built entirely from SECTIONS (SettingsForm::view()): one card per
+    registry section, one row per field the user may see. Behaviour lives in
+    admin/settings/settings.js:
+      - submit → fetch save.php, toast + errors at the fields, no reload
+      - [data-advanced] rows only while "show advanced" is on (remembered);
+        the switch sits in every card head, the clicked card stays in place
+      - [data-depends] rows only while the named field has the given value
+      - the test mail button saves pending changes first
+
+    Every switch and checkbox group posts a hidden "off" value first, so an
+    unchecked box still reaches save.php — a field absent from the POST is
+    left unchanged.
+
+    The backend's Twig runs WITHOUT autoescape (TwigLoader.php): every
+    stored value printed here needs an explicit |e.
 #}
 
-{# ======================== #}
-{#   FIELD WIDGET MACROS    #}
-{# ======================== #}
-{% macro switch_field(name, value, label_on, label_off) %}
-    <input type="checkbox" switch="bool" name="{{ name }}" id="{{ name }}"
-           value="true"{% if value == 'true' or value == '1' or value == true %} checked{% endif %}>
-    <label for="{{ name }}" class="labeled"
-           data-on-label="{{ label_on|default('On') }}"
-           data-off-label="{{ label_off|default('Off') }}"></label>
-{% endmacro %}
-
-{% macro text_field(name, value, counter) %}
-    <input type="text" name="{{ name }}" id="{{ name }}" value="{{ value }}" class="wdt500"
-           {% if counter %}maxlength="{{ counter }}"{% endif %}>
-    {% if counter %}<small class="char-counter">{{ value|length }}/{{ counter }}</small>{% endif %}
-{% endmacro %}
-
-{% macro textarea_field(name, value, counter) %}
-    <textarea name="{{ name }}" id="{{ name }}" class="wdt500" rows="3"
-              {% if counter %}maxlength="{{ counter }}"{% endif %}>{{ value }}</textarea>
-    {% if counter %}<small class="char-counter">{{ value|length }}/{{ counter }}</small>{% endif %}
-{% endmacro %}
-
-{% macro number_field(name, value) %}
-    <input type="number" name="{{ name }}" id="{{ name }}" value="{{ value }}" class="wdt100">
-{% endmacro %}
-
-{% macro password_field(name, value) %}
-    <input type="password" name="{{ name }}" id="{{ name }}" value="{{ value }}" class="wdt500" autocomplete="new-password">
-{% endmacro %}
-
-{% macro select_field(name, value, opts) %}
-    <select name="{{ name }}" id="{{ name }}" class="wdt250">
-        {% for opt in opts %}
-            {% set optVal  = opt.value is defined ? opt.value : (opt.VALUE is defined ? opt.VALUE : opt.directory|default('')) %}
-            {% set optName = opt.name is defined ? opt.name : (opt.NAME is defined ? opt.NAME : opt.directory|default('')) %}
-            <option value="{{ optVal }}"{% if optVal == value %} selected{% endif %}>{{ optName }}</option>
-        {% endfor %}
-    </select>
-{% endmacro %}
-
-{% macro hint_text(text) %}
-    {% if text %}<div class="cp-setting-hint">{{ L_(text) }}</div>{% endif %}
-{% endmacro %}
-
-{# === Import macros for use below ========================================== #}
-{% import _self as field %}
-
-<h2 class="page_titel">{{ L_('HEADING:SETTINGS') }}</h2>
-
-<div id="message-area">{{ MESSAGE_BOX|raw }}</div>
-{% if is_advanced %}
-<button type="button" class="button" id="btn-show-advanced"
-        hx-get="{{ ADMIN_URL }}/settings/advanced.php"
-        hx-target="#advanced-script-target"
-        hx-swap="innerHTML"
-        style="margin-bottom:1em;">
-    <i class="fa fa-cogs"></i> {{ L_('TEXT:SHOW_ADVANCED') }}
-</button>
-<button type="button" class="button" id="btn-hide-advanced" style="display:none; margin-bottom:1em;"
-        onclick="document.querySelectorAll('.advanced-setting').forEach(function(el){el.style.display='none'}); this.style.display='none'; document.getElementById('btn-show-advanced').style.display='';">
-    <i class="fa fa-cogs"></i> {{ L_('TEXT:HIDE_ADVANCED') }}
-</button>
-<div id="advanced-script-target"></div>
-{% endif %}
-
-<form name="settings" method="post"
-      hx-post="{{ ADMIN_URL }}/settings/save.php"
-      hx-target="#message-area"
-      hx-swap="innerHTML"
-      hx-indicator="#settings-save-indicator">
-    {{ FTAN }}
-    <input type="hidden" name="default_language" value="{{ cfg.default_language }}">
-
-    {# ==== SECTION: Website & SEO ======================================= #}
-    {% set sec = 'website' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-globe"></i> {{ L_('HEADING:GENERAL_SETTINGS') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'bool' %}
-                                {{ field.switch_field(key, cfg[key], L_('TEXT:ENABLED'), L_('TEXT:DISABLED')) }}
-                            {% elseif def.type == 'text' %}
-                                {{ field.text_field(key, cfg[key], def.counter|default(0)) }}
-                            {% elseif def.type == 'textarea' or def.type == 'html' %}
-                                {{ field.textarea_field(key, cfg[key], def.counter|default(0)) }}
-                            {% elseif def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                            {% elseif def.type == 'number' %}
-                                {{ field.number_field(key, cfg[key]) }}
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="cp-buttons-row">
-                    <span id="settings-save-indicator" class="htmx-indicator pos-right"><i class="fa fa-spinner fa-spin"></i></span>
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
+{% macro field(name, f) %}
+    {% set id = 'set_' ~ name %}
+    {% if f.type == 'bool' %}
+        <input type="hidden" name="{{ name }}" value="{{ f.values[1]|e }}">
+        <span>
+            <input type="checkbox" switch="bool" name="{{ name }}" id="{{ id }}"
+                   value="{{ f.values[0]|e }}"{% if f.value == f.values[0] %} checked{% endif %}>
+            <label for="{{ id }}" class="labeled"
+                   data-on-label="{{ L_('TEXT:ENABLED')|e }}"
+                   data-off-label="{{ L_('TEXT:DISABLED')|e }}"></label>
+        </span>
+    {% elseif f.type == 'select' or f.type == 'timezone' %}
+        {# wbeSelect (settings.js) — data-ws: its options from the registry #}
+        <select name="{{ name }}" id="{{ id }}" class="ws-select"
+                data-ws="{{ (f.widget ?? {})|json_encode|e }}"
+                data-search-label="{{ L_('TEXT:SEARCH')|e }} &hellip;">
+            {% for c in f.choices %}
+                <option value="{{ c.value|e }}"
+                    {%- if c.right is defined %} data-right="{{ c.right|e }}"{% endif %}
+                    {%- if c.left is defined %} data-left="{{ c.left|e }}"{% endif %}
+                    {%- if c.value == f.value %} selected{% endif %}>{{ c.label|e }}</option>
+            {% endfor %}
+        </select>
+    {% elseif f.type == 'radio' %}
+        {# segmented control (cp_chrome.css); the first segment carries the
+           id the row label points to #}
+        <div class="radio-switch-group">
+            {% for value, label in f.options %}
+                {% set rid = loop.first ? id : id ~ '_' ~ value %}
+                <input type="radio" class="switch-radio" name="{{ name }}" id="{{ rid|e }}" value="{{ value|e }}"{% if value ~ '' == f.value %} checked{% endif %}><label for="{{ rid|e }}">{{ label|e }}</label>
+            {% endfor %}
         </div>
-    </div>
-
-    {# ==== SECTION: Pages & Content ====================================== #}
-    {% set sec = 'pages' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-sitemap"></i> {{ L_('MENU:PAGES') }} & {{ L_('TEXT:CONTENT') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'bool' %}
-                                {{ field.switch_field(key, cfg[key], L_('TEXT:ENABLED'), L_('TEXT:DISABLED')) }}
-                            {% elseif def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                            {% elseif def.type == 'number' %}
-                                {{ field.number_field(key, cfg[key]) }}
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
+    {% elseif f.type == 'number' %}
+        <input type="number" name="{{ name }}" id="{{ id }}" value="{{ f.value|e }}"
+               {% if f.min is defined %}min="{{ f.min }}"{% endif %} {% if f.max is defined %}max="{{ f.max }}"{% endif %}>
+    {% elseif f.type == 'password' %}
+        <input type="password" name="{{ name }}" id="{{ id }}" value="" autocomplete="new-password"
+               placeholder="{{ f.is_set ? '••••••••' : '' }}">
+    {% elseif f.type == 'textarea' %}
+        <textarea name="{{ name }}" id="{{ id }}" rows="3"{% if f.mono ?? false %} class="cp-mono"{% endif %}>{{ f.value|e }}</textarea>
+    {% elseif f.type == 'html' %}
+        {# |e matters here most: a "</textarea>" in the stored HTML would
+           otherwise end the field and spill into the page #}
+        <textarea name="{{ name }}" id="{{ id }}" rows="4" spellcheck="false" class="cp-code">{{ f.value|e }}</textarea>
+    {% elseif f.type == 'filemode' %}
+        <input type="hidden" name="{{ name }}[]" value="">
+        <table class="cp-filemode" id="{{ id }}">
+            <thead>
+                <tr><th></th><th>{{ L_('TEXT:USER') }}</th><th>{{ L_('TEXT:GROUP') }}</th><th>{{ L_('TEXT:OTHERS') }}</th></tr>
+            </thead>
+            <tbody>
+                {% for perm, permLabel in {'r': 'TEXT:READ', 'w': 'TEXT:WRITE', 'e': 'TEXT:EXECUTE'} %}
+                    <tr>
+                        <th>{{ L_(permLabel) }}</th>
+                        {% for who in ['u', 'g', 'o'] %}
+                            <td><input type="checkbox" name="{{ name }}[]" value="{{ who }}_{{ perm }}"
+                                       {% if (who ~ '_' ~ perm) in f.bits %} checked{% endif %}></td>
+                        {% endfor %}
+                    </tr>
                 {% endfor %}
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
+            </tbody>
+        </table>
+    {% else %}
+        {% set cls = [(f.wide ?? false) ? 'cp-full', (f.mono ?? false) ? 'cp-mono']|filter(c => c) %}
+        <input type="text" name="{{ name }}" id="{{ id }}" value="{{ f.value|e }}"{% if cls %} class="{{ cls|join(' ') }}"{% endif %}>
+    {% endif %}
+    {% if f.counter is defined %}
+        {# filled by settings.js; limits from wbSeoTool's seo_cfg #}
+        <div class="cp-counter" data-for="{{ id }}"
+             data-min="{{ f.counter.min }}" data-optimum="{{ f.counter.optimum }}"
+             data-remaining="{{ f.counter.remaining ? 1 : 0 }}"></div>
+    {% endif %}
+{% endmacro %}
+{% import _self as settings %}
 
-    {# ===== SECTION: Frontend & Login ===================================== #}
-    {% set sec = 'frontend' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-sign-in"></i> Frontend & {{ L_('TEXT:LOGIN') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}
-                         {% if def.depends_on is defined and def.depends_on == 'frontend_login' %}
-                            id="row-{{ key }}"{% if cfg.frontend_login != 'true' %} style="display:none"{% endif %}
-                         {% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'bool' %}
-                                {{ field.switch_field(key, cfg[key], L_('TEXT:ENABLED'), L_('TEXT:DISABLED')) }}
-                            {% elseif def.type == 'select' %}
-                                {% if key == 'frontend_signup' %}
-                                    <select name="{{ key }}" id="{{ key }}" class="wdt250">
-                                        <option value="false"{% if cfg[key] == 'false' or cfg[key] == '' %} selected{% endif %}>{{ L_('TEXT:DISABLED') }}</option>
-                                        {% for group in options[key] %}
-                                            <option value="{{ group.id }}"{% if group.id == cfg[key] %} selected{% endif %}>{{ group.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                {% else %}
-                                    {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                                {% endif %}
-                            {% elseif def.type == 'number' %}
-                                {{ field.number_field(key, cfg[key]) }}
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
+<section class="cp-main" id="wbce-settings">
+    <div class="cp-pageinfo"></div>
+    <div id="message-area">{{ MESSAGE_BOX|raw }}</div>
+    <nav class="cp-tabs tabs-right">
+        <ul>
+            <li class="area-title">{{ L_('MENU:SETTINGS') }}</li>
+        </ul>
+    </nav>
+    <div class="cp-pane-inlay">
+        <noscript><div class="alert alert-danger">JavaScript is required to save the settings.</div></noscript>
 
-    {# ==== SECTION: Defaults  ======================================== #}
-    {% set sec = 'defaults' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-sliders"></i> {{ L_('HEADING:DEFAULT_SETTINGS') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
+        <form id="settings-form" method="post" action="{{ SAVE_URL|e }}" novalidate
+              data-label-show="{{ L_('TEXT:SHOW_ADVANCED')|e }}"
+              data-label-hide="{{ L_('TEXT:HIDE_ADVANCED')|e }}"
+              data-testmail-url="{{ TESTMAIL_URL|e }}"
+              data-msg-error="{{ L_('TEXT:ERROR')|e }}"
+              data-counter-left="{{ L_('MESSAGE:SETTINGS_COUNTER_LEFT')|e }}"
+              data-counter-over="{{ L_('MESSAGE:SETTINGS_COUNTER_OVER')|e }}">
+            <input type="hidden" name="settings_token" value="{{ TOKEN|e }}">
 
-    {# ==== SECTION: Appearance =========================================== #}
-    {% set sec = 'appearance' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-paint-brush"></i> {{ L_('HEADING:DEFAULT_SETTINGS') }} — {{ L_('TEXT:TEMPLATE') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'bool' %}
-                                {{ field.switch_field(key, cfg[key], L_('TEXT:ENABLED'), L_('TEXT:DISABLED')) }}
-                            {% elseif def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    {# ==== SECTION: Server & Security =================================== #}
-    {% set sec = 'server' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-server"></i> {{ L_('HEADING:SERVER_SETTINGS') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% set is_sa  = (def.level == 'superadmin') %}
-                    {% if (not is_adv and not is_sa) or (is_adv and is_advanced) or (is_sa and is_superadmin) %}
-
-                    {# Skip computed fields — they're rendered as the permission grid below #}
-                    {% if def.type != 'computed' %}
-                    <div class="cp-setting-row{% if is_adv or is_sa %} advanced-setting{% endif %}"{% if is_adv or is_sa %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'text' %}
-                                {{ field.text_field(key, cfg[key], 0) }}
-                            {% elseif def.type == 'radio' and key == 'operating_system' %}
-                                <label><input type="radio" name="{{ key }}" value="linux"{% if cfg[key] == 'linux' %} checked{% endif %}> Linux / Unix</label>
-                                <label><input type="radio" name="{{ key }}" value="windows"{% if cfg[key] == 'windows' %} checked{% endif %}> Windows</label>
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% endif %}
-                {% endfor %}
-
-                {# File permission grid — superadmin only #}
-                {% if is_superadmin %}
-                <div class="advanced-setting" style="display:none">
-                    <div class="cp-setting-row">
-                        <label class="cp-setting-name">{{ L_('TEXT:FILESYSTEM_PERMISSIONS') }}</label>
-                        <div class="cp-setting-value">
-                            <table class="perm-grid" style="font-size:0.9em;">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th colspan="3"><b>{{ L_('TEXT:FILES') }}: <span id="string-file-mode">{{ cfg.string_file_mode }}</span></b></th>
-                                        <th colspan="3"><b>{{ L_('TEXT:DIRECTORIES') }}: <span id="string-dir-mode">{{ cfg.string_dir_mode }}</span></b></th>
-                                    </tr>
-                                    <tr>
-                                        <th></th>
-                                        <th>{{ L_('TEXT:USER') }}</th><th>{{ L_('TEXT:GROUP') }}</th><th>{{ L_('TEXT:OTHERS') }}</th>
-                                        <th>{{ L_('TEXT:USER') }}</th><th>{{ L_('TEXT:GROUP') }}</th><th>{{ L_('TEXT:OTHERS') }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for perm in ['r', 'w', 'e'] %}
-                                    {% set permLabel = (perm == 'r') ? 'TEXT:READ' : ((perm == 'w') ? 'TEXT:WRITE' : 'TEXT:EXECUTE') %}
-                                    <tr>
-                                        <td>{{ L_(permLabel) }}</td>
-                                        {% for who in ['u', 'g', 'o'] %}
-                                            <td style="text-align:center"><input type="checkbox" name="file_{{ who }}_{{ perm }}" value="true"{% if perm_grid['file_' ~ who ~ '_' ~ perm] %} checked{% endif %}></td>
-                                        {% endfor %}
-                                        {% for who in ['u', 'g', 'o'] %}
-                                            <td style="text-align:center"><input type="checkbox" name="dir_{{ who }}_{{ perm }}" value="true"{% if perm_grid['dir_' ~ who ~ '_' ~ perm] %} checked{% endif %}></td>
-                                        {% endfor %}
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    {# ==== SECTION: Email / Mailer  ======================================= #}
-    {% set sec = 'mailer' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-envelope"></i> {{ L_('HEADING:WBMAILER_SETTINGS') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_smtp_dep = (def.depends_on is defined and def.depends_on == 'smtp') %}
-                    <div class="cp-setting-row{% if is_smtp_dep %} smtp-setting{% endif %}"
-                         {% if is_smtp_dep and cfg.wbmailer_routine != 'smtp' %}style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'bool' %}
-                                {{ field.switch_field(key, cfg[key], L_('TEXT:ENABLED'), L_('TEXT:DISABLED')) }}
-                            {% elseif def.type == 'text' %}
-                                {{ field.text_field(key, cfg[key], 0) }}
-                            {% elseif def.type == 'number' %}
-                                {{ field.number_field(key, cfg[key]) }}
-                            {% elseif def.type == 'password' %}
-                                {{ field.password_field(key, cfg[key]) }}
-                            {% elseif def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
-                            {% elseif def.type == 'radio' and key == 'wbmailer_routine' %}
-                                <label><input type="radio" name="{{ key }}" value="phpmail"{% if cfg[key] != 'smtp' %} checked{% endif %}
-                                       onchange="document.querySelectorAll('.smtp-setting').forEach(function(el){el.style.display='none'})"> PHP Mail</label>
-                                <label><input type="radio" name="{{ key }}" value="smtp"{% if cfg[key] == 'smtp' %} checked{% endif %}
-                                       onchange="document.querySelectorAll('.smtp-setting').forEach(function(el){el.style.display=''})"> SMTP</label>
-                            {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
-                        </div>
-                    </div>
-                {% endfor %}
-
-                {# Testmail button #}
-                <div class="cp-setting-row">
-                    <label class="cp-setting-name"></label>
-                    <div class="cp-setting-value">
-                        <button type="button" class="button"
-                                hx-post="{{ ADMIN_URL }}/settings/send_testmail.php"
-                                hx-target="#testmail-result"
-                                hx-swap="innerHTML"
-                                hx-include="[name='server_email']"
-                                hx-indicator="#testmail-spinner">
-                            <i class="fa fa-paper-plane"></i> {{ L_('TEXT:BUTTON_SEND_TESTMAIL') }}
+            {% for key, section in SECTIONS %}
+            <div class="cp-settings" id="{{ key }}">
+                <div class="cp-toggle-section">
+                    <div class="cp-card-head">
+                        <label><i class="fa {{ section.icon }}"></i> {{ L_(section.heading) }}</label>
+                        {% if IS_ADVANCED %}
+                        {# one state for all cards; each card carries the switch #}
+                        <button type="button" class="cp-head-link pull-right settings-advanced-toggle">
+                            <span>{{ L_('TEXT:SHOW_ADVANCED') }} &raquo;</span>
                         </button>
-                        <span id="testmail-spinner" class="htmx-indicator pos-right"><i class="fa fa-spinner fa-spin"></i></span>
-                        <span id="testmail-result" style="margin-left:0.5em;"></span>
-                        {{ field.hint_text(L_('TEXT:SEND_TESTMAIL')|default('')) }}
+                        {% endif %}
                     </div>
-                </div>
-
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    {# ==== SECTION: Search  =============================================== #}
-    {% set sec = 'search' %}
-    <div class="cp-settings">
-        <div class="cp-toggle-section cp-toggle-section-closed">
-            <div class="cp-card-head">
-                <label><i class="fa fa-search"></i> {{ L_('HEADING:SEARCH_SETTINGS') }}
-                    <input type="checkbox" class="toggle-section">
-                </label>
-            </div>
-            <section>
-                {% for key, def in registry[sec] %}
-                    {% set is_adv = (def.level != 'basic') %}
-                    {% if not is_adv or is_advanced %}
-                    <div class="cp-setting-row{% if is_adv %} advanced-setting{% endif %}"{% if is_adv %} style="display:none"{% endif %}>
-                        <label class="cp-setting-name" for="{{ key }}">{{ L_(def.label) }}</label>
-                        <div class="cp-setting-value">
-                            {% if def.type == 'text' %}
-                                {{ field.text_field(key, cfg[key], 0) }}
-                            {% elseif def.type == 'number' %}
-                                {{ field.number_field(key, cfg[key]) }}
-                            {% elseif def.type == 'textarea' %}
-                                {{ field.textarea_field(key, cfg[key], 0) }}
-                            {% elseif def.type == 'select' %}
-                                {{ field.select_field(key, cfg[key], options[key]|default([])) }}
+                    <section>
+                        {% if key == 'mailer' %}
+                            {% if MAIL_OVERRIDE %}
+                            <div class="cp-setting-row wide"><div class="alert alert-warning">{{ L_('HEADING:WBMAILER_CFG_OVERRIDE_HINT')|raw }}</div></div>
                             {% endif %}
-                            {{ field.hint_text(def.hint|default('')) }}
+                            <div class="cp-setting-row wide"><div class="cp-setting-hint">{{ L_('TEXT:WBMAILER_DEFAULT_SETTINGS_NOTICE')|raw }}</div></div>
+                        {% endif %}
+
+                        {% for name, f in section.fields %}
+                        <div class="cp-setting-row" data-field="{{ name }}"
+                             {% if f.advanced %}data-advanced{% endif %}
+                             {% if f.depends is defined %}data-depends="{{ f.depends[0]|e }}" data-depends-value="{{ f.depends[1]|e }}"{% endif %}>
+                            <label class="cp-setting-name" for="set_{{ name }}">{{ L_(f.label) }}</label>
+                            <div class="cp-setting-value">
+                                {{ settings.field(name, f) }}
+                                {% if f.hint is defined %}
+                                    {# plain text — e.g. "<meta:description>" must show as written #}
+                                    <div class="cp-setting-hint">{{ f.hint|e }}</div>
+                                {% endif %}
+                                {% if name == 'search' and SEARCH_TOOL_URL %}
+                                    <div class="cp-setting-hint"><a href="{{ SEARCH_TOOL_URL|e }}"><i class="fa fa-search"></i> {{ SEARCH_TOOL_NAME|e }} &raquo;</a></div>
+                                {% endif %}
+                                <div class="cp-setting-error" hidden></div>
+                            </div>
                         </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="cp-buttons-row">
-                    <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
+                        {% endfor %}
+
+                        {% if key == 'mailer' %}
+                        <div class="cp-setting-row">
+                            <span class="cp-setting-name"></span>
+                            <div class="cp-setting-value">
+                                <span><button type="button" class="button" id="settings-testmail">
+                                    <i class="fa fa-paper-plane"></i> {{ L_('TEXT:BUTTON_SEND_TESTMAIL') }}
+                                </button></span>
+                                <div class="cp-setting-hint">{{ L_('TEXT:SEND_TESTMAIL') }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="cp-buttons-row">
+                            <button type="submit" class="button ico-save pos-right">{{ L_('TEXT:SAVE') }}</button>
+                        </div>
+                    </section>
                 </div>
-            </section>
-        </div>
+            </div>
+            {% endfor %}
+        </form>
     </div>
-
-</form>
-
-{# Load CSS #}
-{{ insertCssFile(WB_URL ~ '/templates/theme_fallbacks/css/settings_switch.css', 'HEAD TOP+')}}
-
-{# Insert HTMX #}
-{{  insertJsFile(INCLUDE_URL ~ '/htmx/htmx.min.js')}}
-<script>
-$(document).ready(function() {
-    // Frontend login → signup dependency
-    $('input[name="frontend_login"]').on('change', function() {
-        var $signup = $('#row-frontend_signup');
-        if (this.checked) {
-            $signup.slideDown(200);
-        } else {
-            $signup.slideUp(200);
-        }
-    });
-
-    // Scroll to message after htmx save
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.id === 'message-area') {
-            evt.detail.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-});
-</script>
+</section>

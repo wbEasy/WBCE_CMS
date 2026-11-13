@@ -4,267 +4,67 @@
  * Way Better Content Editing.
  * Visit https://wbce.org to learn more and to join the community.
  *
- * @copyright Ryan Djurovich (2004-2009)
- * @copyright WebsiteBaker Org. e.V. (2009-2015)
  * @copyright WBCE Project (2015-)
  * @license GNU GPL2 (or any later version)
  */
 
-// prevent this file from being accessed directly in the browser (would set all entries in DB settings table to '')
-if (!isset($_POST['default_language']) || $_POST['default_language'] == '') {
-    die(header('Location: index.php'));
-}
+/**
+ * Save the settings — fetch endpoint, answers JSON only:
+ *   {ok: bool, message: string, errors: {field: message}, reload: bool}
+ *
+ * What may be saved, and how, is decided by SettingsForm alone: a field the
+ * user is not shown is a field the user cannot save.
+ *
+ * reload: the change affects the open page itself — a new session cookie
+ * name (app_name) ends the current session, a new backend theme only shows
+ * after a reload — so settings.js reloads instead of staying on a page that
+ * no longer fits.
+ *
+ * @since 1.7.0
+ */
 
-// Find out if the user was view advanced options or not
-$advanced = (($_POST['advanced'] ?? '') == 'yes') ? '?advanced=yes' : '';
+/** Settings whose change makes the open page stale. */
+const SETTINGS_RELOAD_ON_CHANGE = ['app_name', 'default_theme'];
 
-// Print admin header
 require '../../config.php';
-require_once WB_PATH . '/framework/class.admin.php';
+require_once __DIR__ . '/SettingsForm.php';
 
-// suppress to print the header, so no new FTAN will be set
-if ($advanced == '') {
-    $admin = new admin('Settings', 'settings_basic', false);
-} else {
-    $admin = new admin('Settings', 'settings_advanced', false);
+$admin = new Admin('Settings', 'settings_basic', false);
+
+/** @param array<string, string> $errors */
+function settingsResponse(bool $ok, string $message, array $errors = [], bool $reload = false): never
+{
+    http_response_code($ok ? 200 : 422);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => $ok, 'message' => $message, 'errors' => (object) $errors, 'reload' => $reload]);
+    exit;
 }
 
-// Create a javascript back link
-$js_back = ADMIN_URL . '/settings/index.php' . $advanced;
-if (!$admin->checkFTAN()) {
-    $admin->print_header();
-    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST'
+    || $admin->checkIDKEY('settings_token', '', 'POST', true, 'settings') !== 'settings') {
+    // a POST with an unknown key: the page outlived its token
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') BackendAjax::denyIfAjax(BackendAjax::TOKEN_EXPIRED);
+    settingsResponse(false, L_('MESSAGE:GENERIC_SECURITY_ACCESS'));
 }
-// After check print the header
-$admin->print_header();
 
-// Ensure that the specified default email is formally valid
-if (isset($_POST['server_email'])) {
-    $_POST['server_email'] = strip_tags($_POST['server_email']);
-    if (!$admin->validate_email($_POST['server_email'])) {
-        $admin->print_error($MESSAGE['USERS_INVALID_EMAIL'] .
-            '<br /><strong>Email: ' . htmlentities($_POST['server_email']) . '</strong>', $js_back);
+$form   = new SettingsForm(require __DIR__ . '/settings_registry.php', $admin);
+$result = $form->validate($_POST);
+
+if ($result['errors'] !== []) {
+    settingsResponse(false, L_('MESSAGE:SETTINGS_INVALID_VALUE'), $result['errors']);
+}
+
+// compared before saving — afterwards the stored value is the new one
+$reload = false;
+foreach (SETTINGS_RELOAD_ON_CHANGE as $name) {
+    if (isset($result['values'][$name]) && $result['values'][$name] !== (string) Settings::get($name, '')) {
+        $reload = true;
     }
 }
 
-// rename pages/intro.php into intro.backup.php when intro page is disabled
-// so that intro.php is not accessible from search engine results anymore
-if (isset($_POST['intro_page'])) {
-    $sLoc = WB_PATH . PAGES_DIRECTORY;
-    if ($_POST['intro_page'] == 'true') {
-        if (file_exists($sLoc . '/intro.backup' . PAGE_EXTENSION)) {
-            rename($sLoc . '/intro.backup' . PAGE_EXTENSION, $sLoc . '/intro' . PAGE_EXTENSION);
-        }
-    } elseif ($_POST['intro_page'] == 'false') {
-        if (file_exists($sLoc . '/intro' . PAGE_EXTENSION)) {
-            rename($sLoc . '/intro' . PAGE_EXTENSION, $sLoc . '/intro.backup' . PAGE_EXTENSION);
-        }
-    }
+$error = $form->save($result['values']);
+if ($error !== null) {
+    settingsResponse(false, $error);
 }
 
-if (isset($_POST['wbmailer_routine']) && ($_POST['wbmailer_routine'] == 'smtp')) {
-    $checkSmtpHost = (isset($_POST['wbmailer_smtp_host']) && ($_POST['wbmailer_smtp_host'] == '') ? false : true);
-    $checkSmtpUser = (isset($_POST['wbmailer_smtp_username']) && ($_POST['wbmailer_smtp_username'] == '') ? false : true);
-    $checkSmtpPassword = (isset($_POST['wbmailer_smtp_password']) && ($_POST['wbmailer_smtp_password'] == '') ? false : true);
-    if (!$checkSmtpHost || !$checkSmtpUser || !$checkSmtpPassword) {
-        $admin->print_error($TEXT['REQUIRED'] . ' ' . $TEXT['WBMAILER_SMTP_AUTH'] .
-            '<br /><strong>' . $MESSAGE['GENERIC_FILL_IN_ALL'] . '</strong>', $js_back);
-    }
-}
-
-// The signup group decides which group every self-registered account gets:
-// never the administrators group (the form leaves it out, the request must not
-// add it), for a non-admin only a group within his own rights.
-if (isset($_POST['frontend_signup'])
-    && !(new GroupManager())->isValidSignupGroup((string) $_POST['frontend_signup'], $admin)) {
-    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
-}
-
-// redirect_timer ends up in a <script> (messageBox): -1 or 0 … 10000 ms only
-if (isset($_POST['redirect_timer'])) {
-    $_POST['redirect_timer'] = (string) max(-1, min(10000, (int) $_POST['redirect_timer']));
-}
-
-if (isset($_POST['app_name'])) {
-	$pattern = '/^[a-z0-9_-]*$/';
-	if (false == preg_match($pattern, $_POST['app_name']) || $_POST['app_name'] == '') {
-		$admin->print_error($MESSAGE['INVALID_SESSION_NAME'], $js_back);
-	}
-}
-
-// Work-out file mode
-if ($advanced == '') {
-    // Check if should be set to 777 or left alone
-    if (isset($_POST['world_writeable']) && $_POST['world_writeable'] == 'true') {
-        $file_mode = '0777';
-        $dir_mode = '0777';
-    } else {
-        $file_mode = STRING_FILE_MODE;
-        $dir_mode = STRING_DIR_MODE;
-    }
-} else {
-    $file_mode = STRING_FILE_MODE;
-    $dir_mode = STRING_DIR_MODE;
-    if ($admin->get_user_id() == '1') {
-        // Work-out the octal value for file mode
-        $u = 0;
-        if (isset($_POST['file_u_r']) && $_POST['file_u_r'] == 'true') {
-            $u = $u + 4;
-        }
-        if (isset($_POST['file_u_w']) && $_POST['file_u_w'] == 'true') {
-            $u = $u + 2;
-        }
-        if (isset($_POST['file_u_e']) && $_POST['file_u_e'] == 'true') {
-            $u = $u + 1;
-        }
-        $g = 0;
-        if (isset($_POST['file_g_r']) && $_POST['file_g_r'] == 'true') {
-            $g = $g + 4;
-        }
-        if (isset($_POST['file_g_w']) && $_POST['file_g_w'] == 'true') {
-            $g = $g + 2;
-        }
-        if (isset($_POST['file_g_e']) && $_POST['file_g_e'] == 'true') {
-            $g = $g + 1;
-        }
-        $o = 0;
-        if (isset($_POST['file_o_r']) && $_POST['file_o_r'] == 'true') {
-            $o = $o + 4;
-        }
-        if (isset($_POST['file_o_w']) && $_POST['file_o_w'] == 'true') {
-            $o = $o + 2;
-        }
-        if (isset($_POST['file_o_e']) && $_POST['file_o_e'] == 'true') {
-            $o = $o + 1;
-        }
-        $file_mode = "0" . $u . $g . $o;
-        // Work-out the octal value for dir mode
-        $u = 0;
-        if (isset($_POST['dir_u_r']) && $_POST['dir_u_r'] == 'true') {
-            $u = $u + 4;
-        }
-        if (isset($_POST['dir_u_w']) && $_POST['dir_u_w'] == 'true') {
-            $u = $u + 2;
-        }
-        if (isset($_POST['dir_u_e']) && $_POST['dir_u_e'] == 'true') {
-            $u = $u + 1;
-        }
-        $g = 0;
-        if (isset($_POST['dir_g_r']) && $_POST['dir_g_r'] == 'true') {
-            $g = $g + 4;
-        }
-        if (isset($_POST['dir_g_w']) && $_POST['dir_g_w'] == 'true') {
-            $g = $g + 2;
-        }
-        if (isset($_POST['dir_g_e']) && $_POST['dir_g_e'] == 'true') {
-            $g = $g + 1;
-        }
-        $o = 0;
-        if (isset($_POST['dir_o_r']) && $_POST['dir_o_r'] == 'true') {
-            $o = $o + 4;
-        }
-        if (isset($_POST['dir_o_w']) && $_POST['dir_o_w'] == 'true') {
-            $o = $o + 2;
-        }
-        if (isset($_POST['dir_o_e']) && $_POST['dir_o_e'] == 'true') {
-            $o = $o + 1;
-        }
-        $dir_mode = "0" . $u . $g . $o;
-    }
-}
-
-// What this page may write: the fields of the form, basic part with
-// settings_basic, advanced part only with settings_advanced (the constructor
-// above requires it for advanced=yes). Everything else in {TP}settings has its
-// own screen or none (SecureForm, captcha/ASP, output filters, modules ...) and
-// is never written from here, whatever is posted.
-$basicSettings = array(
-    'app_name', 'default_date_format', 'default_language', 'default_template', 'default_theme',
-    'default_time_format', 'default_timezone', 'frontend_login', 'frontend_signup', 'home_folders',
-    'intro_page', 'page_spacer', 'page_trash', 'sec_anchor', 'server_email',
-    'wbmailer_default_sendername', 'wbmailer_routine', 'wbmailer_smtp_auth', 'wbmailer_smtp_host',
-    'wbmailer_smtp_password', 'wbmailer_smtp_port', 'wbmailer_smtp_secure', 'wbmailer_smtp_username',
-    'website_description', 'website_footer', 'website_header', 'website_keywords', 'website_title',
-);
-$advancedSettings = array(
-    'default_charset', 'er_level', 'homepage_redirection', 'manage_sections', 'media_directory',
-    'multiple_menus', 'operating_system', 'page_extension', 'page_languages', 'page_level_limit',
-    'pages_directory', 'redirect_timer', 'rename_files_on_upload', 'section_blocks', 'smart_login',
-    'string_dir_mode', 'string_file_mode', 'wysiwyg_editor', 'wysiwyg_style',
-);
-// Search: only the visibility ("search") is set here, and only by whoever may
-// open the WBCE Search admin tool — the card is not shown to anyone else
-// (index.php), so it is not accepted from anyone else either. Everything
-// else about the search lives in that tool; the old {TP}search fields
-// (template, header, results loop, ...) are no longer written from here.
-if (is_file(WB_PATH . '/modules/wbce_search/tool.php') && $admin->hasToolPermission('wbce_search')) {
-    $basicSettings[] = 'search';
-}
-$allowedSettings = ($advanced == '') ? $basicSettings : array_merge($basicSettings, $advancedSettings);
-
-$allow_tags_in_fields = array('website_header', 'website_footer');
-$allow_empty_values = array('website_header', 'website_footer', 'sec_anchor', 'pages_directory', 'page_spacer');
-$disallow_in_fields = array('pages_directory', 'media_directory', 'wb_version');
-
-// Query current settings in the db, then loop through them and update the db with the new value
-$settings = array();
-$old_settings = array();
-// Query current settings in the db, then loop through them to get old values
-$sql = "SELECT `name`, `value` FROM `{TP}settings` ORDER BY `name`";
-if ($res_settings = $database->query($sql)) {
-    $passed = false;
-    while ($setting = $res_settings->fetchRow()) {
-        $old_settings[$setting['name']] = $setting['value'];
-        $setting_name = $setting['name'];
-        if (!in_array($setting_name, $allowedSettings, true)) {
-            continue;
-        }
-        $value = $admin->get_post($setting_name);
-        $value = isset($_POST[$setting_name]) ? $value : $old_settings[$setting_name];
-        switch ($setting_name) {
-            case 'default_timezone':
-                $value = $value * 60 * 60;
-                $passed = true;
-                break;
-            case 'string_dir_mode':
-                $value = $dir_mode;
-                $passed = true;
-                break;
-            case 'string_file_mode':
-                $value = $file_mode;
-                $passed = true;
-                break;
-            case 'pages_directory':
-                break;
-            case 'wbmailer_smtp_auth':
-                $value = isset($_POST[$setting_name]) ? $_POST[$setting_name] : 0;
-                $passed = true;
-                break;
-            default:
-                $passed = in_array($setting_name, $allow_empty_values);
-                break;
-        }
-
-        if (!in_array($setting_name, $allow_tags_in_fields)) {
-            $value = strip_tags($value);
-			if ($setting_name != "website_title") {
-				$value = str_replace( array( '\'','"',';','<','>','%','$','\\' ), '', $value);
-			} 
-        }
-
-        if (!in_array($value, $disallow_in_fields) && (isset($_POST[$setting_name]) || $passed == true)) {
-            $value = trim($value);
-            $database->query(
-                "UPDATE `{TP}settings` SET `value` = ? WHERE `name` = ?",
-                [$value, $setting_name]
-            );
-            if ($database->hasError()) {
-                $admin->print_error($database->getError(), $js_back);
-                break;
-            }
-        }
-    }
-}
-
-$admin->print_success($MESSAGE['SETTINGS_SAVED'], $js_back);
-$admin->print_footer();
+settingsResponse(true, L_('MESSAGE:SETTINGS_SAVED'), [], $reload);

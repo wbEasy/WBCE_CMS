@@ -410,6 +410,14 @@ if (!(new GroupManager())->isValidSignupGroup((string) Settings::get('frontend_s
     Settings::set('frontend_signup', 'false');
     log_warn('frontend_signup pointed to the administrators group or a missing group: signup switched off');
 }
+// page_trash is on ('inline') or off ('disabled'). The old third value
+// 'separate' had no view of its own: pages deleted under it were marked
+// deleted but shown nowhere. 'inline' brings them back into the page tree,
+// where they can be restored or removed for good.
+if (!in_array((string) Settings::get('page_trash', 'inline'), ['inline', 'disabled'], true)) {
+    Settings::set('page_trash', 'inline');
+    log_ok('page_trash = inline (the "separate" trash no longer exists)');
+}
 // 1.7.0: new group right "Preferences → Modify" (change own account data).
 // Until now every account could; every existing group gets the right once,
 // so nothing changes until an administrator takes it away. The marker keeps
