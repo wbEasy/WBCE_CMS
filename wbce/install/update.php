@@ -566,6 +566,7 @@ $coreModules = [
     'news_img'                 => ['mod_news_img_posts',         'install', 'upgrade'],
     'outputfilter_dashboard'   => ['mod_outputfilter_dashboard', 'install', 'upgrade'],
     'sitemap'                  => ['mod_sitemap',                'install', 'upgrade'],
+    'wbce_search'              => ['upgrade'],   // upgrade.php runs install.php first — fresh and existing alike
 ];
 
 foreach ($coreModules as $mod => $cfg) {
