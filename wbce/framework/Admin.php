@@ -117,15 +117,15 @@ class Admin extends Wbce
         $admin_folder = str_replace(WB_PATH, '', ADMIN_PATH);
         if (!str_contains($_SERVER['SCRIPT_NAME'], $admin_folder . '/')) return;
 
-        $location = $_SERVER['SCRIPT_NAME'] . '?lang=' . $user_language
-            . (isset($_GET['page_id'])    ? '&page_id='    . (int) $_GET['page_id']    : '')
-            . (isset($_GET['section_id']) ? '&section_id=' . (int) $_GET['section_id'] : '');
+        // REPLACE lang in the query, keep the rest (page_id, section_id, …).
+        // It used to be appended in front of the old query string: a URL that
+        // already carried ?lang=XX kept it at the end, PHP takes the last
+        // value, LANGUAGE stayed XX — and the redirect repeated endlessly
+        // (seen after a user switched his language under "My data").
+        $query         = $_GET;
+        $query['lang'] = $user_language;
 
-        if (!empty($_SERVER['QUERY_STRING'])) {
-            $location .= '&' . $_SERVER['QUERY_STRING'];
-        }
-
-        header('Location: ' . $location);
+        header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?' . http_build_query($query));
         exit;
     }
 
