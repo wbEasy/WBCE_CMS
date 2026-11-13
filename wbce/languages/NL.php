@@ -691,6 +691,8 @@ $MESSAGE['USERS_NAME_INVALID_CHARS'] = 'Invalid chars for loginname found';
 $MESSAGE['USERS_NO_GROUP'] = 'Geen groep geselecteerd';
 $MESSAGE['USERS_PASSWORD_MISMATCH'] = 'De ingevoerde wachtwoorden komen niet overeen';
 $MESSAGE['USERS_PASSWORD_TOO_SHORT'] = 'Het ingevoerde wachtwoord is te kort';
+$MESSAGE['USERS_PASSWORD_TOO_LONG'] = 'Het ingevoerde wachtwoord is te lang (hoogstens 72 tekens)';
+$MESSAGE['USERS_DISPLAY_NAME_TAKEN'] = 'Een ander account gebruikt deze weergavenaam al';
 $MESSAGE['USERS_SAVED'] = 'Gebruiker opgeslagen';
 $MESSAGE['USERS_USERNAME_TAKEN'] = 'The loginname you entered is already taken';
 $MESSAGE['USERS_USERNAME_TOO_SHORT'] = 'The loginname you entered was too short';
@@ -826,3 +828,6 @@ $HINT['SETTINGS_WBMAILER_SMTP_SECURE']       = 'De versleuteling van de verbindi
 $HINT['SETTINGS_WBMAILER_SMTP_AUTH']         = 'Inschakelen als de mailserver een login vereist. Dat is bijna altijd het geval.';
 $HINT['SETTINGS_WBMAILER_SMTP_USERNAME']     = 'De gebruikersnaam voor de mailserver, meestal het volledige e-mailadres.';
 $HINT['SETTINGS_WBMAILER_SMTP_PASSWORD']     = 'Het wachtwoord voor de mailserver. Leeg laten om het opgeslagen wachtwoord te behouden.';
+
+// "Mijn gegevens" (admin/preferences)
+$HINT['PREFERENCES_USERNAME']                = 'Hiermee logt u in. Alleen een beheerder kan hem wijzigen.';

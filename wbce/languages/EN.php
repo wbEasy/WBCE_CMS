@@ -688,6 +688,8 @@ $MESSAGE['USERS_NAME_INVALID_CHARS'] = 'Invalid chars for loginname found';
 $MESSAGE['USERS_NO_GROUP'] = 'No group was selected';
 $MESSAGE['USERS_PASSWORD_MISMATCH'] = 'The passwords you entered do not match';
 $MESSAGE['USERS_PASSWORD_TOO_SHORT'] = 'The password you entered was too short';
+$MESSAGE['USERS_PASSWORD_TOO_LONG'] = 'The password you entered is too long (at most 72 characters)';
+$MESSAGE['USERS_DISPLAY_NAME_TAKEN'] = 'Another account already uses this display name';
 $MESSAGE['USERS_SAVED'] = 'User saved successfully';
 $MESSAGE['USERS_USERNAME_TAKEN'] = 'The loginname you entered is already taken';
 $MESSAGE['USERS_USERNAME_TOO_SHORT'] = 'The loginname you entered was too short';
@@ -824,3 +826,6 @@ $HINT['SETTINGS_WBMAILER_SMTP_SECURE']       = 'The encryption of the connection
 $HINT['SETTINGS_WBMAILER_SMTP_AUTH']         = 'Switch on if the mail server requires a login. That is almost always the case.';
 $HINT['SETTINGS_WBMAILER_SMTP_USERNAME']     = 'The user name for the mail server, usually the full email address.';
 $HINT['SETTINGS_WBMAILER_SMTP_PASSWORD']     = 'The password for the mail server. Leave empty to keep the stored one.';
+
+// "My data" page (admin/preferences)
+$HINT['PREFERENCES_USERNAME']                = 'You sign in with it. Only an administrator can change it.';

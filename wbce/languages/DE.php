@@ -695,6 +695,8 @@ $MESSAGE['USERS_NAME_INVALID_CHARS'] = 'Es wurden unzulässige Zeichen für den 
 $MESSAGE['USERS_NO_GROUP'] = 'Es wurde keine Gruppe ausgewählt';
 $MESSAGE['USERS_PASSWORD_MISMATCH'] = 'Die eingegebenen Passworte stimmen nicht überein.';
 $MESSAGE['USERS_PASSWORD_TOO_SHORT'] = 'Das eingegebene Passwort ist zu kurz';
+$MESSAGE['USERS_PASSWORD_TOO_LONG'] = 'Das eingegebene Passwort ist zu lang (höchstens 72 Zeichen)';
+$MESSAGE['USERS_DISPLAY_NAME_TAKEN'] = 'Ein anderes Konto verwendet diesen Namen bereits';
 $MESSAGE['USERS_SAVED'] = 'Der Benutzer wurde erfolgreich gespeichert';
 $MESSAGE['USERS_USERNAME_TAKEN'] = 'Der angegebene Benutzername wird bereits verwendet';
 $MESSAGE['USERS_USERNAME_TOO_SHORT'] = 'Der eingegebene Benutzername ist zu kurz';
@@ -831,3 +833,6 @@ $HINT['SETTINGS_WBMAILER_SMTP_SECURE']       = 'Die Verschlüsselung der Verbind
 $HINT['SETTINGS_WBMAILER_SMTP_AUTH']         = 'Einschalten, wenn der Mailserver eine Anmeldung verlangt. Das ist fast immer der Fall.';
 $HINT['SETTINGS_WBMAILER_SMTP_USERNAME']     = 'Der Benutzername für den Mailserver, meist die vollständige E-Mail-Adresse.';
 $HINT['SETTINGS_WBMAILER_SMTP_PASSWORD']     = 'Das Passwort für den Mailserver. Leer lassen, um das gespeicherte zu behalten.';
+
+// "Meine Daten" (admin/preferences)
+$HINT['PREFERENCES_USERNAME']                = 'Damit melden Sie sich an. Ändern kann ihn nur ein Administrator.';

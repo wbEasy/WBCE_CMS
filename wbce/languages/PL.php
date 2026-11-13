@@ -682,6 +682,8 @@ $MESSAGE['USERS_NAME_INVALID_CHARS'] = 'Invalid chars for loginname found';
 $MESSAGE['USERS_NO_GROUP'] = 'Nie wybrano grupy';
 $MESSAGE['USERS_PASSWORD_MISMATCH'] = 'Wprowadzone hasła nie pasuja';
 $MESSAGE['USERS_PASSWORD_TOO_SHORT'] = 'Wprowadzone hasło było za krótkie';
+$MESSAGE['USERS_PASSWORD_TOO_LONG'] = 'Wprowadzone hasło jest za długie (najwyżej 72 znaki)';
+$MESSAGE['USERS_DISPLAY_NAME_TAKEN'] = 'Inne konto używa już tej nazwy wyświetlanej';
 $MESSAGE['USERS_SAVED'] = 'Użytkownik został zapisany';
 $MESSAGE['USERS_USERNAME_TAKEN'] = 'Wprowadzona nazwa użytkownika już istnieje';
 $MESSAGE['USERS_USERNAME_TOO_SHORT'] = 'Wprowadzona nazwa użytkownika była za krótkie';
@@ -749,3 +751,6 @@ $HINT['SETTINGS_WBMAILER_SMTP_SECURE']       = 'Szyfrowanie połączenia z serwe
 $HINT['SETTINGS_WBMAILER_SMTP_AUTH']         = 'Włącz, jeśli serwer pocztowy wymaga logowania. Prawie zawsze tak jest.';
 $HINT['SETTINGS_WBMAILER_SMTP_USERNAME']     = 'Nazwa użytkownika dla serwera pocztowego, zwykle pełny adres e-mail.';
 $HINT['SETTINGS_WBMAILER_SMTP_PASSWORD']     = 'Hasło do serwera pocztowego. Pozostaw puste, aby zachować zapisane.';
+
+// "Moje dane" (admin/preferences)
+$HINT['PREFERENCES_USERNAME']                = 'Służy do logowania. Zmienić ją może tylko administrator.';
