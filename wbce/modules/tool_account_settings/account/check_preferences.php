@@ -28,15 +28,14 @@ if (!$oAccounts->checkFTAN()) {
 $oMsgBox = new Alerts(useSession: true); // stores messages in session via ->redirect()
 $aMsg    = array();
 
-$sCurrPassword = $oAccounts->get_post('current_password');
-$sEncPassword  = $oAccounts->checkPasswordPattern($sCurrPassword);
+$sCurrPassword = (string) $oAccounts->get_post('current_password');
 $sNewEmail     = $oAccounts->get_post('email');
 $iUserID       = (int)$oAccounts->get_user_id();
 
-// validate confirmation password
-if (is_array($sEncPassword)){
-    $aMsg['error'][] = 'MESSAGE:PREFERENCES_CURRENT_PASSWORD_INCORRECT';
-} elseif ($oAccounts->doCheckPassword($iUserID,$sCurrPassword)===false) {
+// validate confirmation password — doCheckPassword() alone: the policy of
+// checkPasswordPattern() is for NEW passwords; an older, shorter password
+// must still confirm changes
+if ($sCurrPassword === '' || $oAccounts->doCheckPassword($iUserID, $sCurrPassword) === false) {
     $aMsg['error'][] = 'MESSAGE:PREFERENCES_CURRENT_PASSWORD_INCORRECT';
 } else { 
 

@@ -53,39 +53,44 @@ class Wbce extends SecureForm
         return strtr($value, ['[' => '&#91;', ']' => '&#93;']);
     }
 
+    /** bcrypt (PASSWORD_DEFAULT) ignores everything after 72 bytes. */
+    public const PASSWORD_MAX_LENGTH = 72;
+
     /**
-     * Check if the Password matches the required pattern and length,
-     * and encode it correctly if valid. Returns an error message array on failure.
+     * Check a NEW password against the policy and hash it.
      *
-     * @param string      $sPassword
-     * @param string|null $sNewPasswordRetyped
-     * @return array|string  Array of error messages, or encoded password string on success.
-     * @global array $MESSAGE
+     * - only printable ASCII ($password_chars, what wbePwGen generates)
+     * - at least $iPassMinLength characters — the length the password
+     *   field announces; this used to check 6 while the form said 12
+     * - at most PASSWORD_MAX_LENGTH: bcrypt would silently cut the rest
+     * - with $sNewPasswordRetyped (also ''): both must match exactly. An
+     *   empty confirmation used to skip the comparison ('' != null is
+     *   false), and the loose != let "0e1…" equal "0e2…".
+     *
+     * Not for checking an existing password — that is doCheckPassword().
+     *
+     * @param  string      $sPassword
+     * @param  string|null $sNewPasswordRetyped  null = no confirmation field
+     * @return array|string  Error messages, or the hash on success
      */
     public function checkPasswordPattern(string $sPassword, ?string $sNewPasswordRetyped = null): array|string
     {
         global $MESSAGE;
-        $iMinPassLength = 6;
-        $bPasswordOk = false;
-        $aErrMsg = array();
-        if ($sPassword != '') {
-            $sPattern = '/[^' . $this->password_chars . ']/';
-            if (preg_match($sPattern, $sPassword)) {
-                $aErrMsg[] = $MESSAGE['PREFERENCES_INVALID_CHARS'] . '[1]';
-            } else {
-                $bPasswordOk = true;
-            }
-            if ($sNewPasswordRetyped != null) {
-                if ($sPassword != $sNewPasswordRetyped) {
-                    $aErrMsg[] = $MESSAGE['USERS_PASSWORD_MISMATCH'] . '[2]';
-                }
-            }
-            if (strlen($sPassword) < $iMinPassLength) {
-                $aErrMsg[] = $MESSAGE['USERS_PASSWORD_TOO_SHORT'] . '[3]';
-            }
+        $aErrMsg = [];
+
+        if (preg_match('/[^' . $this->password_chars . ']/', $sPassword)) {
+            $aErrMsg[] = $MESSAGE['PREFERENCES_INVALID_CHARS'];
+        }
+        if ($sNewPasswordRetyped !== null && $sPassword !== $sNewPasswordRetyped) {
+            $aErrMsg[] = $MESSAGE['USERS_PASSWORD_MISMATCH'];
+        }
+        if (strlen($sPassword) < $this->iPassMinLength) {
+            $aErrMsg[] = $MESSAGE['USERS_PASSWORD_TOO_SHORT'];
+        } elseif (strlen($sPassword) > self::PASSWORD_MAX_LENGTH) {
+            $aErrMsg[] = $MESSAGE['USERS_PASSWORD_TOO_LONG'] ?? 'Password too long';
         }
 
-        return (!empty($aErrMsg)) ? $aErrMsg : $this->doPasswordEncode($sPassword);
+        return ($aErrMsg !== []) ? $aErrMsg : $this->doPasswordEncode($sPassword);
     }
 
     /**
