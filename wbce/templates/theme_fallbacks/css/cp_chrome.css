@@ -169,7 +169,6 @@ nav.cp-tabs.tabs-right ul:not(:has(.area-title))::before {
     max-width: 100%;
     width: 100%;
 }
-
 nav.cp-tabs a {
     display: flex;
     align-items: center;
@@ -436,7 +435,16 @@ nav.cp-subtabs .pull-right { margin-left: auto; }
 .cp-card-body.has-aside {
     display: grid;
     grid-template-columns: 61.8% 38.2%;
-    align-items: start;
+    /* stretch, not start: the aside's background and divider run the
+       full height of the card, not just as far as its own fields */
+    align-items: stretch;
+}
+/* The card is the query container: whether the two columns fit depends
+   on the CARD's width, not the window's — the backend's sidebar takes a
+   varying share of the window. See "Two-column form" at the end. */
+.cp-toggle-section:has(> section.has-aside),
+.cp-card:has(> .cp-card-body.has-aside) {
+    container: cp-card / inline-size;
 }
 
 .cp-card-main  { min-width: 0; }
@@ -586,6 +594,13 @@ label.cp-required::after,
     box-sizing: border-box;
 }
 
+/* Shown, not editable (e.g. the username under "My data") */
+.cp-setting-value input[type="text"].cp-readonly {
+    background: var(--surface3);
+    color: var(--text-muted);
+    cursor: default;
+}
+
 /* Monospace fields (title, description, keywords: lengths readable at a
    glance). [type] for the same reason as .cp-full above. */
 .cp-setting-value input[type="text"].cp-mono,
@@ -653,7 +668,7 @@ table.cp-filemode tbody th {
     display: flex;
     align-items: center;
     gap: .45rem;
-    padding: .55rem 1rem;
+    padding: .05rem 1rem;
     border-top: 1px solid var(--border);
     /* Round bottom corners to match the card container */
     border-radius: 0 0 var(--r) var(--r);
@@ -1592,14 +1607,6 @@ code, tt, var, kbd {
     .cp-setting-name {
         text-align: left;
     }
-    .cp-toggle-section > section.has-aside,
-    .cp-card-body.has-aside {
-        grid-template-columns: 1fr;
-    }
-    .cp-card-aside {
-        border-left: none;
-        border-top: 1px solid var(--border);
-    }
     .link-cards-grid {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
@@ -1637,25 +1644,46 @@ code, tt, var, kbd {
     .md-show-block  { display: none; }
 }
 
-/* ── Two-column form: stack main column labels sooner ──────────────
-   In a has-aside layout the main column is only 61.8% wide.
-   The 22/78 label/value grid breaks around 960px — switch to
-   stacked (label above value) before labels start wrapping.
-   The two columns themselves collapse at 680px (below).           */
+/* ── Two-column form (has-aside) ─────────────────────────────────────
+   Measured on the CARD (container cp-card, set with has-aside above),
+   not on the window: the backend's sidebar takes a varying share of it,
+   so a window rule fired far too late and the aside was squeezed.
 
-@media (max-width: 960px) {
-    .cp-toggle-section > section.has-aside .cp-card-main .cp-setting-row,
-    .cp-card-body.has-aside .cp-card-main .cp-setting-row {
+   Card ≤ 780px: the main column (61.8%) is too narrow for label | value
+                 — labels go above their fields, as in the aside.
+   Card ≤ 600px: one column; the aside follows the main column.     */
+
+@container cp-card (max-width: 780px) {
+    .cp-card-main .cp-setting-row {
         grid-template-columns: 1fr;
         gap: .2rem;
     }
-    .cp-toggle-section > section.has-aside .cp-card-main .cp-setting-name,
-    .cp-card-body.has-aside .cp-card-main .cp-setting-name {
+    .cp-card-main .cp-setting-name {
         text-align: left;
         font-size: .7rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .04em;
         padding-top: 0;
+    }
+}
+
+@container cp-card (max-width: 600px) {
+    /* the same selectors as the two-column rule: a container query adds
+       no specificity, a shorter selector would lose */
+    .cp-toggle-section > section.has-aside,
+    .cp-card-body.has-aside {
+        grid-template-columns: 1fr;
+    }
+    .cp-card-aside {
+        border-left: none;
+        border-top: 1px solid var(--border);
+    }
+    /* one column: the main fields as wide as the aside's below them
+       (they are capped at 300px beside an aside) */
+    .cp-card-main .cp-setting-value :is(input[type="text"], input[type="email"],
+        input[type="password"], input[type="number"], select, textarea),
+    .cp-card-main .cp-setting-value > .ws-el {
+        max-width: 100%;
     }
 }

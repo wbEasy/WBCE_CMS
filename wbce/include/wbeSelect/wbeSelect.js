@@ -469,7 +469,27 @@
             if (!this.options.useSearch) {
                 container.classList.add('ws--no-search');
             }
-            container.style.width = cs.width;
+            // Width: the select's SPECIFIED width, not its measured one. The
+            // computed width of a rendered element is always resolved to px —
+            // copying that froze "width:100%" at whatever the layout happened to
+            // be at init (an aside column not settled yet, a hidden tab …). For
+            // an element that is not rendered, getComputedStyle() reports the
+            // specified value instead ('100%', '250px', 'auto'), so look while
+            // it is hidden. 'auto' (no width set anywhere) keeps the old
+            // measured behaviour. max-width is carried over the same way.
+            const prevDisplay = se.style.display;
+            se.style.display = 'none';
+            const specified    = getComputedStyle(se);
+            const specWidth    = specified.width;
+            const specMaxWidth = specified.maxWidth;
+            se.style.display = prevDisplay;
+            container.style.width = (specWidth && specWidth !== 'auto') ? specWidth : cs.width;
+            // the select's padding is copied below — size it the way the
+            // select was sized, or "100%" plus padding overflows
+            container.style.boxSizing = cs.boxSizing;
+            if (specMaxWidth && specMaxWidth !== 'none') {
+                container.style.maxWidth = specMaxWidth;
+            }
             container.style.minHeight = cs.height;
             container.style.padding = cs.padding;
             container.style.flexGrow = cs.flexGrow;
