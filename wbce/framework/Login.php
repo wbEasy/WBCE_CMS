@@ -46,6 +46,11 @@ class Login extends Admin
     private string $url        = '';
     private bool   $nocaptcha  = false;
 
+    // The field names the credentials were actually read from — the form
+    // may rename them (SMART_LOGIN), see readCredentials()
+    private string $postedUserField = 'username';
+    private string $postedPassField = 'password';
+
 
     // =====================================================================
     //  Constructor
@@ -160,9 +165,16 @@ class Login extends Admin
      */
     private function readCredentials(): void
     {
-        // The field names may be customized (anti-bot measure)
-        $userField = $this->get_post('username_fieldname') ?: $this->username_fieldname;
-        $passField = $this->get_post('password_fieldname') ?: $this->password_fieldname;
+        // The field names may be customized (anti-bot measure). They come
+        // from the request, so checkCaptcha() must look at these same
+        // names — not the configured ones — or a client could pick names
+        // of its own and skip the captcha.
+        $userField = $this->get_post('username_fieldname');
+        $passField = $this->get_post('password_fieldname');
+        $userField = (is_string($userField) && $userField !== '') ? $userField : $this->username_fieldname;
+        $passField = (is_string($passField) && $passField !== '') ? $passField : $this->password_fieldname;
+        $this->postedUserField = $userField;
+        $this->postedPassField = $passField;
 
         if (filter_input(INPUT_POST, $userField)) {
             $this->username = htmlspecialchars(
@@ -213,8 +225,9 @@ class Login extends Admin
             return null;
         }
  
-        $formSubmitted = isset($_POST[$this->username_fieldname])
-                      || isset($_POST[$this->password_fieldname]);
+        // the names readCredentials() read from (see there)
+        $formSubmitted = isset($_POST[$this->postedUserField])
+                      || isset($_POST[$this->postedPassField]);
  
         if (!$formSubmitted) {
             return null;
@@ -385,12 +398,24 @@ class Login extends Admin
     private function isBlocked(): bool
     {
         $clientIp = md5($this->getClientIp());
-        $attempts = (int) $this->db->fetchValue(
-            "SELECT `attempts` FROM `{TP}blocking` WHERE `source_ip` = ? LIMIT 1",
+        $row = $this->db->fetchRow(
+            "SELECT `attempts`, `timestamp` FROM `{TP}blocking` WHERE `source_ip` = ? LIMIT 1",
             [$clientIp]
         );
+        if (!$row) {
+            return false;
+        }
 
-        return $attempts > $this->max_attempts;
+        $attempts = (int) $row['attempts'];
+        if ($attempts <= $this->max_attempts) {
+            return false;
+        }
+
+        // The lockout ends after the same interval increase_attempts() uses to
+        // release it. Without this, a blocked IP stayed blocked until the
+        // weekly cleanup, because it never reaches increase_attempts() again.
+        $interval = time() - (int) $row['timestamp'];
+        return $interval <= $this->timeframe + pow(2, ($attempts - $this->max_attempts)) * $this->login_delay;
     }
 
     /**
