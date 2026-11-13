@@ -1,4 +1,6 @@
 {{ insertCssFile( CURRENT_DIR ~ '/forms.css') }}
+{# MESSAGE_BOX is Alerts markup; its styles, as _alerts.inc.twig loads them in the backend #}
+{{ insertCssFile(WB_URL ~ '/templates/theme_fallbacks/css/cp_alerts.css') }}
 {{ MESSAGE_BOX }}
 <h2>{{ L_('TOOL_TXT:PREFERENCES') }}</h2>
 <br />

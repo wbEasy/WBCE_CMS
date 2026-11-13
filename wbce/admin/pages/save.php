@@ -37,10 +37,8 @@ $js_back = ADMIN_URL . '/pages/modify.php?page_id=' . $page_id;
 
 if (!$admin->checkFTAN()) {
     $admin->print_header();
-    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back);
+    $admin->print_error($MESSAGE['GENERIC_SECURITY_ACCESS'], $js_back, true);
 }
-// After check print the header
-$admin->print_header();
 
 // Get perms
 $results = $database->query(
@@ -50,7 +48,9 @@ $results = $database->query(
 $results_array = $results->fetchRow();
 if (!$admin->isInGroup($results_array['admin_users']) &&
     !$admin->is_group_match($admin->get_groups_id(), $results_array['admin_groups'])) {
-    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS']);
+    
+    $admin->print_header();
+    $admin->print_error($MESSAGE['PAGES_INSUFFICIENT_PERMISSIONS'],  $js_back, true);
 }
 // Get page module
 $module = $database->fetchValue(
@@ -58,7 +58,9 @@ $module = $database->fetchValue(
     [$page_id, $section_id]
 );
 if (!$module) {
-    $admin->print_error($database->hasError() ? $database->getError() : $MESSAGE['PAGES_NOT_FOUND']);
+    
+    $admin->print_header();
+    $admin->print_error($database->hasError() ? $database->getError() : $MESSAGE['PAGES_NOT_FOUND'], $js_back, true);
 }
 
 // Update the pages table
@@ -73,10 +75,11 @@ if (file_exists(WB_PATH . '/modules/' . $module . '/save.php')) {
 }
 // Check if there is a db error, otherwise say successful
 if ($database->hasError()) {
-    $admin->print_error($database->getError(), ADMIN_URL . '/pages/modify.php?page_id=' . $page_id);
+    $admin->print_header();
+    $admin->print_error($database->getError(), $js_back, true);
 } else {
-    $admin->print_success($MESSAGE['PAGES_SAVED'], ADMIN_URL . '/pages/modify.php?page_id=' . $page_id);
+    $alerts = new Alerts();
+    $alerts->sessionToast($MESSAGE['PAGES_SECTIONS_PROPERTIES_SAVED'], 'success');
+    header('Location: ' . $js_back);
+    exit;
 }
-
-// Print admin footer
-$admin->print_footer();

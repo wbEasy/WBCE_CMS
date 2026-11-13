@@ -1,4 +1,6 @@
 {{ insertCssFile( CURRENT_DIR ~ '/forms.css') }}
+{# MESSAGE_BOX is Alerts markup; its styles, as _alerts.inc.twig loads them in the backend #}
+{{ insertCssFile(WB_URL ~ '/templates/theme_fallbacks/css/cp_alerts.css') }}
 
 <h2>{{ L_('MENU:LOGIN') }}</h2>
 <br />
@@ -23,6 +25,13 @@
                 <input type="password" id="{{ PASSWORD_FIELD }}" name="{{ PASSWORD_FIELD }}" />
             </div>
         </div>
+
+        {% if CAPTCHA %}
+        <div class="formRow">
+            <div class="settingName">{{ L_('TEXT:CAPTCHA') }}</div>
+            <div class="settingValue">{{ CAPTCHA|raw }}</div>
+        </div>
+        {% endif %}
 
         <div class="buttonsRow">
             <button type="submit" name="submit" class="button pos-right">{{ L_('TEXT:LOGIN') }}</button>

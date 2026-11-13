@@ -135,19 +135,19 @@ while ($group = $get_groups->fetchRow()) {
     $template->parse('group_list2', 'group_list_block2', true);
 }
 
-$template->set_block('main_block', 'page_list_block2', 'page_list2');
+$tree   = PageTree::load();
+$aLinks = PageTree::pageTreeCombobox($tree);
+
+$sParentOptions = '';
 if ($admin->get_permission('pages_add_l0') == true) {
-    $template->set_var(
-        array(
-            'ID' => '0',
-            'TITLE' => $TEXT['NONE'],
-            'SELECTED' => ' selected="selected"',
-            'DISABLED' => ''
-        )
-    );
-    $template->parse('page_list2', 'page_list_block2', true);
+    $sParentOptions .= '<option value="0" selected="selected">' . htmlspecialchars($TEXT['NONE']) . '</option>';
 }
-parent_list(0);
+foreach ($aLinks as $p) {
+    $sParentOptions .= '<option value="' . $p['page_id'] . '">'
+        . htmlspecialchars($p['prefix'] . $p['menu_title'])
+        . '</option>';
+}
+$template->set_var('PARENT_OPTIONS', $sParentOptions);
 
 // Explode module permissions
 $module_permissions = $_SESSION['MODULE_PERMISSIONS'];
@@ -233,52 +233,3 @@ $template->pparse('output', 'page');
 // Print admin
 $admin->print_footer();
 
-// Functions
-// Parent page list
-function parent_list($parent)
-{
-    global $admin, $database, $template, $field_set;
-    $get_pages = $database->query(
-        "SELECT * FROM `{TP}pages` WHERE parent = ? AND visibility != 'deleted' ORDER BY position ASC",
-        [$parent]
-    );
-    while ($page = $get_pages->fetchRow()) {
-        if ($admin->page_is_visible($page) == false) {
-            continue;
-        }
-
-        // if parent = 0 set flag_icon
-        $template->set_var('FLAG_ROOT_ICON', ' none ');
-        if ($page['parent'] == 0 && $field_set) {
-            $template->set_var('FLAG_ROOT_ICON', 'url(' . WB_URL . '/languages/' . strtoupper($page['language']) . '.png)');
-        }
-
-        // Stop users from adding pages with a level of more than the set page level limit
-        if ($page['level'] + 1 < PAGE_LEVEL_LIMIT) {
-
-            // Get user perms
-            $can_modify = $admin->isPageAdmin($page['admin_groups'], $page['admin_users']);
-
-            // Title -'s prefix
-            $title_prefix = '';
-            for ($i = 1; $i <= $page['level']; $i++) {
-                $title_prefix .= ' - ';
-            }
-            $template->set_var(
-                array(
-                    'ID' => $page['page_id'],
-                    'TITLE' => ($title_prefix . $page['menu_title']),
-                    'MENU-TITLE' => ($title_prefix . $page['menu_title']),
-                    'PAGE-TITLE' => ($title_prefix . $page['page_title'])
-                )
-            );
-            if ($can_modify == true) {
-                $template->set_var('DISABLED', '');
-            } else {
-                $template->set_var('DISABLED', ' disabled="disabled" class="disabled"');
-            }
-            $template->parse('page_list2', 'page_list_block2', true);
-        }
-        parent_list($page['page_id']);
-    }
-}

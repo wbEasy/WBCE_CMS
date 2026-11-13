@@ -30,12 +30,15 @@ if(defined('SMART_LOGIN') AND SMART_LOGIN == 'enabled') {
 }
 
 $oAccounts = new Accounts();
-$oMsgBox   = new Alerts(useSession: false);
-// Get the template file for login
+// Messages and captcha come from the Login object that handled this
+// request (account/login.php): a fresh Alerts here never held them, so a
+// wrong password said nothing, and once the captcha was required the form
+// offered none — the login was impossible until the lockout window passed.
 $aToTwig = array(
     'USERNAME_FIELD' => $sUsernameField,
     'PASSWORD_FIELD' => $sPasswordField,
     'REDIRECT_URL'   => h($oLogin->getRedirectUrl()),
-    'MESSAGE_BOX'    => $oMsgBox->fetchDisplay(), 
+    'MESSAGE_BOX'    => $oLogin->renderMessages(),
+    'CAPTCHA'        => $oLogin->getCaptchaHtml(),
 );
 $oAccounts->useTwigTemplate('form_login.twig', $aToTwig);
