@@ -186,7 +186,7 @@
 [ADMIN]/pages/page_tree/icons/
 [ADMIN]/themes/
 [INCLUDE]/Doctrine/                        // no longer used
-[INCLUDE]/phpmailer/
+[INCLUDE]/phpmailer/                      // old lowercase copy; removed only with this exact spelling (keeps include/PHPMailer/ on Windows)
 [INCLUDE]/Sensio/Twig/lib/
 [INCLUDE]/quickSkin_alpha/
 [INCLUDE]/idna_convert/                   // obsolete since 1.7.0 
