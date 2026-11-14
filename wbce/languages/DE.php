@@ -807,6 +807,7 @@ $HINT['SETTINGS_REDIRECT_TIMER']             = 'So lange bleibt eine Meldung nac
 $HINT['SETTINGS_SEARCH']                     = 'Wer die Suche der Website benutzen darf. Alles Weitere zur Suche steht im Admin-Tool WBCE Suche.';
 $HINT['SETTINGS_DEFAULT_LANGUAGE']           = 'Die Standardsprache der Website und des Backends. Benutzer können in ihren Einstellungen eine eigene wählen.';
 $HINT['SETTINGS_DEFAULT_TIMEZONE']           = 'Die Zeitzone, in der Datum und Uhrzeit angezeigt werden. Benutzer können in ihren Einstellungen eine eigene wählen.';
+$HINT['TIMEZONE_FIXED_OFFSET']               = 'Das ist ein fester Versatz aus einer früheren Version, ohne Sommerzeit. Bitte die tatsächliche Zeitzone wählen (z. B. Europe/Berlin).';
 $HINT['SETTINGS_DEFAULT_DATE_FORMAT']        = 'Wie Datumsangaben angezeigt werden, solange ein Benutzer kein eigenes Format gewählt hat.';
 $HINT['SETTINGS_DEFAULT_TIME_FORMAT']        = 'Wie Uhrzeiten angezeigt werden, solange ein Benutzer kein eigenes Format gewählt hat.';
 $HINT['SETTINGS_DEFAULT_TEMPLATE']           = 'Das Template der Website. Einzelne Seiten können in ihren Einstellungen ein anderes Template verwenden.';

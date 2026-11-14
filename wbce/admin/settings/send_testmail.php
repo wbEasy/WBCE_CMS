@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST'
         'WBMAILER_DEFAULT_SENDERNAME' => WBMAILER_DEFAULT_SENDERNAME,
         'SERVER_EMAIL'                => SERVER_EMAIL,
         'WB_URL'                      => WB_URL,
-        'DATE'                        => date('d-m-Y', time() + DEFAULT_TIMEZONE),
-        'TIME'                        => date('H:i:s', time() + DEFAULT_TIMEZONE),
+        'DATE'                        => (new DateTimeImmutable('now', new DateTimeZone(DEFAULT_TIMEZONE_NAME)))->format('d-m-Y'),
+        'TIME'                        => (new DateTimeImmutable('now', new DateTimeZone(DEFAULT_TIMEZONE_NAME)))->format('H:i:s'),
     ], 'testmail') == true;
     $message = sprintf(L_($ok ? 'MESSAGE:TESTMAIL_SUCCESS' : 'MESSAGE:TESTMAIL_FAILURE'), SERVER_EMAIL);
 }

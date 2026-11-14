@@ -187,6 +187,16 @@ function check_link($link, $exclude)
     return true;
 }
 
+/**
+ * lastmod in W3C form, UTC ("2026-08-01T16:00:00+00:00"). It used to be the
+ * date in the time zone of whoever requested the sitemap (+ TIMEZONE), so the
+ * same page could show different days. '' for an unknown (0) timestamp.
+ */
+function sitemap_lastmod($ts): string
+{
+    return DateTimeFormat::format((int) $ts, 'w3c');
+}
+
 function output_xml($link, $lastmod, $freq, $pri)
 {
     global $shorturl;
@@ -200,10 +210,11 @@ function output_xml($link, $lastmod, $freq, $pri)
             $link = str_replace(PAGE_EXTENSION, '/', $link);
         }
     }
+    // lastmod is optional in the protocol: no date known → no element
     echo '
   <url>
-    <loc>' . $link . '</loc>
-    <lastmod>' . $lastmod . '</lastmod>
+    <loc>' . $link . '</loc>' . ($lastmod !== '' ? '
+    <lastmod>' . $lastmod . '</lastmod>' : '') . '
 	<changefreq>' . $freq . '</changefreq>
     <priority>' . $pri . '</priority>
   </url>';
@@ -262,7 +273,7 @@ foreach ($pages as $page) {
 
     if ($checked === true) {
         $link    = htmlspecialchars($wb->page_link($page['link']));
-        $lastmod = date("Y-m-d", $page['modified_when'] + TIMEZONE);
+        $lastmod = sitemap_lastmod($page['modified_when']);
         $freq    = $page_frequency;
         $pri     = $page_priority;
 
@@ -308,9 +319,9 @@ if (in_array('news', $modules)) {
             $pri  = ($news['posted_when'] < $lastweek) ? $news_old_priority : $news_priority;
 
             if ((version_compare(WB_VERSION, '2.7.0') <= 0) && $news['published_when'] > 0) {
-                $lastmod = date("Y-m-d", $news['published_when'] + TIMEZONE);
+                $lastmod = sitemap_lastmod($news['published_when']);
             } else {
-                $lastmod = date("Y-m-d", $news['posted_when'] + TIMEZONE);
+                $lastmod = sitemap_lastmod($news['posted_when']);
             }
             output_xml($link, $lastmod, $news_frequency, $pri);
             $counter++;
@@ -344,9 +355,9 @@ if (in_array('news_img', $modules)) {
             $pri  = ($nwi['posted_when'] < $lastweek) ? $nwi_old_priority : $nwi_priority;
 
             if ((version_compare(WB_VERSION, '2.7.0') <= 0) && $nwi['published_when'] > 0) {
-                $lastmod = date("Y-m-d", $nwi['published_when'] + TIMEZONE);
+                $lastmod = sitemap_lastmod($nwi['published_when']);
             } else {
-                $lastmod = date("Y-m-d", $nwi['posted_when'] + TIMEZONE);
+                $lastmod = sitemap_lastmod($nwi['posted_when']);
             }
             output_xml($link, $lastmod, $nwi_frequency, $pri);
             $counter++;
@@ -372,7 +383,7 @@ if (in_array('bakery', $modules)) {
         $checked = check_link($bakery['link'], $exclude);
         if ($checked === true) {
             $link    = htmlspecialchars($wb->page_link($bakery['link']));
-            $lastmod = date("Y-m-d", $bakery['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($bakery['modified_when']);
             output_xml($link, $lastmod, $bakery_frequency, $bakery_priority);
             $counter++;
         } else {
@@ -397,7 +408,7 @@ if (in_array('catalogs', $modules)) {
         $checked = check_link($catalog['link'], $exclude);
         if ($checked === true) {
             $link    = htmlspecialchars($wb->page_link($catalog['link']));
-            $lastmod = date("Y-m-d", $catalog['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($catalog['modified_when']);
             output_xml($link, $lastmod, $catalogs_frequency, $catalogs_priority);
             $counter++;
         } else {
@@ -425,7 +436,7 @@ if (in_array('portfolio', $modules)) {
             $length  = strrpos($portfolio['link'], '/');
             $link    = substr($portfolio['link'], 0, $length);
             $link    = htmlspecialchars($wb->page_link($link)) . '?item=' . $portfolio['position'];
-            $lastmod = date("Y-m-d", $portfolio['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($portfolio['modified_when']);
             output_xml($link, $lastmod, $portfolio_frequency, $portfolio_priority);
             $counter++;
         } else {
@@ -464,7 +475,7 @@ if (in_array($topics_mod_name, $modules)) {
         $checked = check_link($topics['link'], $exclude);
         if ($checked === true) {
             $link    = htmlspecialchars(WB_URL . $topics_directory . $topics['link'] . PAGE_EXTENSION);
-            $lastmod = date("Y-m-d", $topics['posted_modified'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($topics['posted_modified']);
             output_xml($link, $lastmod, $topics_frequency, $topics_priority);
             $counter++;
         } else {
@@ -501,7 +512,7 @@ if (in_array('showcase', $modules)) {
                 $showcase['link'] = ($path !== '') ? $path . $showcase['link'] : $showcase['link'];
             }
             $link    = htmlspecialchars($wb->page_link($showcase['link']));
-            $lastmod = date("Y-m-d", $showcase['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($showcase['modified_when']);
             output_xml($link, $lastmod, $showcase_frequency, $showcase_priority);
             $counter++;
         } else {
@@ -539,7 +550,7 @@ foreach ($oneforall_mods as $oneforall_mod_name) {
         $checked = check_link($page . $oneforall['link'], $exclude);
         if ($checked === true) {
             $link    = htmlspecialchars($wb->page_link($page . $oneforall['link']));
-            $lastmod = date("Y-m-d", $oneforall['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($oneforall['modified_when']);
             output_xml($link, $lastmod, $oneforall_frequency, $oneforall_priority);
             $counter++;
         } else {
@@ -563,7 +574,7 @@ if (in_array('xxxxxx', $modules)) {
         $checked = check_link($item['link'], $exclude);
         if ($checked === true) {
             $link    = htmlspecialchars($wb->page_link($item['link']));
-            $lastmod = date("Y-m-d", $item['modified_when'] + TIMEZONE);
+            $lastmod = sitemap_lastmod($item['modified_when']);
             output_xml($link, $lastmod, $xxxxxx_frequency, $xxxxxx_priority);
             $counter++;
         } else {

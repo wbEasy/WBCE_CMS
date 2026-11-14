@@ -17,11 +17,15 @@
 {% macro select(name, current, choices, widget) %}
     <select name="{{ name }}" id="pref_{{ name }}" class="ws-select" data-ws="{{ widget|json_encode|e }}"
             data-search-label="{{ L_('TEXT:SEARCH')|e }} &hellip;">
+        {# group_start/group_end: <optgroup> (time zone); keywords: searched, not shown #}
         {% for c in choices %}
+            {% if c.group_start is defined %}<optgroup label="{{ c.group_start|e }}">{% endif %}
             <option value="{{ c.value|e }}"
                 {%- if c.right is defined %} data-right="{{ c.right|e }}"{% endif %}
                 {%- if c.left is defined %} data-left="{{ c.left|e }}"{% endif %}
-                {%- if c.value == current %} selected{% endif %}>{{ c.label|e }}</option>
+                {%- if c.keywords ?? '' %} data-keywords="{{ c.keywords|e }}"{% endif %}
+                {%- if c.selected is defined ? c.selected : c.value == current %} selected{% endif %}>{{ c.label|e }}</option>
+            {% if c.group_end ?? false %}</optgroup>{% endif %}
         {% endfor %}
     </select>
 {% endmacro %}
@@ -133,7 +137,7 @@
                             <div class="cp-setting-row" data-field="timezone">
                                 <label class="cp-setting-name" for="pref_timezone">{{ L_('TEXT:TIMEZONE') }}</label>
                                 <div class="cp-setting-value">
-                                    {{ pref.select('timezone', VALUES.timezone, CHOICES.timezone, {customSelector: 'title_only'}) }}
+                                    {{ pref.select('timezone', VALUES.timezone, CHOICES.timezone, {customSelector: 'title_only', useSearch: true, searchFields: ['value', 'text', 'keywords']}) }}
                                     <div class="cp-setting-error" hidden></div>
                                 </div>
                             </div>

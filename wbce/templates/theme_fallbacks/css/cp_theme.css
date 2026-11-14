@@ -237,6 +237,9 @@ label.cp-required::after,
 .cp-setting-hint {
     color: var(--text-muted);
 }
+.cp-setting-hint.cp-setting-warning {
+    color: var(--warning);
+}
 
 .validation-feedback {
     color: var(--danger);

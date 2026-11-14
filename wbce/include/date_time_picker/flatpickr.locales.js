@@ -1,5 +1,6 @@
 /* flatpickr 4.6.13 — combined locales for WBCE
  * Languages: EN(default) BG CA CS DA DE ES ET FI FR GR HU IT LV NL NO PL PT RU SK SV TR
+ *            + HR (WBCE's own block at the end, names from CLDR)
  * Load AFTER flatpickr.min.js — each block adds to window.flatpickr.l10ns
  */
 
@@ -1562,3 +1563,28 @@
   Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
+
+/* ── hr ──
+ * WBCE's own block (not from the flatpickr distribution): names from CLDR,
+ * languages/DateTimeFormat/HR.php — stand-alone forms, as the calendar header
+ * shows a name on its own. Week starts on Monday, day with an ordinal dot.
+ */
+(function () {
+  if (typeof window === 'undefined' || !window.flatpickr) { return; }
+  window.flatpickr.l10ns.hr = {
+      weekdays: {
+          shorthand: ["ned", "pon", "uto", "sri", "čet", "pet", "sub"],
+          longhand: ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"],
+      },
+      months: {
+          shorthand: ["sij", "velj", "ožu", "tra", "svi", "lip", "srp", "kol", "ruj", "lis", "stu", "pro"],
+          longhand: ["siječanj", "veljača", "ožujak", "travanj", "svibanj", "lipanj", "srpanj", "kolovoz", "rujan", "listopad", "studeni", "prosinac"],
+      },
+      firstDayOfWeek: 1,
+      ordinal: function () {
+          return ".";
+      },
+      rangeSeparator: " – ",
+      time_24hr: true,
+  };
+})();

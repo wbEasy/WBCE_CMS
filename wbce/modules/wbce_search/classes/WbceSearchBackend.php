@@ -687,9 +687,9 @@ class WbceSearchBackend
         $this->twig->load('_shell.twig')->display($vars + ['content_template' => $contentPath]);
     }
 
-    /** Raw UTC epoch → admin's local clock (TIMEZONE, as the rest of the backend). */
+    /** Raw UTC epoch → the admin's date and time format, in their zone. */
     private function localDate(int $ts): string
     {
-        return date('d.m.Y H:i', $ts + (defined('TIMEZONE') ? (int) TIMEZONE : 0));
+        return DateTimeFormat::dateTime($ts);
     }
 }

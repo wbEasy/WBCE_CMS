@@ -72,13 +72,13 @@
 
     {# Registration date — hidden on tablet and below #}
     <td class="md-hide" data-sort="{{ rec.signup_timestamp }}">        
-        <small>{% if rec.signup_timestamp %}{{ rec.signup_timestamp|date(DATE_FORMAT) }}{% else %}N/A{% endif %}</small><br>
+        <small>{% if rec.signup_timestamp %}{{ rec.signup_timestamp|datetime }}{% else %}N/A{% endif %}</small><br>
         <small style="color:darkgrey"><nobr>{{ rec.reg_method }}</nobr></small>
     </td>
 
     {# Last login — hidden on tablet and below #}
     <td class="md-hide" data-sort="{% if rec.login_when == 0 %}1{% else %}{{ rec.login_when }}{% endif %}">
-            <small>{% if rec.login_when == 0 %}N/A{% else %}{{ rec.login_when|date(DATE_FORMAT ~'  H:i') }}{% endif %}</small>
+            <small>{% if rec.login_when == 0 %}N/A{% else %}{{ rec.login_when|datetime('datetime') }}{% endif %}</small>
     </td>
 
     {# Actions — always visible #}

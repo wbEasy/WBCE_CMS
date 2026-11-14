@@ -725,6 +725,7 @@ $HINT['SETTINGS_REDIRECT_TIMER']             = 'Jak długo komunikat pozostaje w
 $HINT['SETTINGS_SEARCH']                     = 'Kto może korzystać z wyszukiwarki witryny. Wszystkie pozostałe ustawienia wyszukiwania są w narzędziu WBCE Search.';
 $HINT['SETTINGS_DEFAULT_LANGUAGE']           = 'Domyślny język witryny i panelu administracyjnego. Użytkownicy mogą wybrać własny w swoich preferencjach.';
 $HINT['SETTINGS_DEFAULT_TIMEZONE']           = 'Strefa czasowa, w której wyświetlane są data i godzina. Użytkownicy mogą wybrać własną w swoich preferencjach.';
+$HINT['TIMEZONE_FIXED_OFFSET']               = 'To stałe przesunięcie z wcześniejszej wersji, bez czasu letniego. Wybierz rzeczywistą strefę czasową (np. Europe/Warsaw).';
 $HINT['SETTINGS_DEFAULT_DATE_FORMAT']        = 'Jak wyświetlane są daty, dopóki użytkownik nie wybierze własnego formatu.';
 $HINT['SETTINGS_DEFAULT_TIME_FORMAT']        = 'Jak wyświetlane są godziny, dopóki użytkownik nie wybierze własnego formatu.';
 $HINT['SETTINGS_DEFAULT_TEMPLATE']           = 'Szablon witryny. Poszczególne strony mogą w swoich ustawieniach używać innego szablonu.';

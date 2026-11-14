@@ -328,6 +328,31 @@ class LayoutParser
             'date'     => fn($v, $fmt = 'd.m.Y')  => self::_formatDate($v, (string) $fmt),
             'time'     => fn($v, $fmt = 'H:i')    => self::_formatDate($v, (string) $fmt),
 
+            // Localized dates through DateTimeFormat — same spec as in PHP/Twig:
+            //   [POST.POSTED_WHEN|datetime]                 DATE_FORMAT
+            //   [POST.POSTED_WHEN|datetime:"long+time"]     1. August 2026 um 18:00
+            //   [POST.POSTED_WHEN|datetime:"relative"]      <time>, see _applyFilters()
+            //   [EVENT.START|datetime_range:EVENT.END]      01.08.2026 – 03.08.2026
+            //   [EVENT.START|datetime_range:"EVENT.END long"]  1.–3. August 2026
+            // Without the class (parser used stand-alone) |datetime falls back
+            // to date() with the spec as pattern.
+            'datetime' => fn($v, $spec = null) => class_exists('DateTimeFormat')
+                              ? DateTimeFormat::format($v, $spec)
+                              : self::_formatDate($v, (string) ($spec ?? 'd.m.Y')),
+            'datetime_range' => function ($v, ?string $param = null, bool $isVarRef = false): string {
+                if (!class_exists('DateTimeFormat')) {
+                    return self::_formatDate($v, 'd.m.Y');
+                }
+                // The end is a key (unquoted, or the first word of a quoted
+                // param — keys are upper case, specs lower case), else a date.
+                $spec = null;
+                if (!$isVarRef && $param !== null && preg_match('/^([A-Z_][A-Z0-9_.]*)(?:\s+(.+))?$/', $param, $m)) {
+                    [$param, $spec, $isVarRef] = [$m[1], $m[2] ?? null, true];
+                }
+                $end = $isVarRef ? $this->_resolveDotKey((string) $param, $this->currentScope ?? [], true) : $param;
+                return DateTimeFormat::range($v, is_scalar($end) ? (string) $end : null, $spec);
+            },
+
             // Arrays (also: a string's length / first / last character).
             // These receive the raw value — see ARRAY_FILTERS.
             'length'   => fn($v)               => (string) (is_array($v) ? count($v) : mb_strlen((string) $v)),
@@ -1529,6 +1554,25 @@ class LayoutParser
                 continue;
             }
 
+            // |datetime:KEY — an unquoted spec is a key (a module setting,
+            // say), as for |plural and |default. It used to be read as a PHP
+            // date pattern: |datetime:SPEC printed ".+02:00EC". A missing or
+            // empty key falls back to the default spec (DATE_FORMAT).
+            if ($name === 'datetime' && $isVarRef) {
+                $resolved = $this->_resolveDotKey((string) $param, $scope);
+                $param    = ($resolved === null || $resolved === '') ? null : (string) $resolved;
+                $isVarRef = false;
+            }
+
+            // |datetime:"relative…" builds a <time> element (DateTimeFormat
+            // escapes its text) — the final auto-escape would print the tag.
+            if ($name === 'datetime' && $param !== null && str_starts_with($param, 'relative')
+                && class_exists('DateTimeFormat')) {
+                $value      = DateTimeFormat::format($text($value), $param);
+                $skipEscape = true;
+                continue;
+            }
+
             if ($name === 'dump') {
                 $value      = $this->_printDebug($value, $param, $heading);
                 $skipEscape = true;
@@ -1565,8 +1609,9 @@ class LayoutParser
             return '';
         }
         // A digit string only from 9 digits on (every timestamp since 1973):
-        // "20261109" is YYYYMMDD, which strtotime() reads correctly.
-        if (is_int($value) || (is_string($value) && ctype_digit($value) && strlen($value) >= 9)) {
+        // "20261109" is YYYYMMDD, which strtotime() reads correctly. A
+        // negative one is always a timestamp (before 1970).
+        if (is_int($value) || (is_string($value) && preg_match('/^(?:\d{9,}|-\d+)$/', $value))) {
             return date($format, (int) $value);
         }
         $ts = strtotime((string) $value);

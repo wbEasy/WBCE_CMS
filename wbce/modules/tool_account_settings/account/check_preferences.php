@@ -43,7 +43,8 @@ if ($sCurrPassword === '' || $oAccounts->doCheckPassword($iUserID, $sCurrPasswor
     $sDisplayName  = remove_special_characters(strip_tags($oAccounts->get_post('display_name')));
     $sLC           = $oAccounts->get_post('language');
     $sLanguage     = preg_match('/^[A-Z]{2}$/', $sLC) ? $sLC : 'EN';
-    $sTimezone     = is_numeric($oAccounts->get_post('timezone')) ? $oAccounts->get_post('timezone')*60*60 : 0;
+    // a zone name, '' = system default (an unknown value counts as default)
+    $sTimezone     = DateTimeFormat::storedZone((string) $oAccounts->get_post('timezone'));
     $sDateFormat   = $oAccounts->get_post('date_format');
     $sTimeFormat   = $oAccounts->get_post('time_format');
 
@@ -92,8 +93,15 @@ if ($sCurrPassword === '' || $oAccounts->doCheckPassword($iUserID, $sCurrPasswor
 
         // update SESSION values
         $_SESSION['DISPLAY_NAME'] = $sDisplayName;
-        $_SESSION['TIMEZONE']     = $sTimezone;
-        $_SESSION['LANGUAGE']     = $sLanguage; 
+        if ($sTimezone === '') {
+            unset($_SESSION['TIMEZONE_NAME'], $_SESSION['TIMEZONE']);
+            $_SESSION['USE_DEFAULT_TIMEZONE'] = true;
+        } else {
+            $_SESSION['TIMEZONE_NAME'] = $sTimezone;
+            $_SESSION['TIMEZONE']      = DateTimeFormat::offsetSeconds($sTimezone);
+            unset($_SESSION['USE_DEFAULT_TIMEZONE']);
+        }
+        $_SESSION['LANGUAGE']     = $sLanguage;
         $_SESSION['HTTP_REFERER'] = ($_SESSION['LANGUAGE'] == LANGUAGE) ? $_SESSION['HTTP_REFERER'] : WB_URL;
         $_SESSION['HTTP_REFERER'] = PREFERENCES_URL.'?lang='.$_SESSION['LANGUAGE'];
         $_SESSION['CHECK_PREFERENCES'] = true;

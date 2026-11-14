@@ -206,8 +206,23 @@ defined("EDIT_ONE_SECTION") or define('EDIT_ONE_SECTION', false);
 defined("EDITOR_WIDTH")     or define('EDITOR_WIDTH', 0);
 
 // TIMEZONE and DATE/TIME FORMAT constants
-defined('DEFAULT_TIMEZONE') or define('DEFAULT_TIMEZONE', 'UTC');
-define('TIMEZONE',    isset($_SESSION['TIMEZONE'])    ? intval($_SESSION['TIMEZONE']) : intval(DEFAULT_TIMEZONE));
+// The zone is a name (Settings::setup() defines the DEFAULT_* pair). TIMEZONE
+// stays the offset in seconds — now computed from the zone for this moment,
+// so `$ts + TIMEZONE` callers get summer time right for today's dates.
+// Session: TIMEZONE_NAME (set by Login / "My data"); a bare seconds value in
+// $_SESSION['TIMEZONE'] without a name is from an older module and is read as
+// the zone with that offset.
+defined('DEFAULT_TIMEZONE_NAME') or define('DEFAULT_TIMEZONE_NAME', 'UTC');
+defined('DEFAULT_TIMEZONE')      or define('DEFAULT_TIMEZONE', 0);
+if (!empty($_SESSION['TIMEZONE_NAME']) && DateTimeFormat::isZone((string) $_SESSION['TIMEZONE_NAME'])) {
+    define('TIMEZONE_NAME', (string) $_SESSION['TIMEZONE_NAME']);
+} elseif (empty($_SESSION['USE_DEFAULT_TIMEZONE']) && isset($_SESSION['TIMEZONE']) && is_numeric($_SESSION['TIMEZONE'])
+          && (int) $_SESSION['TIMEZONE'] !== 0) {
+    define('TIMEZONE_NAME', DateTimeFormat::zoneFromOffset((int) $_SESSION['TIMEZONE']));
+} else {
+    define('TIMEZONE_NAME', DEFAULT_TIMEZONE_NAME);
+}
+define('TIMEZONE',    DateTimeFormat::offsetSeconds(TIMEZONE_NAME));
 define('DATE_FORMAT', isset($_SESSION['DATE_FORMAT']) ? $_SESSION['DATE_FORMAT'] : DEFAULT_DATE_FORMAT);
 define('TIME_FORMAT', isset($_SESSION['TIME_FORMAT']) ? $_SESSION['TIME_FORMAT'] : DEFAULT_TIME_FORMAT);
 

@@ -34,7 +34,15 @@ I::insertJsFile(ADMIN_URL . '/preferences/preferences.js', 'BODY BTM-');
 
 // options as wbeSelect renders them; the language gets code badge and flag
 $choices = [];
-foreach (['language', 'timezone', 'date_format', 'time_format'] as $field) {
+// the time zone in groups ('' = system default first, then suggestions and
+// continents) with the country as search keyword
+$values           = $form->values();
+$defaultZone      = ['label' => '', 'zones' => ['' => ['label' => $form->options('timezone')[''], 'keywords' => '']]];
+$choices['timezone'] = DateTimeFormat::timezoneRows(
+    array_merge([$defaultZone], DateTimeFormat::timezoneGroups([$values['timezone']])),
+    $values['timezone']
+);
+foreach (['language', 'date_format', 'time_format'] as $field) {
     foreach ($form->options($field) as $value => $label) {
         $choice = ['value' => (string) $value, 'label' => $label];
         if ($field === 'language') {
@@ -46,7 +54,7 @@ foreach (['language', 'timezone', 'date_format', 'time_format'] as $field) {
 }
 
 $admin->getThemeFile('preferences.twig', [
-    'VALUES'         => $form->values(),
+    'VALUES'         => $values,
     'CHOICES'        => $choices,
     'TOKEN'          => $admin->getIDKEY('preferences', 'preferences'),
     'SAVE_URL'       => ADMIN_URL . '/preferences/save.php',

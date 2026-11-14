@@ -800,6 +800,7 @@ $HINT['SETTINGS_REDIRECT_TIMER']             = 'How long a message stays on scre
 $HINT['SETTINGS_SEARCH']                     = 'Who may use the website\'s search. Everything else about the search is in the WBCE Search admin tool.';
 $HINT['SETTINGS_DEFAULT_LANGUAGE']           = 'The default language of the website and the backend. Users can choose their own in their preferences.';
 $HINT['SETTINGS_DEFAULT_TIMEZONE']           = 'The time zone in which dates and times are shown. Users can choose their own in their preferences.';
+$HINT['TIMEZONE_FIXED_OFFSET']               = 'This is a fixed offset from an earlier version, without daylight saving time. Please choose your actual time zone (e.g. Europe/Berlin).';
 $HINT['SETTINGS_DEFAULT_DATE_FORMAT']        = 'How dates are shown as long as a user has not chosen a format of their own.';
 $HINT['SETTINGS_DEFAULT_TIME_FORMAT']        = 'How times are shown as long as a user has not chosen a format of their own.';
 $HINT['SETTINGS_DEFAULT_TEMPLATE']           = 'The template of the website. Single pages can use a different template in their settings.';

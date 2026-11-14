@@ -339,10 +339,16 @@ class Login extends Admin
             $_SESSION['LANGUAGE'] = $user['language'];
         }
 
-        // Timezone
-        if (!empty($user['timezone'])) {
-            $_SESSION['TIMEZONE'] = $user['timezone'];
+        // Timezone: a zone name; '' (and '0' from before 1.7.0) = system default.
+        // A number is an old offset in seconds, read as the zone with it.
+        // $_SESSION['TIMEZONE'] keeps the seconds for modules that read it.
+        $zone = DateTimeFormat::storedZone((string) ($user['timezone'] ?? ''));
+        if ($zone !== '') {
+            $_SESSION['TIMEZONE_NAME'] = $zone;
+            $_SESSION['TIMEZONE']      = DateTimeFormat::offsetSeconds($zone);
+            unset($_SESSION['USE_DEFAULT_TIMEZONE']);
         } else {
+            unset($_SESSION['TIMEZONE_NAME'], $_SESSION['TIMEZONE']);
             $_SESSION['USE_DEFAULT_TIMEZONE'] = true;
         }
 

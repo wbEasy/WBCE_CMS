@@ -23,19 +23,21 @@ if (!defined('TIME_FORMATS_LOADED')) {
 // Create array
 $TIME_FORMATS = array();
 
-// Get the current time (in the users timezone if required)
-$sShowTime = time() + ((isset($user_time) && $user_time == true) ? (int)TIMEZONE : (int)DEFAULT_TIMEZONE);
+// Now, in the user's zone if required, else the system default's; AM/PM in
+// the page language
+$sShowTime = new DateTimeImmutable('now', new DateTimeZone(
+    (isset($user_time) && $user_time == true) ? TIMEZONE_NAME : DEFAULT_TIMEZONE_NAME
+));
 
-// Add values to list
-$TIME_FORMATS['g:i|A'] = date('g:i A', $sShowTime);
-$TIME_FORMATS['g:i|a'] = date('g:i a', $sShowTime);
-$TIME_FORMATS['H:i:s'] = date('H:i:s', $sShowTime);
-$TIME_FORMATS['H:i'] = date('H:i', $sShowTime);
+// Add values to list (keys: the format with '|' for spaces)
+foreach (DateTimeFormat::TIME_FORMATS as $sFormat) {
+    $TIME_FORMATS[str_replace(' ', '|', $sFormat)] = DateTimeFormat::format($sShowTime, $sFormat);
+}
 
 // Add "System Default" to list (if we need to)
 if (isset($user_time) && $user_time == true) {
     global $TEXT;
-    $TIME_FORMATS['system_default'] = date(DEFAULT_TIME_FORMAT, $sShowTime) . ' (' . $TEXT['SYSTEM_DEFAULT'] . ')';
+    $TIME_FORMATS['system_default'] = DateTimeFormat::format($sShowTime, DEFAULT_TIME_FORMAT) . ' (' . $TEXT['SYSTEM_DEFAULT'] . ')';
 }
 
 // Reverse array so "System Default" is at the top

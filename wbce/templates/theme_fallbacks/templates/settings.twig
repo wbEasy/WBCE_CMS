@@ -34,11 +34,16 @@
         <select name="{{ name }}" id="{{ id }}" class="ws-select"
                 data-ws="{{ (f.widget ?? {})|json_encode|e }}"
                 data-search-label="{{ L_('TEXT:SEARCH')|e }} &hellip;">
+            {# group_start/group_end: <optgroup> (the time zone choice);
+               keywords: searched by wbeSelect (searchFields), not shown #}
             {% for c in f.choices %}
+                {% if c.group_start is defined %}<optgroup label="{{ c.group_start|e }}">{% endif %}
                 <option value="{{ c.value|e }}"
                     {%- if c.right is defined %} data-right="{{ c.right|e }}"{% endif %}
                     {%- if c.left is defined %} data-left="{{ c.left|e }}"{% endif %}
-                    {%- if c.value == f.value %} selected{% endif %}>{{ c.label|e }}</option>
+                    {%- if c.keywords ?? '' %} data-keywords="{{ c.keywords|e }}"{% endif %}
+                    {%- if c.selected is defined ? c.selected : c.value == f.value %} selected{% endif %}>{{ c.label|e }}</option>
+                {% if c.group_end ?? false %}</optgroup>{% endif %}
             {% endfor %}
         </select>
     {% elseif f.type == 'radio' %}
@@ -143,6 +148,9 @@
                                 {% if f.hint is defined %}
                                     {# plain text — e.g. "<meta:description>" must show as written #}
                                     <div class="cp-setting-hint">{{ f.hint|e }}</div>
+                                {% endif %}
+                                {% if f.warning is defined %}
+                                    <div class="cp-setting-hint cp-setting-warning" data-warning-for="{{ name|e }}"><i class="fa fa-exclamation-triangle"></i> {{ f.warning|e }}</div>
                                 {% endif %}
                                 {% if name == 'search' and SEARCH_TOOL_URL %}
                                     <div class="cp-setting-hint"><a href="{{ SEARCH_TOOL_URL|e }}"><i class="fa fa-search"></i> {{ SEARCH_TOOL_NAME|e }} &raquo;</a></div>

@@ -83,16 +83,18 @@ if ($query_sections->numRows() > 0) {
             // update publ_start and publ_end, trying to make use of the strtotime()-features like "next week", "+1 month", ...
             if (isset($_POST['start_date' . $section_id]) && isset($_POST['end_date' . $section_id])) {
                 require_once INCLUDE_PATH . '/date_time_picker/wbce_setup.php';
-                if (trim($_POST['start_date' . $section_id]) == '0' || trim($_POST['start_date' . $section_id]) == '') {
-                    $publ_start = 0;
-                } else {
-                    $publ_start = jscalendar_to_timestamp($_POST['start_date' . $section_id], '', 'true');
-                }
-                if (trim($_POST['end_date' . $section_id]) == '0' || trim($_POST['end_date' . $section_id]) == '') {
-                    $publ_end = 0;
-                } else {
-                    $publ_end = jscalendar_to_timestamp($_POST['end_date' . $section_id], $publ_start, 'true');
-                }
+                // ISO (themes since 1.7.0, DateTimeFormat::pickerConfig()) is the
+                // user's wall time — DST-correct via the zone. Anything else is
+                // the display format of older themes: the old reader, as before.
+                $readDate = static function (string $value, string $base): int {
+                    $value = trim($value);
+                    if ($value === '' || $value === '0') {
+                        return 0;
+                    }
+                    return DateTimeFormat::fromInput($value) ?? (int) jscalendar_to_timestamp($value, $base, 'true');
+                };
+                $publ_start = $readDate((string) $_POST['start_date' . $section_id], '');
+                $publ_end   = $readDate((string) $_POST['end_date' . $section_id], (string) $publ_start);
                 $parts[]  = '`publ_start` = ?';
                 $parts[]  = '`publ_end` = ?';
                 $params[] = intval($publ_start);

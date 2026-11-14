@@ -67,11 +67,13 @@ if (!isset($_POST['wb_url']) || $_POST['wb_url'] == '') {
     $wb_url = rtrim($_POST['wb_url'], '\\/');
 }
 
-if (!isset($_POST['default_timezone']) || !is_numeric($_POST['default_timezone'])) {
+// an IANA zone name ("Europe/Berlin")
+require_once dirname(__DIR__) . '/framework/DateTimeFormat.php';
+if (!isset($_POST['default_timezone']) || !DateTimeFormat::isZone((string) $_POST['default_timezone'])) {
     set_error(d('e3: ') . 'Please select a valid default timezone', 'default_timezone');
     $_isError = true;
 } else {
-    $default_timezone = $_POST['default_timezone'] * 60 * 60;
+    $default_timezone = (string) $_POST['default_timezone'];
 }
 
 $sLangDir = str_replace('\\', '/', dirname(__DIR__) . '/languages/');
@@ -532,7 +534,7 @@ $database->insertRow('{TP}users', [
     'password'           => password_hash($admin_password, PASSWORD_BCRYPT),
     'email'              => $admin_email,
     'language'           => $default_language,
-    'timezone'           => $default_timezone,
+    'timezone'           => '',   // follows the system default
     'display_name'       => 'Administrator',
     'home_folder'        => '',
     'signup_checksum'    => date('Y-m-d H:i:s'),

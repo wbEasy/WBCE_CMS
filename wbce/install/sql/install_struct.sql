@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS `{TP}users` (
   `password`           VARCHAR(255) NOT NULL DEFAULT '',
   `remember_key`       VARCHAR(255) NOT NULL DEFAULT '',
   `last_reset`         INT          NOT NULL DEFAULT 0,
-  `timezone`           VARCHAR(11)  NOT NULL DEFAULT '',
+  `timezone`           VARCHAR(64)  NOT NULL DEFAULT '',
   `date_format`        VARCHAR(255) NOT NULL DEFAULT '',
   `time_format`        VARCHAR(255) NOT NULL DEFAULT '',
   `home_folder`        TEXT         NOT NULL,

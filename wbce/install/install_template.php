@@ -207,12 +207,12 @@ if (isset($_GET['lang']) && is_string($_GET['lang'])) {
                                 <label for="default_timezone"><?= $TXT['lbl_timezone'] ?></label>
                                 <div class="select-wrap">
                                     <select <?= field_error('default_timezone') ?> id="default_timezone"
-                                                                                  tabindex="3" name="default_timezone" required>
-                                                                                      <?php foreach ($aZones as $fOffset): ?>
-                                            <option value="<?= (string) $fOffset ?>"
-                                                    <?php TzSelected($fOffset) ? print('selected') : '' ?>>
-                                                        <?= $TXT['gmt'] . ' ' . (($fOffset > 0) ? '+' : '') . (($fOffset == 0) ? '' : (string) $fOffset . ' Hours') ?>
-                                            </option>
+                                            tabindex="3" name="default_timezone" required
+                                            <?= $sTzSelected === '' ? 'data-browser-zone' : '' ?>>
+                                        <?php foreach ($aZoneRows as $aZ): ?>
+                                            <?php if (isset($aZ['group_start'])): ?><optgroup label="<?= htmlspecialchars($aZ['group_start']) ?>"><?php endif ?>
+                                            <option value="<?= htmlspecialchars($aZ['value']) ?>"<?= $aZ['keywords'] !== '' ? ' data-keywords="' . htmlspecialchars($aZ['keywords']) . '"' : '' ?><?= $aZ['selected'] ? ' selected' : '' ?>><?= htmlspecialchars($aZ['label']) ?></option>
+                                            <?php if (!empty($aZ['group_end'])): ?></optgroup><?php endif ?>
                                         <?php endforeach ?>
                                     </select>
                                 </div>
@@ -547,6 +547,20 @@ if (isset($_GET['lang']) && is_string($_GET['lang'])) {
             if (!sel) { return; }
             WbeSelect.init(sel, { customSelector: 'cfg-lang' });
             sel.addEventListener('change', function () { window.location = sel.value; });
+        })();
+
+        // Time zone: without an earlier choice, the browser's own zone
+        // ("Europe/Berlin"); then a searchable list (~420 zones).
+        (function () {
+            var tz = document.getElementById('default_timezone');
+            if (!tz) { return; }
+            if (tz.hasAttribute('data-browser-zone') && window.Intl && Intl.DateTimeFormat) {
+                var zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (zone && tz.querySelector('option[value="' + zone.replace(/"/g, '') + '"]')) {
+                    tz.value = zone;
+                }
+            }
+            WbeSelect.init(tz, { customSelector: 'title_only', useSearch: true, searchFields: ['value', 'text', 'keywords'] });
         })();
 
         WbePwGen.attach('admin_password', 'pw-strength-wrap', <?= json_encode(array_merge($wpg_labels, ['confirmId' => 'admin_repassword'])) ?>);

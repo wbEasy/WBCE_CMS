@@ -37,7 +37,8 @@ if ($iUserID = $oAccounts->userIdFromConfirmcode($sConfirmationID)) {
     $sNewPasswordRaw = $oAccounts->GenerateRandomPassword();
     $sNewPasswordEnc = $oAccounts->doPasswordEncode($sNewPasswordRaw);
 
-    $sReadableDateTime = date("Y-m-d H:i:s", time() + DEFAULT_TIMEZONE);
+    // the site's time zone (the visitor is not logged in yet)
+    $sReadableDateTime = (new DateTimeImmutable('now', new DateTimeZone(DEFAULT_TIMEZONE_NAME)))->format('Y-m-d H:i:s');
 
     if (isset($_GET['mng']) && $_GET['mng'] == intval(1)) {
         if ($oAccounts->checkConfirmSum((string) ($_GET['sum'] ?? ''), $iUserID) == false) {
@@ -97,7 +98,9 @@ if ($iUserID = $oAccounts->userIdFromConfirmcode($sConfirmationID)) {
             'LOGIN_WEBSITE_TITLE' => WEBSITE_TITLE,
             'SIGNUP_DATE' => $sReadableDateTime,
             'LOGIN_EMAIL' => $aUser['email'],
-            'CONFIRMATION_TIMEOUT' => date("Y-m-d H:i:s", $sConfirmTimeout),
+            // same zone as SIGNUP_DATE (was UTC, an offset away from it)
+            'CONFIRMATION_TIMEOUT' => (new DateTimeImmutable('@' . $sConfirmTimeout))
+                ->setTimezone(new DateTimeZone(DEFAULT_TIMEZONE_NAME))->format('Y-m-d H:i:s'),
             'LOGIN_URL' => ACCOUNT_URL . '/login.php',
             'SUPPORT_EMAIL' => $oAccounts->cfg['support_email'],
             'APPROVAL_LINK' => $oAccounts->genEmailLinkFromUrl($sConfirmationUrl . '&mng=1&sum=' . $sCheckSum),

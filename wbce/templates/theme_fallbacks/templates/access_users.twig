@@ -118,7 +118,7 @@ $(document).ready(function() {
 
         if ($groups.length)  $groups.wbeSelect({ keepOpen: true });
         if ($lang.length)    $lang.wbeSelect({ customSelector: 'cfg-lang' });
-        if ($tz.length)      $tz.wbeSelect({ customSelector: 'title_only' });
+        if ($tz.length)      $tz.wbeSelect({ customSelector: 'title_only', useSearch: true, searchFields: ['value', 'text', 'keywords'] });
     //    if ($hf.length)      $hf.wbeSelect();
         if ($homeFld.length) $homeFld.wbeSelect({
                 customSelector: 'flag-right',

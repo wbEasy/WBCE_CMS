@@ -43,7 +43,9 @@ $user = $admin->get_user_details($results_array['modified_by']);
 
 // Convert the unix ts for modified_when to human a readable form
 
-$modified_ts = ($results_array['modified_when'] != 0) ? date(TIME_FORMAT . ', ' . DATE_FORMAT, $results_array['modified_when'] + (int)TIMEZONE) : 'Unknown';
+$modified_ts = ($results_array['modified_when'] != 0)
+    ? DateTimeFormat::time($results_array['modified_when']) . ', ' . DateTimeFormat::date($results_array['modified_when'])
+    : 'Unknown';
 // $ftan_module = $GLOBALS['ftan_module'];
 // Setup template object, parse vars to it, then parse it
 // Create new template object

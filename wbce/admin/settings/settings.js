@@ -169,6 +169,13 @@
         document.getElementById(box.dataset.for)?.addEventListener('input', () => updateCounter(box));
     });
 
+    // The "fixed offset, please pick your real zone" note goes as soon as a
+    // real zone is chosen (an Etc/… zone brings it back).
+    form.querySelectorAll('[data-warning-for]').forEach((box) => {
+        const select = form.querySelector(`[name="${box.dataset.warningFor}"]`);
+        select?.addEventListener('change', () => { box.hidden = !select.value.startsWith('Etc/'); });
+    });
+
     form.addEventListener('change', () => { dirty = true; refresh(); });
     form.addEventListener('input', () => { dirty = true; });
 

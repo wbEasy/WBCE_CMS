@@ -215,7 +215,7 @@ switch ($action) {
 
         // Convert the unix ts for modified_when to human a readable form
         if ($aPage['modified_when'] != 0) {
-            $modified_ts = date(TIME_FORMAT . ', ' . DATE_FORMAT, $aPage['modified_when'] + (int)TIMEZONE);
+            $modified_ts = DateTimeFormat::time($aPage['modified_when']) . ', ' . DateTimeFormat::date($aPage['modified_when']);
         } else {
             $modified_ts = 'Unknown';
         }
@@ -385,17 +385,16 @@ switch ($action) {
                             'DELETE_16_PNG' => 'delete_16.png',
                         )
                     );
-                    // set calendar start values
-                    if ((int)$section['publ_start'] == 0) {
-                        $oTemplate->set_var('VALUE_PUBL_START', '');
-                    } else {
-                        $oTemplate->set_var('VALUE_PUBL_START', date($fp_php_format, (int)$section['publ_start'] + (int)TIMEZONE));
-                    }
-                    // set calendar end values
-                    if ((int)$section['publ_end'] == 0) {
-                        $oTemplate->set_var('VALUE_PUBL_END', '');
-                    } else {
-                        $oTemplate->set_var('VALUE_PUBL_END', date($fp_php_format, (int)$section['publ_end'] + (int)TIMEZONE));
+                    // Calendar values. {VALUE_PUBL_*} = the display format, as
+                    // backend themes have always used them (the form posts that
+                    // text back); {VALUE_PUBL_*_ISO} = wall time in the user's
+                    // zone for themes that show it via flatpickr's altInput and
+                    // post ISO (shipped themes; sections_save.php takes both).
+                    foreach (['START' => 'publ_start', 'END' => 'publ_end'] as $key => $col) {
+                        $ts   = (int) $section[$col];
+                        $user = $ts === 0 ? null : DateTimeFormat::toUser($ts);
+                        $oTemplate->set_var('VALUE_PUBL_' . $key, $user ? $user->format($fp_php_format) : '');
+                        $oTemplate->set_var('VALUE_PUBL_' . $key . '_ISO', $user ? $user->format('Y-m-d H:i:s') : '');
                     }
                     // Insert icons up and down.
                     // When D&D is active: links stay in DOM (dragdrop.js detects rows via href)
@@ -472,6 +471,13 @@ switch ($action) {
                             'fp_locale_key'   => $fp_locale_key,
                             'fp_dateFormat'   => $fp_dateFormat,
                             'fp_use_time'     => $fp_use_time ? 'true' : 'false',
+                            // ISO + altInput (page_calendar.js uses it when the theme sets fpConfig).
+                            // Pretty-printed on purpose: phplib's "remove unknowns" would strip a
+                            // {…} without whitespace; HEX_TAG keeps "</script>" out of the block.
+                            'fp_config'       => json_encode(DateTimeFormat::pickerConfig($fp_use_time, [
+                                                     'allowInput'    => true,
+                                                     'disableMobile' => true,
+                                                 ]), JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                             'start_date'      => 'start_date' . $section['section_id'],
                             'end_date'        => 'end_date' . $section['section_id'],
                             'trigger_start'   => 'trigger_start' . $section['section_id'],

@@ -449,9 +449,13 @@ class Accounts extends Frontend
                 'email'            => $row['email'],
                 'groups'           => $row['user_groups'],
                 'actions'          => sprintf($pryFunc, $row['display_name'], $id, $id) . ' ',
-                'login_when'       => ($row['login_when'] != 0) ? $row['login_when'] + TIMEZONE : '',
-                'profile_url'      => sprintf($toolUrl . '&amp;pos=detail&amp;id=%d&amp;action=edit', $id),
-                'signup_timestamp' => ($row['signup_timestamp'] != 0) ? $row['signup_timestamp'] + TIMEZONE : '',
+                // shifted by TIMEZONE for |date in theme overrides that still use it;
+                // *_ts = the raw UTC timestamp for |datetime (since 1.7.0)
+                'login_when'          => ($row['login_when'] != 0) ? $row['login_when'] + TIMEZONE : '',
+                'login_when_ts'       => (int) $row['login_when'],
+                'profile_url'         => sprintf($toolUrl . '&amp;pos=detail&amp;id=%d&amp;action=edit', $id),
+                'signup_timestamp'    => ($row['signup_timestamp'] != 0) ? $row['signup_timestamp'] + TIMEZONE : '',
+                'signup_timestamp_ts' => (int) $row['signup_timestamp'],
             ];
         }
         return $collection;

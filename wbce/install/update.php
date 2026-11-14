@@ -543,9 +543,7 @@ foreach (['publ_start', 'publ_end'] as $col) {
 
 // Users table fixes
 foreach ([
-    "ALTER TABLE `{TP}users` CHANGE `timezone` `timezone` VARCHAR(11) NOT NULL DEFAULT ''",
     "ALTER TABLE `{TP}users` CHANGE `login_ip` `login_ip` VARCHAR(50) NOT NULL DEFAULT ''",
-    "UPDATE `{TP}users` SET `timezone` = ''",
     "UPDATE `{TP}users` SET `group_id` = CAST(groups_id AS SIGNED)",
     "UPDATE `{TP}users` SET `group_id` = 1 WHERE FIND_IN_SET('1', groups_id) > '0'",
 ] as $usql) {
@@ -553,6 +551,52 @@ foreach ([
     if ($database->hasError()) log_warn($database->getError());
 }
 log_ok('Users table updated');
+
+// ── Time zones: names instead of seconds (1.7.0) ─────────────────────────────
+// Until 1.6.x this script reset every user's zone to '' on EACH run. Now old
+// offsets are converted once into a zone with exactly that offset
+// (DateTimeFormat::zoneFromOffset: 3600 → Etc/GMT-1); a value that is a name
+// already stays as it is, so the step can run any number of times.
+$database->modifyField('{TP}users', 'timezone', "VARCHAR(64) NOT NULL DEFAULT ''");
+if ($database->hasError()) {
+    $err = $database->getError();
+    if (str_contains($err, 'SQLite')) {
+        log_info('`{TP}users`.`timezone` — SQLite: MODIFY COLUMN skipped (no length limits)');
+    } else {
+        log_warn("`{TP}users`.`timezone`: $err");
+    }
+}
+$tzConverted = 0;
+$tzFixed     = 0;
+foreach ($database->fetchAll('SELECT `user_id`, `timezone` FROM `{TP}users`') ?: [] as $u) {
+    $old = (string) $u['timezone'];
+    $new = DateTimeFormat::storedZone($old);
+    if ($new === $old) {
+        continue;
+    }
+    $database->query('UPDATE `{TP}users` SET `timezone` = ? WHERE `user_id` = ?', [$new, (int) $u['user_id']]);
+    if ($database->hasError()) {
+        log_warn('users.timezone #' . (int) $u['user_id'] . ': ' . $database->getError());
+        continue;
+    }
+    $tzConverted++;
+    $tzFixed += DateTimeFormat::isFixedOffsetZone($new) ? 1 : 0;
+}
+$oldDefault = trim((string) $database->fetchValue("SELECT `value` FROM `{TP}settings` WHERE `name` = 'default_timezone'"));
+if ($oldDefault !== DEFAULT_TIMEZONE_NAME) {
+    // DEFAULT_TIMEZONE_NAME is the old value read as a zone (Settings::setup())
+    $database->query("UPDATE `{TP}settings` SET `value` = ? WHERE `name` = 'default_timezone'", [DEFAULT_TIMEZONE_NAME]);
+    if ($database->hasError()) {
+        log_warn('settings.default_timezone: ' . $database->getError());
+    } else {
+        log_ok("Default time zone: '$oldDefault' → " . DEFAULT_TIMEZONE_NAME);
+    }
+}
+log_ok("Time zones stored as names ($tzConverted user value(s) converted)");
+if (DateTimeFormat::isFixedOffsetZone(DEFAULT_TIMEZONE_NAME) || $tzFixed > 0) {
+    log_warn('Time zones converted to fixed offsets (Etc/GMT…) have no daylight saving time. '
+           . 'Please choose the real zone once in Settings (and users in "My data").');
+}
 
 // ── Core modules — install or upgrade ────────────────────────────────────────
 $coreModules = [

@@ -23,6 +23,7 @@ if (empty($_SERVER['HTTP_HX_REQUEST'])) {
 $users   = new UserManager();
 $alerts = new Alerts(useSession: false);
 
+$user_time = true;   // timezones.php: offer '' = system default
 require_once ADMIN_PATH . '/interface/timezones.php';
 require_once ADMIN_PATH . '/interface/languages.php';
 
@@ -118,7 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'display_name'       => $displayName,
         'email'              => $email,
         'home_folder'        => $homeFolder,
-        'timezone'           => (int) ($admin->get_post('timezone') ?? 0) * 3600,
+        // a zone name, '' = system default; anything else is not a zone
+        'timezone'           => DateTimeFormat::storedZone((string) ($admin->get_post('timezone') ?? '')),
         'language'           => $admin->get_post('language') ?? DEFAULT_LANGUAGE,
         'signup_timestamp'   => time(),
         'signup_confirmcode' => 'by admin uid: ' . $admin->get_user_id(),
@@ -196,7 +198,7 @@ if ($wasAdded && $userId > 0) {
         'display_name' => '',
         'email'        => '',
         'active'       => 1,
-        'timezone'     => (int)DEFAULT_TIMEZONE,
+        'timezone'     => '',   // follows the system default, also when it changes later
         'language'     => DEFAULT_LANGUAGE,
         'home_folder'  => '',
     ];
@@ -264,7 +266,7 @@ $toTwig = [
     'do_modify_user'     => $doModify,
     'use_home_folders'   => HOME_FOLDERS,
     'user'               => $userData,
-    'TIME_ZONES'         => getTimeZonesArray($TIMEZONES, true),
+    'TIME_ZONES'         => getTimeZonesArray($TIMEZONES, DateTimeFormat::storedZone((string) ($userData['timezone'] ?? ''))),
     'LANGUAGES'          => getLanguagesArray(),
     'groups'             => $groupsForForm,
     'home_folders'       => $homeFolders,

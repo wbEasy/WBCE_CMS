@@ -23,27 +23,25 @@ if (!defined('DATE_FORMATS_LOADED')) {
 // Create array
 $DATE_FORMATS = array();
 
-// Get the current time (in the users timezone if required)
-$actual_time = time() + ((isset($user_time) && $user_time == true) ? (int)TIMEZONE : (int)DEFAULT_TIMEZONE);
+// Now, in the user's zone if required, else the system default's; the
+// examples show names in the page language ("Samstag, 1. August, 2026").
+$actual_time = new DateTimeImmutable('now', new DateTimeZone(
+    (isset($user_time) && $user_time == true) ? TIMEZONE_NAME : DEFAULT_TIMEZONE_NAME
+));
 
-// Add values to list
-$DATE_FORMATS['l,|jS|F,|Y'] = date('l, jS F, Y', $actual_time);
-$DATE_FORMATS['jS|F,|Y'] = date('jS F, Y', $actual_time);
-$DATE_FORMATS['d|M|Y'] = date('d M Y', $actual_time);
-$DATE_FORMATS['M|d|Y'] = date('M d Y', $actual_time);
-$DATE_FORMATS['D|M|d,|Y'] = date('D M d, Y', $actual_time);
-$DATE_FORMATS['d-m-Y'] = date('d-m-Y', $actual_time) . ' (D-M-Y)';
-$DATE_FORMATS['m-d-Y'] = date('m-d-Y', $actual_time) . ' (M-D-Y)';
-$DATE_FORMATS['d.m.Y'] = date('d.m.Y', $actual_time) . ' (D.M.Y)';
-$DATE_FORMATS['m.d.Y'] = date('m.d.Y', $actual_time) . ' (M.D.Y)';
-$DATE_FORMATS['d/m/Y'] = date('d/m/Y', $actual_time) . ' (D/M/Y)';
-$DATE_FORMATS['m/d/Y'] = date('m/d/Y', $actual_time) . ' (M/D/Y)';
-$DATE_FORMATS['j.n.Y'] = date('j.n.Y', $actual_time) . ' (j.n.Y)';
+// Add values to list — keys: the format with '|' for spaces (array keys);
+// formats without names get the order as a hint: "01.08.2026 (D.M.Y)"
+foreach (DateTimeFormat::DATE_FORMATS as $sFormat) {
+    $sExample = DateTimeFormat::format($actual_time, $sFormat);
+    $DATE_FORMATS[str_replace(' ', '|', $sFormat)] = preg_match('/[DlFMS]/', $sFormat)
+        ? $sExample
+        : $sExample . ' (' . strtr($sFormat, ['d' => 'D', 'm' => 'M']) . ')';
+}
 
 // Add "System Default" to list (if we need to)
 if (isset($user_time) && $user_time == true) {
     global $TEXT;
-    $DATE_FORMATS['system_default'] = date(DEFAULT_DATE_FORMAT, $actual_time) . ' (' . $TEXT['SYSTEM_DEFAULT'] . ')';
+    $DATE_FORMATS['system_default'] = DateTimeFormat::format($actual_time, DEFAULT_DATE_FORMAT) . ' (' . $TEXT['SYSTEM_DEFAULT'] . ')';
 }
 
 // Reverse array so "System Default" is at the top

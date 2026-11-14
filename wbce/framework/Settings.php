@@ -206,19 +206,16 @@ class Settings
 
     /**
      * Get a setting directly from the database (bypasses cache).
+     *
+     * Returns $default when the row does not exist — not '' (fetchValue()
+     * cannot tell a missing row from an empty value, _getFromDbRaw() can),
+     * and also when the database is not available yet (installer boot).
      */
     public static function getFromDb(string $name, $default = false)
     {
-        global $database;
+        $raw = self::_getFromDbRaw($name);
 
-        $name = strtolower($name);
-
-        $value = $database->fetchValue(
-            'SELECT `value` FROM `{TP}settings` WHERE `name` = ?',
-            [$name]
-        );
-
-        return ($value !== null) ? self::deserialize($value) : $default;
+        return ($raw !== null) ? self::deserialize($raw) : $default;
     }
 
     /**
@@ -391,6 +388,20 @@ class Settings
         foreach ($rows as $row) {
             $constName = strtoupper($row['name']);
             $rawValue  = $row['value'];
+
+            // default_timezone stores a zone name since 1.7.0. DEFAULT_TIMEZONE
+            // keeps its meaning — the offset in seconds, now for this moment —
+            // so the many `$ts + DEFAULT_TIMEZONE` callers work on; the name
+            // is DEFAULT_TIMEZONE_NAME. An old number (not yet upgraded) is
+            // read as the zone with that offset.
+            if ($constName === 'DEFAULT_TIMEZONE' && !defined('DEFAULT_TIMEZONE')) {
+                $zone = trim((string) $rawValue);
+                if ($zone === '' || preg_match('/^-?\d+$/', $zone) || !DateTimeFormat::isZone($zone)) {
+                    $zone = DateTimeFormat::zoneFromOffset((int) $zone);
+                }
+                define('DEFAULT_TIMEZONE_NAME', $zone);
+                define('DEFAULT_TIMEZONE', DateTimeFormat::offsetSeconds($zone));
+            }
 
             if (!defined($constName)) {
                 define($constName, self::deserialize($rawValue));

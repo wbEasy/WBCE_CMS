@@ -115,7 +115,8 @@ if (!function_exists('getTwig')) {
         $oTwig->addExtension(new \Twig\WbceCustom\Extension\UnserializeExtension());
         $oTwig->addExtension(new \Twig\WbceCustom\Extension\StripTagsExtension());
         $oTwig->addExtension(new \Twig\WbceCustom\Extension\CastExtension());
-        
+        $oTwig->addExtension(new \Twig\WbceCustom\Extension\DateTimeFormatExtension());
+
         $oTwig->addTokenParser(new \Twig\WbceCustom\TokenParser\SwitchTokenParser());
         return $oTwig;
     }

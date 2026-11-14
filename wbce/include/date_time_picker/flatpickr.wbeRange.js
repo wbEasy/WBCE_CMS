@@ -116,6 +116,9 @@
                     var endOpts = {
                         locale:        c.locale,
                         dateFormat:    c.dateFormat,
+                        // ISO in the field, the user's format on screen (DateTimeFormat::pickerConfig())
+                        altInput:      !!c.altInput,
+                        altFormat:     c.altFormat,
                         enableTime:    !!c.enableTime,
                         time_24hr:     !!c.time_24hr,
                         allowInput:    !!c.allowInput,
@@ -210,7 +213,8 @@
                     /* make both inputs editable when allowInput is on */
                     if (c.allowInput) {
                         fp._input.removeAttribute('readonly');
-                        secondInput.removeAttribute('readonly');
+                        // with altInput the visible field is fpEnd._input, not secondInput
+                        (fpEnd._input || secondInput).removeAttribute('readonly');
                     }
 
                     fp.loadedPlugins.push('wbceRange');

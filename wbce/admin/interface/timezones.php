@@ -4,6 +4,13 @@
  * Way Better Content Editing.
  * Visit https://wbce.org to learn more and to join the community.
  *
+ * Time zone choices: $TIMEZONES = [zone name => "Europe/Berlin (UTC+01:00)"].
+ *
+ * Since 1.7.0 the values are IANA zone names, not hours: settings and users
+ * store the name; TIMEZONE / DEFAULT_TIMEZONE stay seconds (initialize.php).
+ * With $user_time set (a user's own choice), the list starts with '' = the
+ * system default.
+ *
  * @copyright Ryan Djurovich (2004-2009)
  * @copyright WebsiteBaker Org. e.V. (2009-2015)
  * @copyright WBCE Project (2015-)
@@ -20,83 +27,62 @@ if (!defined('TIMEZONES_LOADED')) {
     define('TIMEZONES_LOADED', true);
 }
 
-// Create array
-$TIMEZONES = array();
+// The current values stay selectable even when they are Etc zones (the
+// upgrade writes those; PHP's zone list leaves them out).
+$TIMEZONES = DateTimeFormat::timezoneChoices([
+    DEFAULT_TIMEZONE_NAME,
+    defined('TIMEZONE_NAME') ? TIMEZONE_NAME : '',
+]);
 
-// time in seconds
-global $actual_timezone;
-$actual_timezone = ((int)TIMEZONE <> 0) ? (int)TIMEZONE / 3600 : 0;
-$default_timezone = ((int)DEFAULT_TIMEZONE <> 0) ? (int)DEFAULT_TIMEZONE / 3600 : 0;
-
-// Add values to list
-$TIMEZONES['-12'] = 'UTC -12 Hours';
-$TIMEZONES['-11'] = 'UTC -11 Hours';
-$TIMEZONES['-10'] = 'UTC -10 Hours';
-$TIMEZONES['-9'] = 'UTC -9 Hours';
-$TIMEZONES['-8'] = 'UTC -8 Hours';
-$TIMEZONES['-7'] = 'UTC -7 Hours';
-$TIMEZONES['-6'] = 'UTC -6 Hours';
-$TIMEZONES['-5'] = 'UTC -5 Hours';
-$TIMEZONES['-4'] = 'UTC -4 Hours';
-$TIMEZONES['-3'] = 'UTC -3 Hours';
-$TIMEZONES['-2'] = 'UTC -2 Hours';
-$TIMEZONES['-1'] = 'UTC -1 Hours';
-$TIMEZONES['0'] = 'UTC';
-$TIMEZONES['1'] = 'UTC +1 Hours';
-$TIMEZONES['2'] = 'UTC +2 Hours';
-$TIMEZONES['3'] = 'UTC +3 Hours';
-$TIMEZONES['4'] = 'UTC +4 Hours';
-$TIMEZONES['5'] = 'UTC +5 Hours';
-$TIMEZONES['6'] = 'UTC +6 Hours';
-$TIMEZONES['7'] = 'UTC +7 Hours';
-$TIMEZONES['8'] = 'UTC +8 Hours';
-$TIMEZONES['9'] = 'UTC +9 Hours';
-$TIMEZONES['10'] = 'UTC +10 Hours';
-$TIMEZONES['11'] = 'UTC +11 Hours';
-$TIMEZONES['12'] = 'UTC +12 Hours';
-$TIMEZONES['13'] = 'UTC +13 Hours';
-
-// Add "System Default" to list (if we need to)
+// "System default" at the top (a user's own choice only)
 if (isset($user_time) && $user_time == true) {
     global $TEXT;
-    foreach ($TIMEZONES as $k => $v) {
-        if ($k == $default_timezone) {
-            $TIMEZONES[$k] .= ' (' . $TEXT['SYSTEM_DEFAULT'] . ')';
-        }
-    }
+    $TIMEZONES = ['' => $TIMEZONES[DEFAULT_TIMEZONE_NAME] . ' (' . ($TEXT['SYSTEM_DEFAULT'] ?? 'System default') . ')']
+               + $TIMEZONES;
 }
-
-// Reverse array so "System Default" is at the top
-$TIMEZONES = array_reverse($TIMEZONES, true);
 
 if (!function_exists('getTimeZonesArray')) {
 
     /**
-     * @brief  Returns an array of timezones set up by the system
-     *         This function will return an array that can be used
-     *         to display all the timezones or in order to create a
-     *         select box to choose from.
+     * @brief  The choices as rows for a select: [['VALUE', 'NAME', 'SELECTED',
+     *         'KEYWORDS', 'GROUP_START'?, 'GROUP_END'?], …] — in groups
+     *         (suggestions, continents; DateTimeFormat::timezoneGroups()).
+     *         GROUP_START (the heading) opens an <optgroup>, GROUP_END closes
+     *         it; KEYWORDS (the country) belongs in data-keywords for the
+     *         search. Templates that ignore the three get a flat list.
      *
-     * @param array $TIMEZONES
+     * @param array            $TIMEZONES only its '' entry (system default) is used
+     * @param string|bool|null $selected  the zone to mark; anything but a
+     *                                    string = the current user's own
+     *                                    ('' when they use the system default
+     *                                    and the list offers it). A zone that
+     *                                    is not in the list is added to the
+     *                                    suggestions.
      * @return array
      */
-    function getTimeZonesArray($TIMEZONES)
+    function getTimeZonesArray($TIMEZONES, $selected = null)
     {
-        global $actual_timezone;
+        if (!is_string($selected)) {
+            $selected = (isset($TIMEZONES['']) && !empty($_SESSION['USE_DEFAULT_TIMEZONE']))
+                ? ''
+                : (defined('TIMEZONE_NAME') ? TIMEZONE_NAME : '');
+        }
+        $groups = DateTimeFormat::timezoneGroups([$selected, DEFAULT_TIMEZONE_NAME]);
+        if (isset($TIMEZONES[''])) {
+            array_unshift($groups, ['label' => '', 'zones' => ['' => ['label' => $TIMEZONES[''], 'keywords' => '']]]);
+        }
 
-        $aTimeZones = array();
-        $i = 0;
-        foreach ($TIMEZONES as $iOffset => $sTitle) {
-            $aTimeZones[$i]['VALUE'] = $iOffset;
-            $aTimeZones[$i]['NAME'] = $sTitle;
-
-            $aTimeZones[$i]['SELECTED'] = false;
-            if (TIMEZONE === $iOffset && !isset($_SESSION['USE_DEFAULT_TIMEZONE'])) {
-                $aTimeZones[$i]['SELECTED'] = true;
-            } elseif ($iOffset === $actual_timezone) {
-                $aTimeZones[$i]['SELECTED'] = true;
-            }
-            $i++;
+        $aTimeZones = [];
+        foreach (DateTimeFormat::timezoneRows($groups, $selected) as $row) {
+            $rec = [
+                'VALUE'    => $row['value'],
+                'NAME'     => $row['label'],
+                'SELECTED' => $row['selected'],
+                'KEYWORDS' => $row['keywords'],
+            ];
+            if (isset($row['group_start'])) $rec['GROUP_START'] = $row['group_start'];
+            if (isset($row['group_end']))   $rec['GROUP_END']   = true;
+            $aTimeZones[] = $rec;
         }
         return $aTimeZones;
     }

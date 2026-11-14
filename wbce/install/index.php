@@ -283,20 +283,20 @@ if (isset($_SESSION['wb_url'])) {
  * TimeZones
  *****************************/
 
-// setting zones manually
-$aZones = array(-12, -11, -10, -9, -8, -7, -6, -5, -4, -3.5, -3, -2, -1, 0, 1, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 8, 9, 9.5, 10, 11, 12, 13);
-
-// Function for easy templating
-function TzSelected($fOffset)
-{
-    if (
-        (isset($_SESSION['default_timezone']) and $_SESSION['default_timezone'] == (string)$fOffset) ||
-        (!isset($_SESSION['default_timezone']) and $fOffset == 0)
-    ) {
-        return true;
-    }
-    return false;
-}
+// IANA zones in groups (suggestions for the installer language, continents;
+// city and country names in that language). Without an earlier choice in the
+// session the template preselects the browser's zone by script; without
+// script it stays at UTC. WB_PATH lets DateTimeFormat read its language
+// tables (they guard themselves with it); nothing else here uses it.
+require_once dirname(__DIR__) . '/framework/DateTimeFormat.php';
+defined('WB_PATH') or define('WB_PATH', dirname(__DIR__));
+$sTzLanguage = (isset($langCode) && preg_match('/^[A-Z]{2}$/', $langCode)) ? $langCode : 'EN';
+DateTimeFormat::setContext(['language' => $sTzLanguage, 'timezone' => 'UTC']);
+$aZones      = DateTimeFormat::timezoneChoices();
+$sTzSelected = (isset($_SESSION['default_timezone']) && isset($aZones[$_SESSION['default_timezone']]))
+    ? (string) $_SESSION['default_timezone']
+    : '';
+$aZoneRows   = DateTimeFormat::timezoneRows(DateTimeFormat::timezoneGroups([$sTzSelected]), $sTzSelected ?: 'UTC');
 
 /*****************************
  * Fetch allowed Languages

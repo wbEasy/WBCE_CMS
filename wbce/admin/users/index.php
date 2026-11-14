@@ -13,6 +13,7 @@
 
 require '../../config.php';
 require ADMIN_PATH . '/access/functions.php';
+$user_time = true;   // timezones.php: offer '' = system default
 require_once ADMIN_PATH . '/interface/timezones.php';
 require_once ADMIN_PATH . '/interface/languages.php';
 
@@ -98,7 +99,7 @@ $toTwig = [
     'ACTION_URL'         => ADMIN_URL . '/users/form.php',
     'use_home_folders'   => HOME_FOLDERS,
     'USERLIST'           => $userList,
-    'TIME_ZONES'         => getTimeZonesArray($TIMEZONES ?? [], true),
+    'TIME_ZONES'         => getTimeZonesArray($TIMEZONES ?? [], ''),   // a new user: system default
     'LANGUAGES'          => getLanguagesArray(),
 ];
 

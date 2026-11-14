@@ -193,6 +193,13 @@ final class SettingsForm
                 if (Lang::has('HINT', $hintKey)) {
                     $def['hint'] = Lang::get('HINT', $hintKey);
                 }
+                // A fixed-offset zone is what the upgrade made of an old
+                // "UTC+1" value: right offset, but no summer time. Ask for
+                // the real zone until someone picks one.
+                if ($def['type'] === 'timezone' && DateTimeFormat::isFixedOffsetZone($def['value'])
+                    && Lang::has('HINT', 'TIMEZONE_FIXED_OFFSET')) {
+                    $def['warning'] = Lang::get('HINT', 'TIMEZONE_FIXED_OFFSET');
+                }
                 if (isset($def['options'])) {
                     $def['options'] = $this->options($name);
                     $def['choices'] = $this->choices($def);
@@ -243,6 +250,12 @@ final class SettingsForm
      */
     private function choices(array $def): array
     {
+        // the time zone: in groups (suggestions, continents) with the
+        // country as search keyword — DateTimeFormat::timezoneGroups()
+        if ($def['type'] === 'timezone') {
+            $value = (string) ($def['value'] ?? '');
+            return DateTimeFormat::timezoneRows(DateTimeFormat::timezoneGroups([$value]), $value);
+        }
         $choices = [];
         foreach ($def['options'] as $value => $label) {
             $value  = (string) $value;
@@ -263,19 +276,17 @@ final class SettingsForm
         return $choices;
     }
 
-    /** The stored value as the form uses it (string; timezone in hours). */
+    /** The stored value as the form uses it (string; timezone as zone name). */
     public function currentValue(string $name, array $def): string
     {
+        if ($def['type'] === 'timezone') {
+            return DEFAULT_TIMEZONE_NAME;   // Settings::setup() resolved an old number already
+        }
         $value = Settings::get($name, '');
         if (is_bool($value)) {
             $value = $value ? 'true' : 'false';
         }
-        $value = (string) $value;
-
-        if ($def['type'] === 'timezone') {
-            return (string) intdiv((int) $value, 3600);
-        }
-        return $value;
+        return (string) $value;
     }
 
     /**
@@ -476,9 +487,7 @@ final class SettingsForm
                 if ($name === 'frontend_signup' && !$this->isValidSignupGroup($raw)) {
                     return [null, L_('MESSAGE:GENERIC_SECURITY_ACCESS')];
                 }
-                return ($def['type'] === 'timezone')
-                    ? [(string) ((int) $raw * 3600), null]
-                    : [$raw, null];
+                return [$raw, null];
 
             case 'html':
                 return [trim($raw), null];

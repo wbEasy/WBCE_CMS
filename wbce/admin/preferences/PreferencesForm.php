@@ -69,17 +69,10 @@ final class PreferencesForm
             'display_name' => (string) ($u['display_name'] ?? ''),
             'email'        => (string) ($u['email'] ?? ''),
             'language'     => (string) ($u['language'] ?? ''),
-            'timezone'     => self::timezoneHours((string) ($u['timezone'] ?? '')),
+            'timezone'     => DateTimeFormat::storedZone((string) ($u['timezone'] ?? '')),
             'date_format'  => (string) ($u['date_format'] ?? ''),
             'time_format'  => (string) ($u['time_format'] ?? ''),
         ];
-    }
-
-    /** Stored seconds → the hours the select uses; '' and '0' are the
-     *  system default (that is how Login reads them). */
-    public static function timezoneHours(string $stored): string
-    {
-        return ($stored === '' || (int) $stored === 0) ? '' : (string) intdiv((int) $stored, 3600);
     }
 
     /**
@@ -105,13 +98,9 @@ final class PreferencesForm
                 break;
 
             case 'timezone':
-                include ADMIN_PATH . '/interface/timezones.php';
-                $zones   = [];
-                foreach ($TIMEZONES as $hours => $label) {
-                    $zones[(string) $hours] = $label;
-                }
-                $defaultHours = (string) intdiv((int) DEFAULT_TIMEZONE, 3600);
-                $options = ['' => ($zones[$defaultHours] ?? 'UTC') . $default] + $zones;
+                // the user's stored zone stays selectable even as an Etc zone
+                $zones   = DateTimeFormat::timezoneChoices([DEFAULT_TIMEZONE_NAME, $this->values()['timezone']]);
+                $options = ['' => $zones[DEFAULT_TIMEZONE_NAME] . $default] + $zones;
                 break;
 
             case 'date_format':
@@ -124,8 +113,8 @@ final class PreferencesForm
                     include ADMIN_PATH . '/interface/time_formats.php';
                     $formats = $TIME_FORMATS;
                 }
-                $now     = time() + (int) DEFAULT_TIMEZONE;
-                $options = ['' => date($isDate ? DEFAULT_DATE_FORMAT : DEFAULT_TIME_FORMAT, $now) . $default];
+                $now     = new DateTimeImmutable('now', new DateTimeZone(DEFAULT_TIMEZONE_NAME));
+                $options = ['' => DateTimeFormat::format($now, $isDate ? DEFAULT_DATE_FORMAT : DEFAULT_TIME_FORMAT) . $default];
                 foreach ($formats as $key => $label) {
                     if ($key !== 'system_default') {
                         $options[str_replace('|', ' ', (string) $key)] = $label;
@@ -184,7 +173,7 @@ final class PreferencesForm
                 $errors[$field] = L_('MESSAGE:SETTINGS_INVALID_VALUE');
                 continue;
             }
-            $values[$field] = ($field === 'timezone' && $value !== '') ? (string) ((int) $value * 3600) : $value;
+            $values[$field] = $value;
         }
         if (($values['language'] ?? '') === '') {
             unset($values['language']);   // never stored empty: the backend needs a language
@@ -260,7 +249,15 @@ final class PreferencesForm
         if (isset($values['email']))        $_SESSION['EMAIL']        = $values['email'];
         if (isset($values['language']))     $_SESSION['LANGUAGE']     = $values['language'];
 
-        self::sessionDefault('TIMEZONE', $values['timezone'] ?? null, 'USE_DEFAULT_TIMEZONE', true);
+        self::sessionDefault('TIMEZONE_NAME', $values['timezone'] ?? null, 'USE_DEFAULT_TIMEZONE');
+        // the seconds beside the name, for modules that read them (Login does the same)
+        if (isset($values['timezone'])) {
+            if ($values['timezone'] === '') {
+                unset($_SESSION['TIMEZONE']);
+            } else {
+                $_SESSION['TIMEZONE'] = DateTimeFormat::offsetSeconds($values['timezone']);
+            }
+        }
         self::sessionDefault('DATE_FORMAT', $values['date_format'] ?? null, 'USE_DEFAULT_DATE_FORMAT');
         self::sessionDefault('TIME_FORMAT', $values['time_format'] ?? null, 'USE_DEFAULT_TIME_FORMAT');
 
@@ -268,13 +265,12 @@ final class PreferencesForm
     }
 
     /** A value or "use the system default" in the session, as Login sets it. */
-    private static function sessionDefault(string $key, ?string $value, string $defaultKey, bool $zeroIsDefault = false): void
+    private static function sessionDefault(string $key, ?string $value, string $defaultKey): void
     {
         if ($value === null) {
             return;   // not part of this save
         }
-        $isDefault = $value === '' || ($zeroIsDefault && (int) $value === 0);
-        if ($isDefault) {
+        if ($value === '') {
             unset($_SESSION[$key]);
             $_SESSION[$defaultKey] = true;
         } else {

@@ -48,7 +48,9 @@
                 <select name="timezone" id="timezone">
                     <option value="-20" disabled>{{ L_('TOOL_TXT:PLEASE_SELECT') }}...</option>
                     {% for rec in TIME_ZONES %}
-                            <option value="{{ rec.VALUE }}"{% if rec.SELECTED == true %} selected{% endif %}{% if rec.SELECTED == true %} selected{% endif %}>{{ rec.NAME }}</option>
+                        {% if rec.GROUP_START is defined %}<optgroup label="{{ rec.GROUP_START|e }}">{% endif %}
+                        <option value="{{ rec.VALUE|e }}"{% if rec.SELECTED %} selected{% endif %}>{{ rec.NAME|e }}</option>
+                        {% if rec.GROUP_END ?? false %}</optgroup>{% endif %}
                     {% endfor %}
                 </select>
             </div>

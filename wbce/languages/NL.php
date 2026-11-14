@@ -802,6 +802,7 @@ $HINT['SETTINGS_REDIRECT_TIMER']             = 'Zo lang blijft een melding na he
 $HINT['SETTINGS_SEARCH']                     = 'Wie de zoekfunctie van de website mag gebruiken. Al het andere over het zoeken staat in de admin-tool WBCE Search.';
 $HINT['SETTINGS_DEFAULT_LANGUAGE']           = 'De standaardtaal van de website en de backend. Gebruikers kunnen in hun voorkeuren een eigen taal kiezen.';
 $HINT['SETTINGS_DEFAULT_TIMEZONE']           = 'De tijdzone waarin datum en tijd worden getoond. Gebruikers kunnen in hun voorkeuren een eigen tijdzone kiezen.';
+$HINT['TIMEZONE_FIXED_OFFSET']               = 'Dit is een vaste afwijking uit een eerdere versie, zonder zomertijd. Kies de werkelijke tijdzone (bijv. Europe/Amsterdam).';
 $HINT['SETTINGS_DEFAULT_DATE_FORMAT']        = 'Hoe datums worden getoond, zolang een gebruiker geen eigen notatie heeft gekozen.';
 $HINT['SETTINGS_DEFAULT_TIME_FORMAT']        = 'Hoe tijden worden getoond, zolang een gebruiker geen eigen notatie heeft gekozen.';
 $HINT['SETTINGS_DEFAULT_TEMPLATE']           = 'De template van de website. Afzonderlijke pagina\'s kunnen in hun instellingen een andere template gebruiken.';

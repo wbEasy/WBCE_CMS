@@ -21,19 +21,12 @@ if (!defined('WB_URL')) {
 }
 
 // ── Locale key ────────────────────────────────────────────────────────────────
-// Maps WBCE LANGUAGE codes to keys in flatpickr.l10ns.
-// Catalan = 'cat' (not 'ca'); English = 'default' (built-in, no extra file).
-$_fp_locale_map = [
-    'BG' => 'bg',      'CA' => 'cat',     'CS' => 'cs',  'DA' => 'da',
-    'DE' => 'de',      'EN' => 'default', 'ES' => 'es',  'ET' => 'et',
-    'FI' => 'fi',      'FR' => 'fr',      'GR' => 'gr',  'HU' => 'hu',
-    'IT' => 'it',      'LV' => 'lv',      'NL' => 'nl',  'NO' => 'no',
-    'PL' => 'pl',      'PT' => 'pt',      'RU' => 'ru',  'SK' => 'sk',
-    'SV' => 'sv',      'TR' => 'tr',
-];
-
-$fp_locale_key = $_fp_locale_map[defined('LANGUAGE') ? strtoupper(LANGUAGE) : 'EN'] ?? 'default';
-unset($_fp_locale_map);
+// WBCE LANGUAGE code → key in flatpickr.l10ns, from DateTimeFormat (one table
+// for the whole core; it also has HR, which this file's own copy missed).
+// New code: DateTimeFormat::pickerConfig() — ISO in the field, the user's
+// format with localized names on screen. The variables below stay as they
+// were for existing callers.
+$fp_locale_key = DateTimeFormat::pickerLocale();
 
 // ── Date / time format ────────────────────────────────────────────────────────
 // Flatpickr uses PHP-style tokens (d, m, Y, H, i) — same tokens work for both
