@@ -369,17 +369,9 @@ class Lang
         }
         if (is_string($val)) return sprintf($val, $n);
 
-        // Explicit 'zero' key always wins when count === 0, in any language.
-        // Lets translators write "No files found" instead of "0 files found"
-        // without fighting CLDR rules. Purely opt-in — omit the key and the
-        // normal plural category ('other', 'many', etc.) is used as before.
-        if ($n === 0 && isset($val['zero'])) {
-            return sprintf((string)$val['zero'], $n);
-        }
-
-        $category = LangPlural::category(self::$locale, $n);
-        $form     = $val[$category] ?? $val['other'] ?? $val['many'] ?? $val['one'] ?? reset($val);
-        return sprintf((string)$form, $n);
+        // 'zero' for n = 0 (opt-in), then the CLDR category, then the
+        // fallback chain — LangPlural::select(), shared with Ln_() and |plural
+        return sprintf(LangPlural::select($val, self::$locale, $n), $n);
     }
 
     public static function has(string $namespace, string $key): bool

@@ -397,21 +397,16 @@ class LayoutParser
                 // were never found and the first form won every time.
                 $val = array_change_key_case($val, CASE_LOWER);
 
-                // Optional explicit 'zero' key — takes priority over CLDR rules
-                if ($count === 0 && isset($val['zero'])) {
-                    return sprintf((string)$val['zero'], $count);
+                // The same choice as Lang::getPlural() and Ln_(): 'zero' for
+                // 0, the CLDR category, then other → many → one (was other →
+                // one here, without 'many'). Without LangPlural (parser used
+                // stand-alone): zero/one/other.
+                if (class_exists('LangPlural')) {
+                    $form = LangPlural::select($val, class_exists('Lang') ? Lang::getLocale() : 'EN', $count);
+                } else {
+                    $form = ($count === 0 && isset($val['zero'])) ? $val['zero']
+                          : ($val[$count === 1 ? 'one' : 'other'] ?? $val['other'] ?? reset($val));
                 }
-
-                // Pick the correct CLDR plural category
-                // Requires Lang and LangPlural to be loaded
-                $category = class_exists('LangPlural')
-                    ? LangPlural::category(
-                          class_exists('Lang') ? Lang::getLocale() : 'EN',
-                          $count
-                      )
-                    : ($count === 1 ? 'one' : 'other');
-
-                $form = $val[$category] ?? $val['other'] ?? $val['one'] ?? reset($val);
                 return sprintf((string)$form, $count);
             },
 

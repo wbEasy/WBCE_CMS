@@ -114,12 +114,7 @@ function Ln_(string|array $str, int $n): string
     // The value is already the plural array or a plain format string —
     // no registry lookup needed, resolve directly.
     if (is_array($str)) {
-        if ($n === 0 && isset($str['zero'])) {
-            return sprintf((string)$str['zero'], $n);
-        }
-        $category = LangPlural::category(Lang::getLocale(), $n);
-        $form     = $str[$category] ?? $str['other'] ?? $str['many'] ?? $str['one'] ?? reset($str);
-        return sprintf((string)$form, $n);
+        return sprintf(LangPlural::select($str, Lang::getLocale(), $n), $n);
     }
 
     // A plain string value (not a key): Ln_('%d items', 5) → '5 items'
