@@ -6,7 +6,8 @@
  * and lets [news_img:NN] tokens in rendered content resolve to that post's
  * URL at render time (resolve()) — see framework/LinkResolver.php.
  *
- * Discovered via 'linkitems' in {TP}addons.function (see info.php).
+ * Discovered by its file name (modules/<dir>/LinkResolver.php) — no info.php
+ * flag needed; see framework/LinkResolver.php.
  */
 
 defined('WB_PATH') or die('Access denied');
