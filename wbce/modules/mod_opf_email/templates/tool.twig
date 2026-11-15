@@ -1,0 +1,116 @@
+{#
+    mod_opf_email/templates/tool.twig
+
+    Variables (injected by tool.php + admintools framework):
+      FTAN              — FTAN hidden input (raw HTML)
+      returnUrl         — form action URL
+      RETURN_TO_TOOLS   — back-button URL (tools list)
+      TOOL_NAME, TOOL_ICON — Twig globals from getTwig() (translated $module_name, icon of $module_icon);
+                          the name may hold HTML entities, so it is not escaped
+      cfg               — { email_filter, mailto_filter, js_mailto, js_text (0|1),
+                            at_replacement, dot_replacement } from {TP}settings
+
+    Strings come from languages/XX.php ($OPF[...]) via L_('OPF:KEY').
+    getTwig() runs with autoescape off: every value gets an explicit |e.
+#}
+
+<form name="store_settings" action="{{ returnUrl|e('html_attr') }}" method="post">
+    {{ FTAN }}
+
+    <div class="cp-settings">
+        <div class="cp-toggle-section">
+            <div class="cp-card-head">
+                <label>{{ TOOL_ICON }} {{ TOOL_NAME }}</label>
+            </div>
+
+            <section id="settings">
+
+                <blockquote>
+                    <div class="info">{{ L_('OPF:HOWTO') }}</div>
+                </blockquote>
+
+                {# ── Switches ──────────────────────────────────────────────── #}
+                {% set switches = [
+                    {name: 'email_filter',  label: 'OPF:EMAIL_FILTER',  hint: ''},
+                    {name: 'mailto_filter', label: 'OPF:MAILTO_FILTER', hint: ''},
+                    {name: 'js_mailto',     label: 'OPF:JS_MAILTO',     hint: '', needs: 'mailto_filter'},
+                    {name: 'js_text',       label: 'OPF:JS_TEXT',       hint: 'OPF:JS_TEXT_HINT', needs: 'email_filter'}
+                ] %}
+                {% for sw in switches %}
+                <div class="cp-setting-row">
+                    <div class="cp-setting-name">{{ L_(sw.label) }}</div>
+                    <div class="cp-setting-value">
+                        <input type="checkbox" switch="bool" name="{{ sw.name }}" id="{{ sw.name }}" value="1"
+                               {% if sw.needs %}data-needs="{{ sw.needs }}"{% endif %}
+                               {% if attribute(cfg, sw.name) %}checked{% endif %}>
+                        <label for="{{ sw.name }}" class="labeled"
+                               data-on-label="{{ L_('TEXT:ENABLED') }}"
+                               data-off-label="{{ L_('TEXT:DISABLED') }}"></label>
+                        {% if sw.hint %}<div class="cp-setting-hint">{{ L_(sw.hint) }}</div>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                {# ── Replacements — only used by the plain-text mode; hidden while "JS for visible addresses" is on, which wins over (at)/(dot) ── #}
+                <div class="cp-setting-row opf-replacement"{% if cfg.js_text %} style="display:none"{% endif %}>
+                    <div class="cp-setting-name"><label for="at_replacement">{{ L_('OPF:AT_REPLACEMENT') }}</label></div>
+                    <div class="cp-setting-value">
+                        {# The value may legitimately hold markup such as <span>&commat;</span>:
+                           html_attr escaping keeps it from breaking out of the attribute. #}
+                        <input type="text" id="at_replacement" name="at_replacement" autocomplete="off"
+                               value="{{ cfg.at_replacement|e('html_attr') }}">
+                    </div>
+                </div>
+                <div class="cp-setting-row opf-replacement"{% if cfg.js_text %} style="display:none"{% endif %}>
+                    <div class="cp-setting-name"><label for="dot_replacement">{{ L_('OPF:DOT_REPLACEMENT') }}</label></div>
+                    <div class="cp-setting-value">
+                        <input type="text" id="dot_replacement" name="dot_replacement" autocomplete="off"
+                               value="{{ cfg.dot_replacement|e('html_attr') }}">
+                        <div class="cp-setting-hint">{{ L_('OPF:REPLACEMENT_HINT') }}</div>
+                    </div>
+                </div>
+
+                {# ── Buttons ───────────────────────────────────────────────── #}
+                <div class="cp-buttons-row">
+                    <a href="{{ RETURN_TO_TOOLS|e('html_attr') }}" class="button">&laquo; {{ L_('TEXT:BACK') }}</a>
+                    <button type="submit" name="save_settings" class="button ico-save pos-right">
+                        {{ L_('TEXT:SAVE') }}
+                    </button>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+</form>
+
+<script>
+// Replacement rows are moot while the visible-text JS mode is on.
+(function () {
+    var js = document.getElementById("js_text");
+    function show() {
+        document.querySelectorAll(".opf-replacement").forEach(function (r) {
+            r.style.display = js.checked ? "none" : "";
+        });
+    }
+    js.addEventListener("change", show);
+})();
+
+// A dependent switch does nothing without its parent — tool.php resets it on
+// save anyway, so show that instead of letting it look active.
+(function () {
+    document.querySelectorAll('input[switch][data-needs]').forEach(function (dep) {
+        var parent = document.getElementById(dep.dataset.needs);
+        if (!parent) return;
+        function sync() {
+            dep.disabled = !parent.checked;
+            if (!parent.checked && dep.checked) {
+                dep.checked = false;
+                dep.dispatchEvent(new Event('change'));
+            }
+        }
+        parent.addEventListener('change', sync);
+        sync();
+    });
+})();
+</script>

@@ -16,87 +16,110 @@
  * @platform     WBCE 1.x
  * @requirements OutputFilter Dashboard 1.5.x and PHP 5.4 or higher
  *
+ * Admin-Tool entry point: saves the settings (post-redirect-get with toasts)
+ * and renders templates/tool.twig.
  **/
 
-/* -------------------------------------------------------- */
-// Must include code to stop this file being accessed directly
-if (!defined('WB_PATH')) {
-    // Stop this file being access directly
-    if (!headers_sent()) {
-        header("Location: ../index.php", true, 301);
-    }
-    die('<head><title>Access denied</title></head><body><h2 style="color:red;margin:3em auto;text-align:center;">Cannot access this file directly</h2></body></html>');
+defined('WB_PATH') or exit('No direct access allowed');
+
+/**
+ * Sanitise an @/. replacement before it is stored.
+ *
+ * Keeps a handful of inert inline tags so a replacement like
+ * "<span>&commat;</span>" is possible, then removes every attribute from
+ * them — an allowlist alone would still let "<span onclick=...>" through,
+ * and this string ends up in the markup of every page the filter touches.
+ *
+ * @param  mixed  $value Raw POST value.
+ * @return string
+ */
+function opf_email_clean_replacement($value)
+{
+    $value = trim(strip_tags((string) $value, '<span><b><i><em><strong><small>'));
+    return preg_replace('#<(/?)(span|b|i|em|strong|small)(?:\s[^>]*)?>#i', '<$1$2>', $value);
 }
-/* -------------------------------------------------------- */
-
-$msgTxt = '';   //message content
-$msgCls = 'msg-box'; // message css class
-
-
 
 // check whether outputfilter-module is installed
 if (file_exists(WB_PATH.'/modules/outputfilter_dashboard/functions.php')) {
+    // functions.php require()s the dashboard's info.php into THIS scope, which is
+    // the runner's: it overwrites $module_name (and friends) with the dashboard's,
+    // and the runner reads $module_name for the breadcrumb only after this file
+    // has finished. Put our own values back afterwards.
+    $opfSaved = [];
+    foreach (['module_name', 'module_description', 'module_function', 'module_directory', 'module_version', 'module_platform', 'module_author', 'module_license', 'module_icon'] as $opfVar) {
+        if (isset($$opfVar)) {
+            $opfSaved[$opfVar] = $$opfVar;
+        }
+    }
     require_once(WB_PATH.'/modules/outputfilter_dashboard/functions.php');
+    foreach ($opfSaved as $opfVar => $opfValue) {
+        $$opfVar = $opfValue;
+    }
+    unset($opfSaved, $opfVar, $opfValue);
 }
 
-if ($doSave) {
-    // take over post - arguments
-    $data = array();
-    $data['email_filter']    = (int)(intval(isset($_POST['email_filter']) ? $_POST['email_filter'] : 0) != 0);
-    $data['mailto_filter']   = (int)(intval(isset($_POST['mailto_filter']) ? $_POST['mailto_filter'] : 0) != 0);
-    $data['js_mailto']       = (int)(intval(isset($_POST['js_mailto']) ? $_POST['js_mailto'] : 0) != 0);
-    $data['at_replacement']  = isset($_POST['at_replacement']) ? trim(strip_tags($_POST['at_replacement'])) : '';
-    $data['dot_replacement'] = isset($_POST['dot_replacement']) ? trim(strip_tags($_POST['dot_replacement'])) : '';
-
-    // dont use JAvascript Mailto if no mailto filter active.
-    if ($data['js_mailto'] and !$data['mailto_filter']) {
-        $data['js_mailto']=0;
+// ── Save ──────────────────────────────────────────────────────────────────────
+if (isset($_POST['save_settings'])) {
+    if (!$admin->checkFTAN()) {
+        (new Alerts())->sessionToast($MESSAGE['GENERIC_SECURITY_ACCESS'], 'error');
+        header('Location: ' . $returnUrl);
+        exit;
     }
 
-    if ($admin->checkFTAN()) {
-        // update database settings
-        // OPF_JS_MAILTO
-        $errmsg="";
+    $flag = function ($name) {
+        return (int) (intval($_POST[$name] ?? 0) != 0);
+    };
+    $data = array();
+    $data['email_filter']  = $flag('email_filter');
+    $data['mailto_filter'] = $flag('mailto_filter');
+    $data['js_mailto']     = $flag('js_mailto');
+    $data['js_text']       = $flag('js_text');
+    // Entities (&commat;, &period;, &#64;) are plain text here and pass untouched;
+    // see opf_email_clean_replacement() for what is let through.
+    $data['at_replacement']  = opf_email_clean_replacement($_POST['at_replacement'] ?? '');
+    $data['dot_replacement'] = opf_email_clean_replacement($_POST['dot_replacement'] ?? '');
 
-        // set the values
-        $errmsg.=(string)Settings::Set("opf_email_filter", $data['email_filter']);
-        $errmsg.=(string)Settings::Set("opf_mailto_filter", $data['mailto_filter']);
-        $errmsg.=(string)Settings::Set("opf_js_mailto", $data['js_mailto']);
-        $errmsg.=(string)Settings::Set("opf_at_replacement", $data['at_replacement']);
-        $errmsg.=(string)Settings::Set("opf_dot_replacement", $data['dot_replacement']);
+    // A mode without its parent filter never runs, and a switch that silently
+    // does nothing is worse than no switch.
+    if (!$data['mailto_filter']) {
+        $data['js_mailto'] = 0;
+    }
+    if (!$data['email_filter']) {
+        $data['js_text'] = 0;
+    }
 
-        if (function_exists('opf_set_active')) {
-            // if any of the three is active switch on the filter, otherwise switch it off
-            if ($data['email_filter'] || $data['mailto_filter'] || $data['js_mailto']) {
-                opf_set_active('E-Mail', 1);
-            } else {
-                opf_set_active('E-Mail', 0);
-            }
-        }
+    $errmsg = '';
+    $errmsg .= (string) Settings::Set('opf_email_filter',    $data['email_filter']);
+    $errmsg .= (string) Settings::Set('opf_mailto_filter',   $data['mailto_filter']);
+    $errmsg .= (string) Settings::Set('opf_js_mailto',       $data['js_mailto']);
+    $errmsg .= (string) Settings::Set('opf_js_text',         $data['js_text']);
+    $errmsg .= (string) Settings::Set('opf_at_replacement',  $data['at_replacement']);
+    $errmsg .= (string) Settings::Set('opf_dot_replacement', $data['dot_replacement']);
 
-        if ($errmsg=="") {
-            //anything ok
-            $msgTxt = "<b>".$MESSAGE['RECORD_MODIFIED_SAVED']."</b>";
-            $msgCls = 'msg-box';
-        } else {
-            // error
-            $msgTxt = "<b>".$MESSAGE['RECORD_MODIFIED_FAILED']."</b><p>".$errmsg."</p>";
-            $msgCls = 'error-box';
-        }
+    if (function_exists('opf_set_active')) {
+        // if any option is active switch on the filter, otherwise switch it off
+        opf_set_active('E-Mail', ($data['email_filter'] || $data['mailto_filter'] || $data['js_mailto'] || $data['js_text']) ? 1 : 0);
+    }
+
+    if ($errmsg === '') {
+        (new Alerts())->sessionToast('MESSAGE:CHANGES_SAVE_SUCCESS', 'success');
     } else {
-        // FTAN error
-        $msgTxt = "<b>".$MESSAGE['GENERIC_SECURITY_ACCESS']."</b>";
-        $msgCls = 'error-box';
+        (new Alerts())->sessionToast($MESSAGE['RECORD_MODIFIED_FAILED'] . '<br>' . $errmsg, 'error');
     }
-} else {
-    // read settings from the database to show
-
-    $data = array();
-    $data['email_filter']      = Settings::Get('opf_email_filter');
-    $data['mailto_filter']     = Settings::Get('opf_mailto_filter');
-    $data['js_mailto']         = Settings::Get('opf_js_mailto');
-    $data['at_replacement']    = Settings::Get('opf_at_replacement');
-    $data['dot_replacement']   = Settings::Get('opf_dot_replacement');
+    header('Location: ' . $returnUrl);
+    exit;
 }
 
-include($modulePath."templates/output_filter.tpl.php");
+// ── Display ───────────────────────────────────────────────────────────────────
+getTwig(__DIR__ . '/templates/')->load('tool.twig')->display([
+    'returnUrl'       => $returnUrl,
+    'RETURN_TO_TOOLS' => $returnToTools,
+    'cfg'             => [
+        'email_filter'    => (int) (Settings::Get('opf_email_filter')  == 1),
+        'mailto_filter'   => (int) (Settings::Get('opf_mailto_filter') == 1),
+        'js_mailto'       => (int) (Settings::Get('opf_js_mailto')     == 1),
+        'js_text'         => (int) (Settings::Get('opf_js_text')       == 1),
+        'at_replacement'  => (string) Settings::Get('opf_at_replacement'),
+        'dot_replacement' => (string) Settings::Get('opf_dot_replacement'),
+    ],
+]);

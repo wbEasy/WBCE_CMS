@@ -21,6 +21,12 @@
 /**
  *      CHANGELOG
  * 
+ *      1.2.0   2026-11-15      - new: JavaScript mode for visible addresses (off by default;
+ *                                the address is no longer in the page source)
+ *                              - fix: empty @/. replacements no longer delete the characters
+ *                                (and break mailto: links); both empty = entity encoding
+ *                              - admin tool on Twig, FTAN checked before saving, toasts;
+ *                                Polish translation added
  *      1.1.12  2026-04-24	- set $core var, remove deprecated $module_level var
  *      1.1.11  2023-08-15      - bugfix, make configuration work again (florian)
  *	1.1.10	2023-03-17	- bugfix, no obfuscating for styled/image email links (Stefek)
@@ -65,9 +71,9 @@ $core = true;
 $module_directory   = 'mod_opf_email';
 $module_name        = 'OPF E-Mail';
 $module_function    = 'tool';
-$module_version     = '1.1.12';
+$module_version     = '1.2.0';
 $module_platform    = 'WBCE 1.x';
-$module_author      = 'Martin Hecht (mrbaseman)';
+$module_author      = 'Martin Hecht (mrbaseman), Christian M. Stefan';
 $module_license     = 'GNU GPL2 (or any later version)';
 $module_description = 'settings for the output filter to protect email addresses in text, mailto links, and javascript';
 $module_icon        = 'fa fa-at';

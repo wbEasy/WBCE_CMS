@@ -30,6 +30,7 @@ if (!defined('WB_PATH')) {
 /* -------------------------------------------------------- */
 
 // Modulbeschreibung
+$module_name = 'E-Mail-Ausgabefilter';
 $module_description = 'Dieses Modul erlaubt die Filterung von Inhalten vor der Anzeige im Frontend.';
 
 // Ueberschriften und Textausgaben
@@ -54,5 +55,8 @@ $OPF['DROPLETS'] = 'Droplets-Filter';
 $OPF['WBLINK'] = 'wblink-Filter';
 $OPF['INSERT'] = 'CSS-, JS-, Meta-Insert-Filter';
 $OPF['JS_MAILTO'] = 'Javascript f&uuml;r Mailto-Filter';
+$OPF['JS_TEXT'] = 'Javascript f&uuml;r sichtbare Adressen';
+$OPF['JS_TEXT_HINT'] = 'Die Adresse steht dann gar nicht mehr im Quelltext, sondern wird erst im Browser eingesetzt. <strong>Ohne JavaScript ist sie nicht sichtbar</strong> &ndash; es gibt bewusst keinen Ersatztext.';
+$OPF['REPLACEMENT_HINT'] = '<strong>Wenn beide Felder leer gelassen werden wird die empfohlene Variante aktiviert:</strong> Die Adresse wird zeichenweise als HTML-Entity kodiert, <code>@</code> und <code>.</code> zus&auml;tzlich in <code>&lt;span&gt;</code> gekapselt. Besucher lesen <code>max@example.com</code>, im Quelltext steht keine Adresse.';
 $OPF['SHORT_URL'] = 'Short Url Filter(kein /pages/, kein .php)';
 $OPF['CSS_TO_HEAD'] = 'CSS in den Head transferieren';

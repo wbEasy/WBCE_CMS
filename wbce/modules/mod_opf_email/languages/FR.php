@@ -30,6 +30,7 @@ if (!defined('WB_PATH')) {
 /* -------------------------------------------------------- */
 
 // Module Description
+$module_name = 'Filtre de sortie e-mail';
 $module_description = 'Ce module g&egrave;re le filtrage des donn&eacute;es avant affichage &agrave; l&apos;utilisateur. Permets de filtrer les liens mailto et les adresses emails.';
 
 // Headings and text outputs
@@ -54,5 +55,8 @@ $OPF['DROPLETS'] = 'Droplets filter';
 $OPF['WBLINK'] = 'WB-Link Filter';
 $OPF['INSERT'] = 'CSS, JS, Meta Insert Filter';
 $OPF['JS_MAILTO'] = 'Use Javascript on Mailtofilter';
+$OPF['JS_TEXT'] = 'Javascript pour les adresses visibles';
+$OPF['JS_TEXT_HINT'] = 'L\'adresse ne figure alors plus dans le code source&nbsp;; elle est ins&eacute;r&eacute;e par le navigateur. <strong>Sans JavaScript, elle n\'est pas visible</strong> &ndash; il n\'y a volontairement aucun texte de remplacement.';
+$OPF['REPLACEMENT_HINT'] = '<strong>Leave both fields empty</strong> to use the recommended variant: the address is encoded character by character as HTML entities, with <code>@</code> and <code>.</code> additionally wrapped in <code>&lt;span&gt;</code>. Visitors read <code>max@example.com</code>, the source contains no address.';
 $OPF['SHORT_URL'] = 'Use short url filter';
 $OPF['CSS_TO_HEAD'] = 'Use CSS to head';

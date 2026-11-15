@@ -30,6 +30,7 @@ if (!defined('WB_PATH')) {
 /* -------------------------------------------------------- */
 
 // Module description
+$module_name = 'E-mail-uitvoerfilter';
 $module_description = 'A tool to configure the basic output filter of WB(CE)';
 
 // Headings and text outputs
@@ -54,5 +55,8 @@ $OPF['DROPLETS'] = 'Droplets filter';
 $OPF['WBLINK'] = 'WB-Link Filter';
 $OPF['INSERT'] = 'CSS, JS, Meta Insert Filter';
 $OPF['JS_MAILTO'] = 'Use Javascript on Mailtofilter';
+$OPF['JS_TEXT'] = 'Javascript voor zichtbare adressen';
+$OPF['JS_TEXT_HINT'] = 'Het adres staat dan niet meer in de broncode en wordt pas door de browser ingevuld. <strong>Zonder JavaScript is het niet zichtbaar</strong> &ndash; er is bewust geen vervangende tekst.';
+$OPF['REPLACEMENT_HINT'] = '<strong>Leave both fields empty</strong> to use the recommended variant: the address is encoded character by character as HTML entities, with <code>@</code> and <code>.</code> additionally wrapped in <code>&lt;span&gt;</code>. Visitors read <code>max@example.com</code>, the source contains no address.';
 $OPF['SHORT_URL'] = 'Use short url filter';
 $OPF['CSS_TO_HEAD'] = 'Use CSS to head';

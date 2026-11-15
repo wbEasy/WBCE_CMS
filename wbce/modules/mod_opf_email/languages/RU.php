@@ -30,6 +30,7 @@ if (!defined('WB_PATH')) {
 /* -------------------------------------------------------- */
 
 // Module description
+$module_name = '&#1060;&#1080;&#1083;&#1100;&#1090;&#1088; &#1074;&#1099;&#1074;&#1086;&#1076;&#1072; e-mail';
 $module_description = 'A tool to configure the basic output filter of WB(CE)';
 
 // Headings and text outputs
@@ -55,5 +56,8 @@ $OPF['DROPLETS'] = 'Droplets filter';
 $OPF['WBLINK'] = 'WB-Link Filter';
 $OPF['INSERT'] = 'CSS, JS, Meta Insert Filter';
 $OPF['JS_MAILTO'] = 'Use Javascript on Mailtofilter';
+$OPF['JS_TEXT'] = 'Javascript &#1076;&#1083;&#1103; &#1074;&#1080;&#1076;&#1080;&#1084;&#1099;&#1093; &#1072;&#1076;&#1088;&#1077;&#1089;&#1086;&#1074;';
+$OPF['JS_TEXT_HINT'] = '&#1040;&#1076;&#1088;&#1077;&#1089; &#1086;&#1090;&#1089;&#1091;&#1090;&#1089;&#1090;&#1074;&#1091;&#1077;&#1090; &#1074; &#1082;&#1086;&#1076;&#1077; &#1080; &#1074;&#1089;&#1090;&#1072;&#1074;&#1083;&#1103;&#1077;&#1090;&#1089;&#1103; &#1073;&#1088;&#1072;&#1091;&#1079;&#1077;&#1088;&#1086;&#1084;. <strong>&#1041;&#1077;&#1079; JavaScript &#1086;&#1085; &#1085;&#1077; &#1074;&#1080;&#1076;&#1077;&#1085;</strong>.';
+$OPF['REPLACEMENT_HINT'] = '<strong>Leave both fields empty</strong> to use the recommended variant: the address is encoded character by character as HTML entities, with <code>@</code> and <code>.</code> additionally wrapped in <code>&lt;span&gt;</code>. Visitors read <code>max@example.com</code>, the source contains no address.';
 $OPF['SHORT_URL'] = 'Use short url filter';
 $OPF['CSS_TO_HEAD'] = 'Use CSS to head';

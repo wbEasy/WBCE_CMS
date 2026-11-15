@@ -98,6 +98,10 @@ if (isset($data["mailto_filter"])) {
 }
 
 Settings::Set('opf_js_mailto', 1, false);
+// Off by default. It hides the address from visitors without JavaScript, so
+// switching it on has to be a deliberate decision — not something an update
+// does behind the site owner's back.
+Settings::Set('opf_js_text', 0, false);
 
 if (isset($data["at_replacement"])) {
     Settings::Set('opf_at_replacement', $data["at_replacement"], false);
