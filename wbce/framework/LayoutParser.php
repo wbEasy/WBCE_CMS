@@ -221,6 +221,22 @@
  *  [_LANG|dump]      lang namespaces only: TEXT, MENU, MESSAGE, HINT, HEADING, OVERVIEW
  *  [KEY|dump]        print_r of any single variable (dotted keys work)
  *
+ * ── Editable layouts / legacy templates ──────────────────────────────────────
+ *  Every value is HTML-escaped. For layouts that editors change in the
+ *  backend, or legacy str_replace templates imported as they are:
+ *
+ *  $parser->setRawKeys(['CONTENT_LONG', 'IMAGE', '*.CONTENT'])
+ *      these keys print their HTML as is — no |raw needed in the layout;
+ *      "*.FIELD" = that field in any loop. An explicit |escape still escapes.
+ *  $parser->setDoubleEncode(false)
+ *      entities already in the data ("&amp;") are not encoded again
+ *      (data stored HTML-encoded; clean data does not need it).
+ *  $parser->setSandbox()   (off by default; takes a module setting:
+ *                           setSandbox((bool) $settings['layout_sandbox']))
+ *      [_CONTEXT|dump], [_LANG|dump], [_FILTERS|dump], [KEY|dump] print
+ *      nothing, {include "…"} stays unresolved. {partial} and
+ *      {insertCssFile}/{insertJsFile} keep working.
+ *
  * ── Processing order (do not reorder) ────────────────────────────────────────
  *  comments → loops → partials/includes → conditionals → defaults → placeholders
  *
@@ -292,6 +308,15 @@ class LayoutParser
 
     /** Folder of the layout file being parsed (parseFile()), '' for a string. */
     private string $layoutDir = '';
+
+    /** setRawKeys(): keys printed without the auto-escape. KEY → true */
+    private array $rawKeys = [];
+
+    /** setDoubleEncode(false): "&amp;" in a value stays "&amp;". */
+    private bool $doubleEncode = true;
+
+    /** setSandbox(): no _CONTEXT/_LANG/_FILTERS, no |dump, no {include}. */
+    private bool $sandbox = false;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -477,6 +502,49 @@ class LayoutParser
     public function setDebugUndefined(bool $on = true): static
     {
         $this->debugUndefined = $on;
+        return $this;
+    }
+
+    /**
+     * Keys whose value is HTML (a long text, an image tag) — printed as is,
+     * so the layout needs no |raw. The PHP side knows which fields are HTML,
+     * the template should not have to. "*.CONTENT" matches that field in any
+     * loop ([ART.CONTENT], [ITEM.CONTENT]). An explicit |escape still escapes.
+     * Additive: repeated calls add keys.
+     */
+    public function setRawKeys(array $keys): static
+    {
+        foreach ($keys as $key) {
+            $this->rawKeys[strtoupper((string) $key)] = true;
+        }
+        return $this;
+    }
+
+    /**
+     * false: an entity already in a value is not encoded again
+     * ("Tom &amp; Jerry" stays, does not become "Tom &amp;amp; Jerry").
+     * For data that was stored HTML-encoded (imported legacy records); clean
+     * data does not need it — an "&amp;" typed as text then shows as "&".
+     */
+    public function setDoubleEncode(bool $on): static
+    {
+        $this->doubleEncode = $on;
+        return $this;
+    }
+
+    /**
+     * For layouts that editors change in the backend: [_CONTEXT|dump],
+     * [_LANG|dump], [_FILTERS|dump] and [KEY|dump] print nothing, and
+     * {include "…"} is not resolved even with a partials path set. Without
+     * the admin tool Debug Dump a dump is shown to every visitor.
+     * {partial} (registered in PHP) and {insertCssFile}/{insertJsFile}
+     * (already limited to .css/.js inside the installation) stay.
+     * Off by default; takes a module setting directly:
+     *   $parser->setSandbox((bool) $settings['layout_sandbox']);
+     */
+    public function setSandbox(bool $on = true): static
+    {
+        $this->sandbox = $on;
         return $this;
     }
 
@@ -883,7 +951,7 @@ class LayoutParser
             $html
         ) ?? $html;
 
-        if ($this->partialsPath !== '') {
+        if ($this->partialsPath !== '' && !$this->sandbox) {
             $html = preg_replace_callback(
                 '~\{include\s+"([^"]+)"(?:\s+with\s+(.*?))?\s*\}~s',
                 function ($m) use ($data) {
@@ -1386,7 +1454,7 @@ class LayoutParser
                 // and protected; the fallback is template text and stays as
                 // written, evaluable as before.
                 return !empty($value)
-                    ? $this->_protect(htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'))
+                    ? $this->_protect($this->_isRawKey($m[1]) ? (string) $value : $this->_esc((string) $value))
                     : $fallback;
             },
             $html
@@ -1407,6 +1475,9 @@ class LayoutParser
                 $filterChain = $this->_parseFilterChain($filterStr);
 
                 if ($key === '_CONTEXT' || $key === '_FILTERS' || $key === '_LANG') {
+                    if ($this->sandbox) {
+                        return '';
+                    }
 
                     // Namespaces that belong to _LANG, not _CONTEXT
                     $langKeys = ['TEXT', 'MESSAGE', 'HINT', 'MENU', 'HEADING', 'OVERVIEW'];
@@ -1441,6 +1512,9 @@ class LayoutParser
                 }
 
                 if ($hasDump) {
+                    if ($this->sandbox) {
+                        return '';
+                    }
                     $rawValue = $this->_resolveDotKey($key, $data, raw: true);
                     return $this->_printDebug($rawValue ?? '', $dumpParam, $key);
                 }
@@ -1529,8 +1603,8 @@ class LayoutParser
      */
     private function _applyFilters(mixed $value, array $filterChain, string $heading = '', array $scope = []): string
     {
-        $skipEscape = false;
-        $text = static fn(mixed $v): string => (is_scalar($v) || $v === null) ? (string) $v : '';
+        $skipEscape = $this->_isRawKey($heading);
+        $text =static fn(mixed $v): string => (is_scalar($v) || $v === null) ? (string) $v : '';
 
         foreach ($filterChain as [$name, $param, $isVarRef]) {
             if ($name === 'raw') {
@@ -1539,7 +1613,7 @@ class LayoutParser
             }
 
             if ($name === 'escape') {
-                $value      = htmlspecialchars($text($value), ENT_QUOTES, 'UTF-8');
+                $value      = $this->_esc($text($value));
                 $skipEscape = true;
                 continue;
             }
@@ -1549,7 +1623,7 @@ class LayoutParser
             // purpose: an addFilter('nl2br', …) override that did not escape
             // would otherwise print raw HTML with the auto-escape skipped.
             if ($name === 'nl2br') {
-                $value      = nl2br(htmlspecialchars($text($value), ENT_QUOTES, 'UTF-8'));
+                $value      = nl2br($this->_esc($text($value)));
                 $skipEscape = true;
                 continue;
             }
@@ -1574,6 +1648,9 @@ class LayoutParser
             }
 
             if ($name === 'dump') {
+                if ($this->sandbox) {
+                    continue;
+                }
                 $value      = $this->_printDebug($value, $param, $heading);
                 $skipEscape = true;
                 continue;
@@ -1590,10 +1667,29 @@ class LayoutParser
 
         $value = $text($value);
         if (!$skipEscape) {
-            $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            $value = $this->_esc($value);
         }
 
         return $value;
+    }
+
+    /** The one escape for values — honours setDoubleEncode(). */
+    private function _esc(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8', $this->doubleEncode);
+    }
+
+    /** setRawKeys(): exact key, or "*.FIELD" for that field in any loop. */
+    private function _isRawKey(string $key): bool
+    {
+        if ($this->rawKeys === [] || $key === '') {
+            return false;
+        }
+        if (isset($this->rawKeys[$key])) {
+            return true;
+        }
+        $dot = strrpos($key, '.');
+        return $dot !== false && isset($this->rawKeys['*' . substr($key, $dot)]);
     }
 
     /**
