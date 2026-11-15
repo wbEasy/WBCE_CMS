@@ -225,8 +225,10 @@ function _wbe_resolve(string $input): string
             $anyHit = true;
         } else {
             if (Lang::isTracking()) {
-                $trace  = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-                $caller = $trace[2] ?? $trace[1] ?? $trace[0];
+                // [0] = the call of _wbe_resolve() inside L_(),
+                // [1] = the call of L_() — that file/line is what to log
+                $trace  = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+                $caller = $trace[1] ?? $trace[0];
                 Lang::recordMiss($ns, $key, $caller['file'] ?? '', (int)($caller['line'] ?? 0));
             }
             $replacement = $fallback ?? ucfirst(strtolower(str_replace('_', ' ', $key)));

@@ -480,7 +480,14 @@ class Lang
         }
         $lines[] = "];\n";
 
-        file_put_contents($logFile, implode('', $lines));
+        // temp file + rename: a request reading the log never sees half a file
+        $tmp = $logFile . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (@file_put_contents($tmp, implode('', $lines), LOCK_EX) === false) {
+            return;
+        }
+        if (!@rename($tmp, $logFile)) {
+            @unlink($tmp);
+        }
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
@@ -553,7 +560,12 @@ class Lang
         if (!$logFile || !is_file($logFile)) return;
 
         // The file guard checks for WB_PATH — always defined by this point.
-        $data = include $logFile;
+        // A damaged log must not take the page down: start a fresh one.
+        try {
+            $data = include $logFile;
+        } catch (\Throwable) {
+            $data = null;
+        }
         if (is_array($data)) {
             self::$loggedMisses = $data;
         }

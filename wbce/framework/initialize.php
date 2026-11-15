@@ -167,6 +167,13 @@ if (!defined("LANGUAGE")) {
 }
 Lang::setLocale(LANGUAGE);
 
+// MISSING TRANSLATIONS — logged for administrators only, so translators get
+// a list in var/logs/i18n_missing.php; visitors never pay for it. Before the
+// module init phase, so misses in initialize.php files are caught as well.
+if (wbce_session_is_admin($_SESSION['GROUPS_ID'] ?? null)) {
+    Lang::enableTracking();
+}
+
 // MODULES initialize.php  (and initialize_fe.php / initialize_be.php)
 // Locale is already set above — Lang::loadLanguage() calls in module init
 // files will use the correct user language.
@@ -349,6 +356,23 @@ function wbce_setup_error_reporting(): void
         ini_set('display_errors', '1');
     }
     // For E0 and unknown values we leave display_errors as configured in php.ini
+}
+
+/**
+ * Is the session's user in the administrators group (group 1)?
+ *
+ * Used during boot, before any Admin/Frontend object exists — reads the
+ * comma-separated group list Login stores in $_SESSION['GROUPS_ID'].
+ *
+ * @param  mixed $groupsId  $_SESSION['GROUPS_ID'] or null
+ * @return bool
+ */
+function wbce_session_is_admin(mixed $groupsId): bool
+{
+    if (!is_string($groupsId) && !is_int($groupsId)) {
+        return false;
+    }
+    return in_array('1', array_map('trim', explode(',', (string) $groupsId)), true);
 }
 
 /**
