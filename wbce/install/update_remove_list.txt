@@ -178,6 +178,7 @@
 # === DIRECTORIES TO REMOVE ===
 
 [ROOT]/log/
+[ROOT]/var/modules/elfinder/.tmb/          // elFinder thumbnails now in temp/modules/elfinder/thumbs (var/ has no exceptions)
 [ACCOUNT]/email_templates/                 // old email templates
 [ACCOUNT]/functions/
 [ACCOUNT]/languages/

@@ -690,8 +690,10 @@ if (!function_exists('page_link')) {
  *
  * var/ holds the SQLite database (var/database/), logs, backups and caches.
  * Shipped with the core, recreated here when missing (FTP clients often skip
- * dotfiles); installer and updater call this. Existing files are never
- * touched (they may carry local adjustments).
+ * dotfiles); installer and updater call this. An existing file is replaced
+ * only when it is word for word an earlier shipped version (see
+ * varOutdatedFileHashes()); anything else may carry local adjustments and
+ * is left alone.
  *   - .htaccess          Apache (and LiteSpeed)
  *   - web.config         IIS
  *   - access_check.txt   probe for varDirectoryExposure(): if it can be
@@ -699,11 +701,12 @@ if (!function_exists('page_link')) {
  * nginx reads neither file — there the server config must deny var/; the
  * start page tells administrators when that is needed (varExposureHint()).
  *
+ * @param  string|null $sDir  the directory to protect; default WB_PATH/var
  * @return bool true if var/.htaccess is in place afterwards
  */
-function protectVarDirectory(): bool
+function protectVarDirectory(?string $sDir = null): bool
 {
-    $sDir = WB_PATH . '/var';
+    $sDir ??= WB_PATH . '/var';
     if (!is_dir($sDir)) {
         return false;
     }
@@ -712,12 +715,34 @@ function protectVarDirectory(): bool
         'web.config'       => varWebConfigContent(),
         'access_check.txt' => varAccessCheckContent(),
     ];
+    $aOutdated = varOutdatedFileHashes();
     foreach ($aFiles as $sName => $sContent) {
-        if (!is_file($sDir . '/' . $sName)) {
-            @file_put_contents($sDir . '/' . $sName, $sContent);
+        $sFile = $sDir . '/' . $sName;
+        if (is_file($sFile)) {
+            $sHash = sha1(str_replace("\r\n", "\n", (string) @file_get_contents($sFile)));
+            if (!in_array($sHash, $aOutdated[$sName] ?? [], true)) {
+                continue;
+            }
         }
+        @file_put_contents($sFile, $sContent);
     }
     return is_file($sDir . '/.htaccess');
+}
+
+/**
+ * sha1 (of the content with LF line endings) of every earlier shipped version
+ * of the files protectVarDirectory() maintains. A file matching one of them
+ * was never edited locally and is brought up to date.
+ *
+ * @return array<string, string[]> file name => hashes
+ */
+function varOutdatedFileHashes(): array
+{
+    return [
+        // 1.7.0 builds until 2026-11: allowed elFinder's thumbnails in var/modules/elfinder/.tmb/
+        '.htaccess'  => ['3f0ec09ce55c48274265cf21fcc509d6c30683c2'],
+        'web.config' => ['21fc9008bdf3c68177c7fac2e1cfdcb844919030'],
+    ];
 }
 
 /**
@@ -731,13 +756,11 @@ function varHtaccessContent(): string
     return <<<'HTACCESS'
     # WBCE CMS — var/ holds runtime data: the SQLite database, logs, backups,
     # caches and addon staging. None of it is meant to be fetched over HTTP.
-    # Kept in sync with protectVarDirectory() in framework/functions.php.
+    # No exceptions: files the browser loads belong in media/, temp/ or the
+    # module folder. Kept in sync with varHtaccessContent() in
+    # framework/functions.php.
     <IfModule mod_authz_core.c>
         Require all denied
-        # elFinder serves its thumbnails from here (modules/elfinder/ef/wbce-opts.php)
-        <If "%{REQUEST_URI} =~ m#/var/modules/elfinder/\.tmb/[^/]+\.(?:png|jpe?g|gif|webp)$#i">
-            Require all granted
-        </If>
     </IfModule>
     <IfModule !mod_authz_core.c>
         Order deny,allow
@@ -749,7 +772,7 @@ function varHtaccessContent(): string
 
 /**
  * Content of var/web.config (IIS) — see protectVarDirectory(). Denies every
- * request below var/ except elFinder's thumbnails. Needs IIS URL
+ * request below var/, without exceptions. Needs IIS URL
  * Authorization; without it IIS answers var/ requests with an error, which
  * still keeps the files closed. The shipped file must stay identical
  * (tests/Framework/CoreSecurityTest.php checks that).
@@ -772,17 +795,6 @@ function varWebConfigContent(): string
           </authorization>
         </security>
       </system.webServer>
-      <!-- elFinder serves its thumbnails from here -->
-      <location path="modules/elfinder/.tmb">
-        <system.webServer>
-          <security>
-            <authorization>
-              <remove users="*" roles="" verbs="" />
-              <add accessType="Allow" users="*" />
-            </authorization>
-          </security>
-        </system.webServer>
-      </location>
     </configuration>
 
     WEBCONFIG;

@@ -100,11 +100,22 @@ if (!function_exists('elfinder_wbce_build_opts')) {
             $nomk = 'mkdir';
         }
 
+        // elFinder creates a missing tmbPath with a non-recursive mkdir(),
+        // which fails while temp/modules/elfinder/ does not exist yet
+        $sTmbDir = WB_PATH . '/temp/modules/elfinder/thumbs';
+        if (!is_dir($sTmbDir)) {
+            @mkdir($sTmbDir, defined('OCTAL_DIR_MODE') ? OCTAL_DIR_MODE : 0755, true);
+        }
+
         $root = array(
             'driver'        => 'LocalFileSystem',
             'quarantine'    => WB_PATH . '/var/modules/elfinder/.quarantine',
-            'tmbPath'       => WB_PATH . '/var/modules/elfinder/.tmb',
-            'tmbURL'        => WB_URL . '/var/modules/elfinder/.tmb',
+            // Thumbnails are fetched by the browser, so they live in temp/
+            // (public), not in var/ (closed for web access, no exceptions).
+            // No leading dot: many nginx setups deny every path segment
+            // starting with ".". The folder is created above.
+            'tmbPath'       => $sTmbDir,
+            'tmbURL'        => WB_URL . '/temp/modules/elfinder/thumbs',
             'winHashFix'    => DIRECTORY_SEPARATOR !== '/',
             'accessControl' => 'access',
             'acceptedName'  => 'wbce_filenames_ok',

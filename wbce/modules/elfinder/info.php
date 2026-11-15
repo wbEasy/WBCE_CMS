@@ -13,7 +13,7 @@
 $module_directory = 'elfinder';
 $module_name = 'elFinder';
 $module_function = 'tool';
-$module_version = '2.1.69';
+$module_version = '2.1.69.1';
 $module_platform = '1.6.0';
 $module_author = 'WBCE';
 $module_license = 'Modul under GPL, elFinder under BSD';
@@ -23,6 +23,9 @@ $module_level = 'core';
 
 /**
  * Version history
+ * 2.1.69.1 - thumbnails moved from var/modules/elfinder/.tmb to
+ *            temp/modules/elfinder/thumbs: var/ is closed for web access without
+ *            exceptions now
  * 2.1.69 - WBCE-side fix on top of elFinder 2.1.68 (the 4th digit is the
  *            WBCE patch level; the first three stay in sync with elFinder):
  *            archive/put/chmod are disabled without media_upload, so a
