@@ -415,6 +415,72 @@ function get_subs(int $iParentID, array $aSubs = []): array
     return $aSubs;
 }
 
+/**
+ * All sections of a page, keyed by section_id, in page order.
+ *
+ * A global function in WBCE 1.6 (class.wb.php), kept because modules and
+ * templates call it without an object. Wbce::get_page_sections() builds on
+ * it and adds the translated 'module_name'.
+ *
+ * @param  int|null $iPageID               null = the current page (PAGE_ID / $page_id)
+ * @param  bool     $bExcludeNonPublicised skip sections outside their publication window
+ * @return array<int, array<string, mixed>> rows of {TP}sections; [] for no/unknown page
+ */
+function get_page_sections(?int $iPageID = null, bool $bExcludeNonPublicised = false): array
+{
+    global $database;
+
+    if ($iPageID === null) {
+        $iPageID = (int) (defined('PAGE_ID') ? PAGE_ID : ($GLOBALS['page_id'] ?? 0));
+    }
+    if ($iPageID <= 0) {
+        return [];
+    }
+
+    $aRows = $database->fetchAll(
+        'SELECT * FROM `{TP}sections` WHERE `page_id` = ? ORDER BY `position`',
+        [$iPageID]
+    );
+
+    $iNow      = time();
+    $aSections = [];
+    foreach ($aRows as $rec) {
+        if ($bExcludeNonPublicised) {
+            $iStart = (int) $rec['publ_start'];
+            $iEnd   = (int) $rec['publ_end'];
+            if (($iStart !== 0 && $iNow < $iStart) || ($iEnd !== 0 && $iNow > $iEnd)) {
+                continue;
+            }
+        }
+        $aSections[(int) $rec['section_id']] = $rec;
+    }
+    return $aSections;
+}
+
+/**
+ * Does a page have at least one section of the given module?
+ *
+ * A global function in WBCE 1.6 (class.wb.php), kept for modules and
+ * templates that load assets only where their module is used.
+ *
+ * @param  string   $sModuleDir module directory name, e.g. 'news_img'
+ * @param  int|null $iPageID    null = the current page
+ * @return bool
+ */
+function is_module_on_page(string $sModuleDir = '', ?int $iPageID = null): bool
+{
+    $sModuleDir = strtolower($sModuleDir);
+    if ($sModuleDir === '') {
+        return false;
+    }
+    foreach (get_page_sections($iPageID) as $aSection) {
+        if ($aSection['module'] === $sModuleDir) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 
 /**

@@ -1340,35 +1340,18 @@ class Wbce extends SecureForm
     /**
      * Return an array of all sections for a given page.
      *
-     * @param  int|null $iPageID
+     * Same as the global get_page_sections() (framework/functions.php),
+     * plus the translated 'module_name' of every section.
+     *
+     * @param  int|null $iPageID                null = the current page
      * @param  bool     $bExcludeNonPublicised  Skip sections outside their publication window
      * @return array
      */
     public function get_page_sections(?int $iPageID = null, bool $bExcludeNonPublicised = false): array
     {
-        $aSections = array();
-
-        if ($iPageID == null) {
-            global $page_id;
-            $iPageID = defined('PAGE_ID') ? PAGE_ID : $page_id;
-        } else {
-            $iPageID = (int)$iPageID;
-        }
-
-        if ($iPageID > 0) {
-            $sSql = 'SELECT * FROM `{TP}sections` WHERE `page_id` = ? ORDER BY `position`';
-            if ($resSections = $this->db->query($sSql, [$iPageID])) {
-                while ($rec = $resSections->fetchRow(MYSQLI_ASSOC)) {
-                    if ($bExcludeNonPublicised == true) {
-                        $iNowTime = time();
-                        if (!(($iNowTime <= $rec['publ_end'] || $rec['publ_end'] == 0) && ($iNowTime >= $rec['publ_start'] || $rec['publ_start'] == 0))) {
-                            continue;
-                        }
-                    }
-                    $aSections[$rec['section_id']] = $rec;
-                    $aSections[$rec['section_id']]['module_name'] = $this->get_module_name($rec['module']);
-                }
-            }
+        $aSections = get_page_sections($iPageID, $bExcludeNonPublicised);
+        foreach ($aSections as $iSectionID => $rec) {
+            $aSections[$iSectionID]['module_name'] = $this->get_module_name($rec['module']);
         }
         return $aSections;
     }
