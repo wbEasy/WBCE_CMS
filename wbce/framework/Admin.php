@@ -101,8 +101,12 @@ class Admin extends Wbce
     private function redirectIfLanguageMismatch(): void
     {
         // a redirected POST arrives as GET without its body — the script's
-        // save would be lost without a word; its response language can wait
+        // save would be lost without a word; its response language can wait.
+        // Typical trigger: the admin opens the frontend preview of a page in
+        // another language (Frontend sets $_SESSION['LANGUAGE']) and then
+        // saves page settings / sections in the first tab (forum #6105).
         if (BackendAjax::isAjax()) return;
+        if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) return;
 
         $user_language = $this->db->fetchValue(
             'SELECT `language` FROM `{TP}users` WHERE `user_id` = ?',
